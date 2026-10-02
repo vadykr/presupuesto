@@ -1,0 +1,96 @@
+name: Vista previa (GitHub Pages)
+
+# Cada push a master (o un lanzamiento manual) compila SOLO el cliente web y lo
+# publica como sitio estático en GitHub Pages:
+#   https://vadykr.github.io/presupuesto/
+# Sirve para probar la app en el móvil sin servidor y sin pagar nada: los datos
+# se guardan en el navegador (IndexedDB) y no hay sincronización. Detalles y
+# limitaciones en DESPLIEGUE.md, sección «Vista previa sin servidor».
+#
+# Primera vez: Settings → Pages → Build and deployment → Source: «GitHub Actions».
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un solo despliegue a la vez; el que está en curso termina (no se cancela)
+# para no dejar Pages a medias.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Subruta bajo la que Pages sirve el sitio del repositorio. Si algún día se
+  # usa un dominio propio (CNAME), cambiar a «/».
+  PUBLIC_URL: /${{ github.event.repository.name }}/
+  # Dominio propio opcional. Si se define la variable de repositorio
+  # PAGES_CNAME (Settings → Secrets and variables → Actions → Variables), se
+  # escribe un archivo CNAME en el sitio y PUBLIC_URL debe pasar a «/».
+  PAGES_CNAME: ${{ vars.PAGES_CNAME }}
+
+jobs:
+  build:
+    name: Compilar el cliente web
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Preparar Node, dependencias y traducciones
+        uses: ./.github/actions/setup
+
+      # Con dominio propio el sitio se sirve en la raíz, no en /presupuesto/.
+      - name: Ajustar la ruta base si hay dominio propio
+        if: env.PAGES_CNAME != ''
+        run: echo "PUBLIC_URL=/" >> "$GITHUB_ENV"
+
+      # Las traducciones ya las dejó el paso anterior, así que no se vuelven
+      # a clonar. PUBLIC_URL hace que todos los recursos (JS, CSS, worker,
+      # sql-wasm, datos) se referencien bajo la subruta.
+      - name: Compilar cliente web
+        run: yarn build:browser --skip-translations
+        env:
+          NODE_OPTIONS: --max_old_space_size=6144
+
+      # - 404.html: GitHub Pages lo sirve para cualquier ruta que no exista
+      #   como archivo; al ser copia de index.html la app arranca y el router
+      #   resuelve la ruta (/presupuesto/accounts, etc.).
+      # - .nojekyll: evita que Pages pase el sitio por Jekyll, que ignora los
+      #   archivos y carpetas que empiezan por «_».
+      # - CNAME: solo con dominio propio.
+      - name: Preparar el sitio para Pages
+        working-directory: packages/desktop-client/build
+        run: |
+          cp index.html 404.html
+          touch .nojekyll
+          rm -f _headers _redirects
+          if [ -n "$PAGES_CNAME" ]; then echo "$PAGES_CNAME" > CNAME; fi
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      - name: Subir el sitio
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: packages/desktop-client/build
+
+  deploy:
+    name: Publicar en GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Desplegar
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
