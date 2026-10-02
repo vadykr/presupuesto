@@ -13,6 +13,7 @@ import {
   notaConIgnorarMes,
   notaConObjetivo,
   notaIgnoraMes,
+  notaSinObjetivo,
   objetivoDesdePlantillas,
   totalInfrafinanciado,
 } from './objetivos';
@@ -520,5 +521,24 @@ describe('cuotaMensual', () => {
 
   it('nunca es negativa', () => {
     expect(cuotaMensual(100_00, 500_00, '2027-01-01', '2026-10')).toBe(0);
+  });
+});
+
+describe('notaSinObjetivo', () => {
+  it('quita las líneas de objetivo', () => {
+    expect(notaSinObjetivo('#template 38.47')).toBe('');
+    expect(notaSinObjetivo('Recibo trimestral\n#template 20\n#goal 100')).toBe(
+      'Recibo trimestral',
+    );
+    expect(notaSinObjetivo('  #Objetivo 50 al mes\nOtra cosa')).toBe(
+      'Otra cosa',
+    );
+  });
+
+  it('deja el resto intacto y tolera null', () => {
+    expect(notaSinObjetivo('Uso #template en medio')).toBe(
+      'Uso #template en medio',
+    );
+    expect(notaSinObjetivo(null)).toBe('');
   });
 });

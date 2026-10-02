@@ -9,10 +9,15 @@ import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryEntity } from '@actual-app/core/types/models';
-import { AutoTextSize } from 'auto-text-size';
 
 import { makeAmountGrey } from '#components/budget/util';
-import { color, num, radio } from '#components/mobile/ui/tokens';
+import {
+  color,
+  densidad,
+  num,
+  radio,
+  TACTIL,
+} from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { CellValue } from '#components/spreadsheet/CellValue';
 import { useFormat } from '#hooks/useFormat';
@@ -218,7 +223,9 @@ export function BudgetCell<
               flexDirection: 'column',
               alignItems: 'flex-end',
               justifyContent: 'center',
-              minHeight: 44,
+              // Zona táctil de 44 px sin engordar la fila (contenido de 32).
+              minHeight: TACTIL,
+              margin: `${-(TACTIL - 32) / 2}px 0`,
               maxWidth: columnWidth,
               padding: isSelected ? '4px 7px' : '4px 2px',
               borderRadius: radio.sm,
@@ -242,9 +249,7 @@ export function BudgetCell<
                       ...num,
                       maxWidth: columnWidth,
                       textAlign: 'right',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      lineHeight: 1.2,
+                      ...densidad.cifra,
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -256,8 +261,8 @@ export function BudgetCell<
                         ...num,
                         maxWidth: columnWidth,
                         textAlign: 'right',
-                        fontSize: 11.5,
-                        fontWeight: 700,
+                        ...densidad.pequeno,
+                        lineHeight: '14px',
                         whiteSpace: 'nowrap',
                         color:
                           display.secondary.op === '-'
@@ -273,24 +278,22 @@ export function BudgetCell<
                 </View>
               ) : (
                 <View style={{ alignItems: 'flex-end' }}>
-                  <AutoTextSize
-                    key={value}
-                    as={Text}
-                    minFontSizePx={9}
-                    maxFontSizePx={14}
-                    mode="oneline"
+                  <Text
+                    data-testid="budget-cell-amount"
                     style={{
-                      ...num,
                       maxWidth: columnWidth,
                       textAlign: 'right',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      lineHeight: 1.2,
+                      ...densidad.cifra,
+                      // Cifras de 7 dígitos: un punto menos para caber en 92 px.
+                      ...(format(value, type).length > 11 && {
+                        fontSize: 12.5,
+                      }),
+                      whiteSpace: 'nowrap',
                       ...makeAmountGrey(value),
                     }}
                   >
                     {format(value, type)}
-                  </AutoTextSize>
+                  </Text>
                   {spentBinding && <GastoDelMes binding={spentBinding} />}
                 </View>
               )}
@@ -318,9 +321,8 @@ function GastoDelMes({
       data-testid="budget-cell-spent"
       style={{
         ...num,
-        fontSize: 11.5,
-        fontWeight: 700,
-        lineHeight: 1.2,
+        ...densidad.pequeno,
+        lineHeight: '14px',
         whiteSpace: 'nowrap',
         color: spent < 0 ? color.bad : color.ok,
       }}

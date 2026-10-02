@@ -41,6 +41,7 @@ import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
 import { useAssignKeypad } from './AssignKeypadContext';
 import type { KeypadKey } from './AssignKeypadContext';
+import { useFaltanteObjetivo } from './useFaltanteObjetivo';
 import { useIgnorarMes } from './useIgnorarMes';
 
 const entrarDesdeAbajo = keyframes({
@@ -442,6 +443,35 @@ function ActionPills({ category, onEditCategory }: ActionPillsProps) {
   const onMoveMoney = useMoveMoneyModal(category);
 
   const { ignorada, setIgnorada } = useIgnorarMes(category.id, month);
+  const format = useFormat();
+  // «Asignar 86,32 € para el objetivo»: solo si la categoría está
+  // infrafinanciada (el mismo cálculo que «Asignar el mes»).
+  const { falta, asignado } = useFaltanteObjetivo(category, month);
+  const onAsignarObjetivo = useCallback(() => {
+    if (!onBudgetAction || falta <= 0) {
+      return;
+    }
+    reset?.();
+    const amount = asignado + falta;
+    onBudgetAction(month, 'budget-amount', { category: category.id, amount });
+    showUndoNotification({
+      message: t('{{categoryName}} budget has been updated to {{amount}}.', {
+        categoryName: category.name,
+        amount: format(amount, 'financial'),
+      }),
+    });
+  }, [
+    asignado,
+    category.id,
+    category.name,
+    falta,
+    format,
+    month,
+    onBudgetAction,
+    reset,
+    showUndoNotification,
+    t,
+  ]);
 
   const pillStyle = ({ isPressed }: { isPressed: boolean }): CSSProperties => ({
     flex: 1,
@@ -466,80 +496,118 @@ function ActionPills({ category, onEditCategory }: ActionPillsProps) {
     color: theme.menuItemText,
   };
 
+  const botonIgnorar = (
+    <BotonIgnorar
+      ignorada={ignorada}
+      onPress={() => void setIgnorada(!ignorada)}
+      style={pillStyle}
+    />
+  );
+
   return (
-    <View style={{ flexDirection: 'row', gap: GAP }}>
-      <Button
-        variant="bare"
-        ref={autoAssignRef}
-        style={pillStyle}
-        onPress={() => setAutoAssignOpen(true)}
-        data-testid="keypad-auto-assign"
-        aria-label={t('Auto-assign')}
-      >
-        <Icono nombre="zap" size={16} style={icono} />
-        <Trans>Auto</Trans>
-      </Button>
-      <Popover
-        triggerRef={autoAssignRef}
-        isOpen={autoAssignOpen}
-        placement="top start"
-        onOpenChange={() => setAutoAssignOpen(false)}
-        style={{ zIndex: KEYPAD_Z_INDEX + 1 }}
-      >
-        <Menu
-          getItemStyle={() => menuItemStyle}
-          onMenuSelect={onAutoAssignSelect}
-          items={[
-            { name: 'copy-single-last', text: t("Copy last month's budget") },
-            { name: 'set-single-3-avg', text: t('Set to 3 month average') },
-            { name: 'set-single-6-avg', text: t('Set to 6 month average') },
-            { name: 'set-single-12-avg', text: t('Set to yearly average') },
-            ...(budgetType === 'tracking'
-              ? [
-                  {
-                    name: 'copy-until-year-end',
-                    text: t('Copy until year end'),
-                  },
-                ]
-              : []),
-            ...(isGoalTemplatesEnabled
-              ? [
-                  {
-                    name: 'apply-single-category-template',
-                    text: t('Overwrite with template'),
-                  },
-                ]
-              : []),
-          ]}
-        />
-      </Popover>
-      {budgetType === 'envelope' && (
+    <>
+      <View style={{ flexDirection: 'row', gap: GAP }}>
+        <Button
+          variant="bare"
+          ref={autoAssignRef}
+          style={pillStyle}
+          onPress={() => setAutoAssignOpen(true)}
+          data-testid="keypad-auto-assign"
+          aria-label={t('Auto-assign')}
+        >
+          <Icono nombre="zap" size={16} style={icono} />
+          <Trans>Auto</Trans>
+        </Button>
+        <Popover
+          triggerRef={autoAssignRef}
+          isOpen={autoAssignOpen}
+          placement="top start"
+          onOpenChange={() => setAutoAssignOpen(false)}
+          style={{ zIndex: KEYPAD_Z_INDEX + 1 }}
+        >
+          <Menu
+            getItemStyle={() => menuItemStyle}
+            onMenuSelect={onAutoAssignSelect}
+            items={[
+              { name: 'copy-single-last', text: t("Copy last month's budget") },
+              { name: 'set-single-3-avg', text: t('Set to 3 month average') },
+              { name: 'set-single-6-avg', text: t('Set to 6 month average') },
+              { name: 'set-single-12-avg', text: t('Set to yearly average') },
+              ...(budgetType === 'tracking'
+                ? [
+                    {
+                      name: 'copy-until-year-end',
+                      text: t('Copy until year end'),
+                    },
+                  ]
+                : []),
+              ...(isGoalTemplatesEnabled
+                ? [
+                    {
+                      name: 'apply-single-category-template',
+                      text: t('Overwrite with template'),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </Popover>
+        {budgetType === 'envelope' && (
+          <Button
+            variant="bare"
+            style={pillStyle}
+            onPress={onMoveMoney}
+            data-testid="keypad-move-money"
+            aria-label={t('Move money')}
+          >
+            <Icono nombre="move" size={16} style={icono} />
+            <Trans>Move</Trans>
+          </Button>
+        )}
         <Button
           variant="bare"
           style={pillStyle}
-          onPress={onMoveMoney}
-          data-testid="keypad-move-money"
-          aria-label={t('Move money')}
+          onPress={() => onEditCategory(category.id)}
+          data-testid="keypad-details"
         >
-          <Icono nombre="move" size={16} style={icono} />
-          <Trans>Move</Trans>
+          <Icono nombre="info" size={16} style={icono} />
+          <Trans>Details</Trans>
         </Button>
+        {falta <= 0 && botonIgnorar}
+      </View>
+      {falta > 0 && (
+        <View style={{ flexDirection: 'row', gap: GAP }}>
+          <Button
+            variant="bare"
+            onPress={onAsignarObjetivo}
+            data-testid="keypad-asignar-objetivo"
+            style={({ isPressed }) => ({
+              flex: 3,
+              minWidth: 0,
+              height: PILL_HEIGHT,
+              minHeight: PILL_HEIGHT,
+              borderRadius: radio.pildora,
+              padding: '0 12px',
+              fontSize: 14,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              backgroundColor: color.accentSoft,
+              color: color.accent,
+              transform: isPressed ? 'scale(0.98)' : undefined,
+              transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}`,
+              ...num,
+            })}
+          >
+            {t('Assign {{amount}} for the target', {
+              amount: format(falta, 'financial'),
+            })}
+          </Button>
+          {botonIgnorar}
+        </View>
       )}
-      <Button
-        variant="bare"
-        style={pillStyle}
-        onPress={() => onEditCategory(category.id)}
-        data-testid="keypad-details"
-      >
-        <Icono nombre="info" size={16} style={icono} />
-        <Trans>Details</Trans>
-      </Button>
-      <BotonIgnorar
-        ignorada={ignorada}
-        onPress={() => void setIgnorada(!ignorada)}
-        style={pillStyle}
-      />
-    </View>
+    </>
   );
 }
 

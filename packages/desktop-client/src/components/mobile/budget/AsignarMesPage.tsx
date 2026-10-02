@@ -33,9 +33,9 @@ import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
 import { Icono } from '#components/mobile/ui/Icono';
 import { IconoZz } from '#components/mobile/ui/IconoZz';
 import { SelectorMes } from '#components/mobile/ui/SelectorMes';
-import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
 import {
   color,
+  densidad,
   espacio,
   movimiento,
   num,
@@ -354,10 +354,8 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
             key={grupo.id}
             data-testid="asignar-grupo"
             style={{
-              ...estiloTarjeta('normal', 0),
               flexShrink: 0,
-              overflow: 'hidden',
-              margin: `0 ${espacio.margen}px ${espacio.tarjetas}px`,
+              borderBottom: `1px solid ${color.line}`,
             }}
           >
             <CabeceraGrupo
@@ -697,22 +695,26 @@ function CabeceraGrupo({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 8,
-        minHeight: 48,
-        padding: '2px 14px',
+        height: densidad.altoGrupo,
+        padding: `0 ${densidad.margen}px`,
+        backgroundColor: color.surface2,
       }}
     >
       <RowName
         name={grupo.name}
         width="55vw"
         onPress={onToggle}
-        textStyle={{ fontSize: 15, fontWeight: 800, color: color.fg }}
+        lineas={1}
+        minHeight={densidad.altoGrupo - 2}
+        textStyle={{ ...densidad.grupo, color: color.fg }}
         data-testid="asignar-grupo-nombre"
         leading={
           <Icono
             nombre="cd"
-            size={18}
+            size={14}
             style={{
-              marginRight: 6,
+              flexShrink: 0,
+              marginRight: 8,
               color: color.fg3,
               transition: `transform ${movimiento.pildora}ms ${movimiento.muelle}`,
               transform: plegado ? 'rotate(-90deg)' : '',
@@ -722,7 +724,7 @@ function CabeceraGrupo({
       />
       <PrivacyFilter>
         <Text
-          style={{ ...num, fontSize: 13, fontWeight: 800, color: color.fg2 }}
+          style={{ ...densidad.grupoCifra, color: color.fg3, flexShrink: 0 }}
         >
           {format(asignado, 'financial')}
         </Text>
@@ -836,16 +838,18 @@ function FilaCategoria({
         display: 'flex',
         flexShrink: 0,
         width: '100%',
+        minHeight: densidad.altoFilaBarra,
         flexDirection: 'column',
         alignItems: 'stretch',
-        gap: 8,
-        padding: '12px 14px',
+        justifyContent: 'center',
+        gap: 4,
+        padding: `8px ${densidad.margen}px 8px ${densidad.margen + densidad.sangria}px`,
         borderRadius: 0,
-        borderTop: primera ? undefined : `1px solid ${color.line}`,
+        boxShadow: primera ? undefined : `inset 0 1px 0 ${color.line}`,
         textAlign: 'left',
         color: color.fg,
         opacity: estado.tipo === 'ignorada' ? 0.62 : 1,
-        backgroundColor: isSelected ? color.accentSoft : 'transparent',
+        backgroundColor: isSelected ? color.accentSoft : color.surface,
         transition: `background-color ${movimiento.pildora}ms`,
       }}
     >
@@ -863,23 +867,19 @@ function FilaCategoria({
             minWidth: 0,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 8,
+            gap: 6,
           }}
         >
           {emoji && (
-            <Text
-              aria-hidden
-              style={{ fontSize: 18, width: 24, textAlign: 'center' }}
-            >
+            <Text aria-hidden style={{ ...densidad.emoji, flexShrink: 0 }}>
               {emoji}
             </Text>
           )}
           <Text
             style={{
               ...styles.lineClamp(2),
+              ...densidad.nombre,
               flex: 1,
-              fontSize: 14.5,
-              fontWeight: 700,
               color: color.fg,
             }}
             data-testid="asignar-nombre"
@@ -892,19 +892,16 @@ function FilaCategoria({
             alignItems: 'flex-end',
             flexShrink: 0,
             ...(isSelected && {
-              border: `2px solid ${color.accent}`,
-              borderRadius: radio.sm,
-              padding: '2px 7px',
-              backgroundColor: color.bg,
+              outline: `2px solid ${color.accent}`,
+              outlineOffset: 2,
+              borderRadius: 6,
             }),
           }}
         >
           <PrivacyFilter>
             <Text
               style={{
-                ...num,
-                fontSize: 14.5,
-                fontWeight: 800,
+                ...densidad.cifra,
                 color:
                   estado.tipo === 'sobregastada' && !display
                     ? color.bad
@@ -919,9 +916,9 @@ function FilaCategoria({
             <PrivacyFilter>
               <Text
                 style={{
+                  ...densidad.pequeno,
                   ...num,
-                  fontSize: 11.5,
-                  fontWeight: 700,
+                  lineHeight: '14px',
                   color:
                     display.secondary.op === '-' ? color.bad : color.accent,
                 }}
@@ -933,16 +930,46 @@ function FilaCategoria({
           )}
         </View>
       </View>
-      <BarraProgreso valor={estado.progreso} color={colorEstado} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        {estado.tipo === 'ignorada' && <IconoZz color={colorEstado} />}
-        <Text
-          style={{ fontSize: 12.5, fontWeight: 700, color: colorEstado }}
-          data-testid="asignar-estado"
-          data-ignorada={estado.tipo === 'ignorada' || undefined}
+      {/* Estado a la izquierda y barra a la derecha, bajo la cifra: una sola
+          línea para que la fila quede en 56 px. */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+          }}
         >
-          {textoEstado(estado, dia)}
-        </Text>
+          {estado.tipo === 'ignorada' && <IconoZz color={colorEstado} />}
+          <Text
+            style={{
+              ...densidad.pequeno,
+              color: colorEstado,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              minWidth: 0,
+            }}
+            data-testid="asignar-estado"
+            data-ignorada={estado.tipo === 'ignorada' || undefined}
+          >
+            {textoEstado(estado, dia)}
+          </Text>
+        </View>
+        <BarraProgreso
+          valor={estado.progreso}
+          color={colorEstado}
+          alto={5}
+          style={{ width: densidad.colAsignado - 20 }}
+        />
       </View>
     </Button>
   );

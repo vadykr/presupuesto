@@ -55,6 +55,10 @@ import {
 - `espacio`: `fila` 8 · `icono` 12 · `tarjetas` 14 · `margen` 16 (margen y relleno de tarjeta) · `seccion` 24.
 - `texto` (escala contenida, oct-2026): `display` 26/800 · `heroe` 28/800 · `cifra` 26/800 · `titulo` 16/800 · `seccion` 15/800 · `fila` 15/700 · `cuerpo` 14/500 · `secundario` 13/500 · `pequeno` 12.5/700 · `etiqueta` 11/800 mayúsculas; `INTERLINEADO` 1,25. Frases explicativas: 2 líneas como máximo (`Hero` las recorta), sin justificar.
 - `num` → `font-variant-numeric: tabular-nums` (los temas Presupuesto ya lo ponen en `body`).
+- `densidad` (listas del presupuesto, ver § 8): `nombre` 15/500 · `emoji` 15 · `cifra` 14/600 tabular ·
+  `pildora` 13/700 · `pequeno` 12/600 · `grupo` 15/700 · `grupoCifra` 13/600; `altoFila` 52 ·
+  `altoGrupo` 46 · `altoFilaBarra` 56; `margen` 16 · `vertical` 10 · `sangria` 8; columnas
+  `colAsignado` 92 · `colDisponible` 96.
 - `movimiento`: `muelle` `cubic-bezier(.2,.9,.3,1.15)`, `tarjeta` 380 ms, `hoja` 320 ms, `fondo` 200 ms, `pildora` 180 ms, `cifra` 400 ms, `pulsar` 90 ms.
 - `TACTIL` = 44: ninguna zona táctil por debajo.
 
@@ -150,3 +154,51 @@ Capturas: `docs-vadym/capturas/estetica-*.png` (390×844, demo; `-claro` en modo
 - Tipografía más contenida y frases de Informes e Inicio en una línea.
 
 Capturas: `docs-vadym/capturas/pulido-*.png`.
+
+## 8. Densidad del Plan (rama `claude/plan-denso`)
+
+Medido contra YNAB a 390 px (captura de Vadym, oct-2026). Las medidas salen de `getComputedStyle` y
+`boundingBox` sobre el build real: `node docs-vadym/comprobar-densidad.mjs` falla si alguna no cuadra.
+
+| Elemento                         | Antes (medido)          | Ahora                |
+| -------------------------------- | ----------------------- | -------------------- |
+| Nombre de categoría              | 14 px / 700             | 15 px / 500          |
+| Emoji                            | 16 px en caja de 24     | 15 px, sin caja      |
+| Cifra de fila (asignado)         | 14 px / 700 (AutoText)  | 14 px / 600 tab.     |
+| Gasto bajo lo asignado           | 11,5 px / 700           | 12 px / 600          |
+| Píldora de disponible            | 13 px (11,5 si larga)   | 13 px / 700, 26 alto |
+| Alto de fila de categoría        | 57 px (76 con «Faltan») | 52 px                |
+| Nombre de grupo                  | 15 px / 800             | 15 px / 700          |
+| Totales de grupo                 | 12 px / 800 (`fg2`)     | 13 px / 600 `fg3`    |
+| Alto de fila de grupo            | 48 px                   | 46 px                |
+| «Listos para asignar»            | 15 px / 800, 48 alto    | 16 px / 700, 44      |
+| Mes / año de la cabecera         | 19 px / 12 px           | 22 px / 11 px        |
+| Banner rojo                      | 13,5 px, 56 alto        | 13 px, 48 alto       |
+| «Seguro Hipoteca»                | 2 líneas                | 1 línea              |
+| Letra más pequeña (Plan)         | 10,5 px (pestañas)      | 11 px                |
+| «Asignar el mes»: fila con barra | 14,5/700, ~81 px        | 15/500, 56 px        |
+| «Gasto anual»: fila              | 14,5/700, ~95 px        | 15/500, 56 px        |
+
+Reglas:
+
+- Sin tarjetas en la lista: el **grupo** es una franja `surface2` de 46 px (chevron de 14 px, nombre 15/700,
+  totales 13/600 en `fg3`, ⋮ de 18 px solo en el grupo); las **categorías** van debajo sobre `surface`, con
+  8 px de sangría, emoji delante del nombre y una línea fina (`inset 0 1px 0 line`, no suma alto) entre filas.
+- Columnas de cifras de ancho fijo (Asignado 92 · Disponible 96) y el nombre con `flex: 1`; el total
+  asignado del grupo no tiene ancho fijo para dejar sitio al nombre. Nombres de ≤ 24 caracteres sin elipsis
+  (pasan a dos líneas si no caben; la comprobación lo vigila).
+- Zonas táctiles de 44 px sin engordar la fila: el contenido mide 32 px y los botones llevan margen
+  negativo de 6 px arriba y abajo.
+- Nada bajo la fila: el estado del objetivo lo dice el color de la píldora (ámbar infrafinanciada, rojo
+  negativo, verde con saldo, gris cero). Sin letra < 11 px.
+- «Asignar el mes» y «Gasto anual»: nombre y cifra en la primera línea; estado (12 px, en su color) a la
+  izquierda y barra de 5 px bajo la cifra en la segunda. 56 px.
+
+Interacción del Plan: tocar el nombre o lo asignado abre el **teclado**; mantener pulsado el nombre abre
+la ficha (`category-menu`), que también está en «Detalles». Si la categoría está infrafinanciada, el
+teclado enseña «Asignar X para el objetivo» (asigna lo que falta, `useFaltanteObjetivo`) con «zZ Ignorar»
+a su derecha. La ficha oculta las líneas `#template` / `#goal` / `#objetivo` de la nota
+(`notaSinObjetivo`); si no queda nada, «Sin notas».
+
+Capturas: `plan-denso.png`, `plan-denso-teclado.png`, `plan-denso-ficha.png`, `plan-denso-asignar.png`,
+`plan-denso-anual.png`.

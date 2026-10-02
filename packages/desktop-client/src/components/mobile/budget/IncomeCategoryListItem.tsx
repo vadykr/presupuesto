@@ -4,14 +4,13 @@ import { GridListItem } from 'react-aria-components';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
-import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
+import { separarEmoji } from '#components/mobile/ui/emoji';
+import { color, densidad, TACTIL } from '#components/mobile/ui/tokens';
 import { useNavigate } from '#hooks/useNavigate';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { collapseModals, pushModal } from '#modals/modalsSlice';
@@ -21,7 +20,7 @@ import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 import { useAssignKeypad } from './AssignKeypadContext';
 import { BalanceCell } from './BalanceCell';
 import { BudgetCell } from './BudgetCell';
-import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
+import { getColumnWidth } from './BudgetTable';
 
 type IncomeCategoryNameProps = {
   category: CategoryEntity;
@@ -29,17 +28,14 @@ type IncomeCategoryNameProps = {
 };
 
 function IncomeCategoryName({ category, onEdit }: IncomeCategoryNameProps) {
-  const sidebarColumnWidth = getColumnWidth({
-    isSidebar: true,
-    offset: -10,
-  });
+  const { emoji, resto } = separarEmoji(category.name);
   return (
     <View
       style={{
         flex: 1,
+        minWidth: 0,
         justifyContent: 'center',
-        alignItems: 'flex-start',
-        width: sidebarColumnWidth,
+        alignItems: 'stretch',
       }}
     >
       {/* Hidden drag button */}
@@ -56,7 +52,10 @@ function IncomeCategoryName({ category, onEdit }: IncomeCategoryNameProps) {
       <Button
         variant="bare"
         style={{
-          maxWidth: sidebarColumnWidth,
+          justifyContent: 'flex-start',
+          minHeight: TACTIL,
+          margin: `${-(TACTIL - 32) / 2}px 0`,
+          padding: 0,
         }}
         onPress={() => onEdit?.(category.id)}
       >
@@ -65,24 +64,30 @@ function IncomeCategoryName({ category, onEdit }: IncomeCategoryNameProps) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'flex-start',
+            gap: 6,
+            minWidth: 0,
           }}
         >
+          {emoji && (
+            <Text
+              aria-hidden
+              data-testid="category-emoji"
+              style={{ ...densidad.emoji, flexShrink: 0 }}
+            >
+              {emoji}
+            </Text>
+          )}
           <Text
             style={{
               ...styles.lineClamp(2),
-              width: sidebarColumnWidth,
+              ...densidad.nombre,
               textAlign: 'left',
-              ...styles.smallText,
+              color: color.fg,
             }}
             data-testid="category-name"
           >
-            {category.name}
+            {emoji ? resto : category.name}
           </Text>
-          <SvgCheveronRight
-            style={{ flexShrink: 0, color: theme.tableTextSubdued }}
-            width={14}
-            height={14}
-          />
         </View>
       </Button>
     </View>
@@ -104,6 +109,7 @@ function IncomeCategoryCells({
 }: IncomeCategoryCellsProps) {
   const { t } = useTranslation();
   const columnWidth = getColumnWidth();
+  const anchoDisponible = getColumnWidth({ disponible: true });
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
 
   const budgeted =
@@ -122,6 +128,7 @@ function IncomeCategoryCells({
         flexDirection: 'row',
         justifyContent: 'flex-end',
         alignItems: 'center',
+        flexShrink: 0,
       }}
     >
       {budgetType === 'tracking' && (
@@ -144,7 +151,7 @@ function IncomeCategoryCells({
 
       <View
         style={{
-          width: columnWidth,
+          width: anchoDisponible,
           justifyContent: 'center',
           alignItems: 'flex-end',
         }}
@@ -255,23 +262,15 @@ export function IncomeCategoryListItem({
         data-category-id={category.id}
         data-selected={isSelected || undefined}
         style={{
-          height: ROW_HEIGHT,
-          borderColor: theme.tableBorder,
+          minHeight: densidad.altoFila,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          paddingLeft: 5,
-          paddingRight: 5,
-          borderBottomWidth: 1,
+          gap: 8,
+          padding: `${densidad.vertical}px ${densidad.margen}px ${densidad.vertical}px ${densidad.margen + densidad.sangria}px`,
+          boxShadow: `inset 0 1px 0 ${color.line}`,
           opacity: category.hidden ? 0.5 : undefined,
-          backgroundColor: isSelected
-            ? theme.tableRowBackgroundHighlight
-            : monthUtils.isCurrentMonth(month)
-              ? theme.budgetCurrentMonth
-              : theme.budgetOtherMonth,
-          ...(isSelected && {
-            boxShadow: `inset 4px 0 0 ${theme.pillBorderSelected}`,
-          }),
+          backgroundColor: isSelected ? color.accentSoft : color.surface,
         }}
       >
         <IncomeCategoryName category={category} onEdit={onEdit} />

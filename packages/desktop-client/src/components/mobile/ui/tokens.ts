@@ -130,6 +130,48 @@ export const texto = {
 
 export const num = { fontVariantNumeric: 'tabular-nums' } as const;
 
+/**
+ * Densidad de las listas del presupuesto (Plan, «Asignar el mes», «Gasto
+ * anual»), medida contra YNAB a 390 px (oct-2026): filas finas, nombre en
+ * peso medio y cifras tabulares semibold. `comprobar-densidad.mjs` lo mide.
+ */
+export const densidad = {
+  /** Nombre de categoría (con el emoji delante, del mismo tamaño). */
+  nombre: { fontSize: 15, fontWeight: 500, lineHeight: '20px' },
+  emoji: { fontSize: 15, lineHeight: '20px' },
+  /** Cifra de fila (asignado, importe). */
+  cifra: {
+    fontSize: 14,
+    fontWeight: 600,
+    lineHeight: '18px',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  /** Píldora de disponible. */
+  pildora: { fontSize: 13, fontWeight: 700 },
+  /** Texto pequeño bajo la cifra (gasto) o bajo la fila (estado). */
+  pequeno: { fontSize: 12, fontWeight: 600, lineHeight: '16px' },
+  /** Nombre de grupo. */
+  grupo: { fontSize: 15, fontWeight: 700, lineHeight: '20px' },
+  /** Totales del grupo (atenuados). */
+  grupoCifra: {
+    fontSize: 13,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+  },
+  altoFila: 52,
+  altoGrupo: 46,
+  /** Fila con barra de progreso («Asignar el mes», «Gasto anual»). */
+  altoFilaBarra: 56,
+  /** Relleno lateral y vertical de las filas. */
+  margen: 16,
+  vertical: 10,
+  /** Sangría de las categorías respecto al grupo. */
+  sangria: 8,
+  /** Columnas de cifras: Asignado y Disponible. */
+  colAsignado: 92,
+  colDisponible: 96,
+} as const;
+
 /** Movimiento: físico, con muelle. */
 export const movimiento = {
   muelle: 'cubic-bezier(.2,.9,.3,1.15)',

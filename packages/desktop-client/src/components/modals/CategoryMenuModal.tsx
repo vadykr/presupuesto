@@ -32,7 +32,10 @@ import {
   ModalTitle,
 } from '#components/common/Modal';
 import { useResumenObjetivo } from '#components/mobile/budget/ObjetivoPage';
-import { objetivoDesdePlantillas } from '#components/mobile/budget/objetivos';
+import {
+  notaSinObjetivo,
+  objetivoDesdePlantillas,
+} from '#components/mobile/budget/objetivos';
 import { Notes } from '#components/Notes';
 import { useCategory } from '#hooks/useCategory';
 import { useCategoryGroup } from '#hooks/useCategoryGroup';
@@ -61,6 +64,8 @@ export function CategoryMenuModal({
   const { data: category } = useCategory(categoryId);
   const { data: categoryGroup } = useCategoryGroup(category?.group);
   const originalNotes = useNotes(category.id);
+  // Sin las líneas «#template…»: el objetivo ya sale en su botón.
+  const notasVisibles = notaSinObjetivo(originalNotes);
   const { isPinned, togglePinned } = usePinnedCategories();
   const pinned = isPinned(categoryId);
   const navigate = useNavigate();
@@ -155,14 +160,12 @@ export function CategoryMenuModal({
               }}
             >
               <Notes
-                notes={
-                  originalNotes?.length > 0 ? originalNotes : t('No notes')
-                }
+                notes={notasVisibles.length > 0 ? notasVisibles : t('No notes')}
                 editable={false}
                 focused={false}
                 getStyle={() => ({
                   borderRadius: 6,
-                  ...((!originalNotes || originalNotes.length === 0) && {
+                  ...(notasVisibles.length === 0 && {
                     justifySelf: 'center',
                     alignSelf: 'center',
                     color: theme.pageTextSubdued,

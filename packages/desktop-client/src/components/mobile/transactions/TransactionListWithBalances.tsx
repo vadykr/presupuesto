@@ -240,7 +240,6 @@ function BalanceWithCleared({
   balance,
   alwaysShowCleared = false,
 }: BalanceWithClearedProps) {
-  const { t } = useTranslation();
   const unclearedAmount = useSheetValue<
     'account' | 'category',
     'balanceUncleared'

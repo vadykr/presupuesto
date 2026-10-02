@@ -1,25 +1,26 @@
 import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
-import { Card } from '@actual-app/components/card';
-import { SvgExpandArrow } from '@actual-app/components/icons/v0';
-import { Label } from '@actual-app/components/label';
-import { styles } from '@actual-app/components/styles';
 import type { CSSProperties } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
-import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryGroupEntity } from '@actual-app/core/types/models';
-import { AutoTextSize } from 'auto-text-size';
 
+import { Icono } from '#components/mobile/ui/Icono';
+import {
+  color,
+  densidad,
+  espacio,
+  movimiento,
+  texto,
+} from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { CellValue } from '#components/spreadsheet/CellValue';
 import { useFormat } from '#hooks/useFormat';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
-import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
+import { getColumnWidth } from './BudgetTable';
 import { IncomeCategoryList } from './IncomeCategoryList';
 import { RowName } from './RowName';
 
@@ -44,8 +45,8 @@ export function IncomeGroup({
   isCollapsed,
   onToggleCollapse,
 }: IncomeGroupProps) {
-  const { t } = useTranslation();
   const columnWidth = getColumnWidth();
+  const anchoDisponible = getColumnWidth({ disponible: true });
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
 
   const categories = useMemo(
@@ -66,22 +67,29 @@ export function IncomeGroup({
   return (
     <View>
       <View
+        aria-hidden
         style={{
+          ...texto.etiqueta,
+          fontWeight: 700,
+          color: color.fg3,
           flexDirection: 'row',
-          alignItems: 'center',
           justifyContent: 'flex-end',
-          marginTop: 50,
-          marginBottom: 5,
-          marginRight: 15,
+          marginTop: espacio.seccion,
+          marginBottom: 6,
+          padding: `0 ${densidad.margen}px`,
         }}
       >
         {budgetType === 'tracking' && (
-          <Label title={t('Budgeted')} style={{ width: columnWidth }} />
+          <Text style={{ width: columnWidth, textAlign: 'right' }}>
+            <Trans>Budgeted</Trans>
+          </Text>
         )}
-        <Label title={t('Received')} style={{ width: columnWidth }} />
+        <Text style={{ width: anchoDisponible, textAlign: 'right' }}>
+          <Trans>Received</Trans>
+        </Text>
       </View>
 
-      <Card style={{ marginTop: 0 }}>
+      <View style={{ borderBottom: `1px solid ${color.line}` }}>
         <IncomeGroupHeader
           group={categoryGroup}
           month={month}
@@ -95,7 +103,7 @@ export function IncomeGroup({
           onEditCategory={onEditCategory}
           onBudgetAction={onBudgetAction}
         />
-      </Card>
+      </View>
     </View>
   );
 }
@@ -120,20 +128,18 @@ function IncomeGroupHeader({
   return (
     <View
       data-testid="category-group-row"
+      data-month={month}
       onClick={() => onToggleCollapse(group.id)}
       style={{
         cursor: 'pointer',
-        height: ROW_HEIGHT,
-        borderBottomWidth: 1,
-        borderColor: theme.tableBorder,
+        height: densidad.altoGrupo,
+        flexShrink: 0,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: 5,
-        paddingRight: 5,
+        gap: 8,
+        padding: `0 ${densidad.margen}px`,
         opacity: group.hidden ? 0.5 : undefined,
-        backgroundColor: monthUtils.isCurrentMonth(month)
-          ? theme.budgetHeaderCurrentMonth
-          : theme.budgetHeaderOtherMonth,
+        backgroundColor: color.surface2,
         ...style,
       }}
     >
@@ -170,6 +176,10 @@ function IncomeGroupName({
     <RowName
       name={group.name}
       width={sidebarColumnWidth}
+      lineas={2}
+      menuIconSize={18}
+      minHeight={densidad.altoGrupo - 2}
+      textStyle={{ ...densidad.grupo, lineHeight: '18px', color: color.fg }}
       data-testid="category-group-name"
       onPress={() => onToggleCollapse(group.id)}
       onHold={() => onEdit(group.id)}
@@ -178,14 +188,14 @@ function IncomeGroupName({
         groupName: group.name,
       })}
       leading={
-        <SvgExpandArrow
-          width={8}
-          height={8}
+        <Icono
+          nombre="cd"
+          size={14}
           style={{
             flexShrink: 0,
-            marginRight: 6,
-            color: theme.pageTextSubdued,
-            transition: 'transform .1s',
+            marginRight: 8,
+            color: color.fg3,
+            transition: `transform ${movimiento.pildora}ms ${movimiento.muelle}`,
             transform: isCollapsed(group.id) ? 'rotate(-90deg)' : '',
           }}
         />
@@ -211,6 +221,13 @@ function IncomeGroupCells({ group }: IncomeGroupCellsProps) {
       : envelopeBudget.groupSumAmount(group.id);
 
   const columnWidth = getColumnWidth();
+  const anchoDisponible = getColumnWidth({ disponible: true });
+  const amountStyle: CSSProperties = {
+    ...densidad.grupoCifra,
+    color: color.fg3,
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
+  };
 
   return (
     <View
@@ -218,7 +235,7 @@ function IncomeGroupCells({ group }: IncomeGroupCellsProps) {
         flexDirection: 'row',
         justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingRight: 5,
+        flexShrink: 0,
       }}
     >
       {budgeted && (
@@ -229,25 +246,12 @@ function IncomeGroupCells({ group }: IncomeGroupCellsProps) {
           {({ type, value }) => (
             <View>
               <PrivacyFilter>
-                <AutoTextSize
-                  key={value}
-                  as={Text}
-                  minFontSizePx={6}
-                  maxFontSizePx={12}
-                  mode="oneline"
-                  style={{
-                    ...styles.tnum,
-                    width: columnWidth,
-                    justifyContent: 'center',
-                    alignItems: 'flex-end',
-                    paddingLeft: 5,
-                    textAlign: 'right',
-                    fontSize: 12,
-                    fontWeight: '500',
-                  }}
+                <Text
+                  data-testid="group-amount"
+                  style={{ ...amountStyle, width: columnWidth }}
                 >
                   {format(value, type)}
-                </AutoTextSize>
+                </Text>
               </PrivacyFilter>
             </View>
           )}
@@ -260,25 +264,12 @@ function IncomeGroupCells({ group }: IncomeGroupCellsProps) {
         {({ type, value }) => (
           <View>
             <PrivacyFilter>
-              <AutoTextSize
-                key={value}
-                as={Text}
-                minFontSizePx={6}
-                maxFontSizePx={12}
-                mode="oneline"
-                style={{
-                  ...styles.tnum,
-                  width: columnWidth,
-                  justifyContent: 'center',
-                  alignItems: 'flex-end',
-                  paddingLeft: 5,
-                  textAlign: 'right',
-                  fontSize: 12,
-                  fontWeight: '500',
-                }}
+              <Text
+                data-testid="group-amount"
+                style={{ ...amountStyle, width: anchoDisponible }}
               >
                 {format(value, type)}
-              </AutoTextSize>
+              </Text>
             </PrivacyFilter>
           </View>
         )}

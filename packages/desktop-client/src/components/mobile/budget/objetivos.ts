@@ -532,3 +532,16 @@ export function cuotaMensual(
   }
   return Math.max(0, Math.round((importe - saldo) / (meses + 1)));
 }
+
+/**
+ * Nota de una categoría tal como se enseña en el móvil: sin las líneas del
+ * objetivo (`#template`, `#goal`, `#objetivo`), que ya resume el botón
+ * «Objetivo · 38,47 € al mes». Devuelve '' si no queda nada.
+ */
+export function notaSinObjetivo(nota: string | null | undefined): string {
+  return (nota ?? '')
+    .split('\n')
+    .filter(linea => !/^\s*#(template|goal|objetivo)\b/i.test(linea))
+    .join('\n')
+    .trim();
+}

@@ -22,6 +22,7 @@ import { PullToRefresh } from '#components/mobile/PullToRefresh';
 import { Icono } from '#components/mobile/ui/Icono';
 import {
   color,
+  densidad,
   espacio,
   movimiento,
   num,
@@ -50,30 +51,36 @@ export const PILL_STYLE: CSSProperties = {
   backgroundColor: theme.pillBackgroundLight,
 };
 
-/** Ancho de cada columna numérica (Asignado · Disponible), como en A. */
-export const ANCHO_COLUMNA = 84;
-/** Márgenes de la tarjeta + relleno de la fila + huecos entre columnas. */
-const RESTO_FILA = 2 * 16 + 2 * 14 + 2 * 8;
+/** Ancho de la columna Asignado (densidad, medida contra YNAB). */
+export const ANCHO_COLUMNA = densidad.colAsignado;
+/** Ancho de la columna Disponible (cabe la píldora con 4 cifras). */
+export const ANCHO_DISPONIBLE = densidad.colDisponible;
+/** Relleno lateral de la fila + sangría + hueco entre nombre y cifras. */
+const RESTO_FILA = 2 * densidad.margen + densidad.sangria + 8;
 
 export function getColumnWidth({
   show3Columns = false,
   isSidebar = false,
   offset = 0,
+  disponible = false,
 }: {
   show3Columns?: boolean;
   isSidebar?: boolean;
   offset?: number;
+  /** Columna Disponible (96 px) en lugar de Asignado (92 px). */
+  disponible?: boolean;
 } = {}) {
   // Presupuesto (concepto A): dos columnas de ancho fijo, Asignado y
-  // Disponible; el gasto del mes va en pequeño bajo lo asignado. Se conserva
-  // la firma de Actual por si alguna vista ancha la sigue usando con 3.
+  // Disponible; el gasto del mes va en pequeño bajo lo asignado. El nombre
+  // ocupa el resto (`flex: 1`). Se conserva la firma de Actual por si alguna
+  // vista ancha la sigue usando con 3.
   if (show3Columns) {
     return isSidebar ? `${35 + offset}vw` : `${20 + offset}vw`;
   }
   if (!isSidebar) {
-    return `${ANCHO_COLUMNA}px`;
+    return `${disponible ? ANCHO_DISPONIBLE : ANCHO_COLUMNA}px`;
   }
-  return `calc(100vw - ${RESTO_FILA + ANCHO_COLUMNA * 2}px)`;
+  return `calc(100vw - ${RESTO_FILA + ANCHO_COLUMNA + ANCHO_DISPONIBLE}px)`;
 }
 
 type PildoraListoProps = {
@@ -100,25 +107,40 @@ function PildoraListo({
       onPress={onPress}
       data-testid={testId}
       style={({ isPressed }) => ({
-        minHeight: 48,
+        height: 44,
+        minHeight: 44,
         width: '100%',
         borderRadius: radio.pildora,
-        padding: '0 8px 0 18px',
+        padding: '0 7px 0 16px',
         justifyContent: 'space-between',
         gap: 8,
         backgroundColor: fondo,
         color: tinta,
-        fontWeight: 800,
-        fontSize: 15,
+        fontWeight: 700,
+        fontSize: 16,
         transform: isPressed ? 'scale(0.98)' : undefined,
         transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}`,
       })}
     >
-      <Text style={{ ...num, textAlign: 'left', minWidth: 0 }}>{children}</Text>
+      <Text
+        data-testid="to-budget-texto"
+        style={{
+          ...num,
+          textAlign: 'left',
+          minWidth: 0,
+          fontSize: 16,
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {children}
+      </Text>
       <View
         style={{
-          width: 34,
-          height: 34,
+          width: 30,
+          height: 30,
           borderRadius: '50%',
           backgroundColor: 'rgba(0, 0, 0, 0.14)',
           alignItems: 'center',
@@ -126,7 +148,7 @@ function PildoraListo({
           flexShrink: 0,
         }}
       >
-        <Icono nombre="cr" size={18} />
+        <Icono nombre="cr" size={16} />
       </View>
     </Button>
   );
@@ -405,8 +427,8 @@ function BudgetTableHeader({
       data-testid="budget-table-header"
       style={{
         flexShrink: 0,
-        gap: 12,
-        padding: `4px ${espacio.margen}px 8px`,
+        gap: 10,
+        padding: `4px ${espacio.margen}px 6px`,
         backgroundColor: color.bg,
       }}
     >
@@ -425,21 +447,21 @@ function BudgetTableHeader({
       )}
       <View
         aria-hidden
+        data-testid="cabecera-columnas"
         style={{
           ...texto.etiqueta,
+          fontWeight: 700,
           color: color.fg3,
           flexDirection: 'row',
-          gap: 8,
-          padding: '0 14px',
         }}
       >
-        <Text style={{ flex: 1 }}>
+        <Text style={{ flex: 1, marginRight: 8 }}>
           <Trans>Category</Trans>
         </Text>
         <Text style={{ width: ANCHO_COLUMNA, textAlign: 'right' }}>
           <Trans>Budgeted</Trans>
         </Text>
-        <Text style={{ width: ANCHO_COLUMNA, textAlign: 'right' }}>
+        <Text style={{ width: ANCHO_DISPONIBLE, textAlign: 'right' }}>
           <Trans>Available</Trans>
         </Text>
       </View>
