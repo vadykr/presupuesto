@@ -27,11 +27,20 @@ export type DatosCategoriaMes = {
   balance: IntegerAmount;
   /** `sum-amount-<id>`: actividad del mes (negativa si es gasto). */
   spent: IntegerAmount;
+  /**
+   * «Ignorar este mes» (el *snooze* de YNAB): la categoría no cuenta como
+   * infrafinanciada este mes aunque no llegue al objetivo. Solo afecta a ese
+   * mes; la plantilla y el objetivo no se tocan.
+   */
+  ignorada?: boolean;
 };
 
-/** Cuánto falta para cumplir el objetivo este mes (0 si no falta nada). */
+/**
+ * Cuánto falta para cumplir el objetivo este mes (0 si no falta nada o si
+ * la categoría está ignorada este mes).
+ */
 export function faltante(datos: DatosCategoriaMes): IntegerAmount {
-  if (datos.goal == null) {
+  if (datos.goal == null || datos.ignorada) {
     return 0;
   }
   const base = datos.longGoal ? datos.balance : datos.budgeted;
@@ -62,7 +71,9 @@ export type EstadoFila =
       /** `true` si además cumple el objetivo («Financiada. Gastados…»). */
       financiada: boolean;
     }
-  | { tipo: 'sin-objetivo'; progreso: number };
+  | { tipo: 'sin-objetivo'; progreso: number }
+  /** Ignorada este mes: no se pide nada, aunque el objetivo no se cumpla. */
+  | { tipo: 'ignorada'; progreso: number };
 
 function fraccion(parte: number, total: number): number {
   if (total <= 0) {
@@ -80,6 +91,13 @@ export function estadoFila(datos: DatosCategoriaMes): EstadoFila {
   const gastado = Math.max(0, -datos.spent);
   if (datos.balance < 0) {
     return { tipo: 'sobregastada', importe: -datos.balance, progreso: 1 };
+  }
+  if (datos.ignorada) {
+    const base = datos.longGoal ? datos.balance : datos.budgeted;
+    return {
+      tipo: 'ignorada',
+      progreso: datos.goal != null ? fraccion(base, datos.goal) : 0,
+    };
   }
   const falta = faltante(datos);
   if (falta > 0) {
@@ -285,6 +303,68 @@ export function notaConObjetivo(
     return resto;
   }
   return resto === '' ? lineas.join('\n') : `${resto}\n${lineas.join('\n')}`;
+}
+
+// ---------------------------------------------------------------------------
+// Ignorar este mes
+// ---------------------------------------------------------------------------
+
+/**
+ * Línea de la nota de mes de la categoría (id `<categoría>-<AAAA-MM>`) que
+ * marca «Ignorar este mes». Va en la nota del mes, no en la de la categoría,
+ * para que solo afecte a ese mes y no toque la plantilla.
+ */
+export const MARCA_IGNORAR_MES = '#ignorar-mes';
+
+/** Id de la nota de mes de una categoría (la misma que usa Actual). */
+export function idNotaMes(categoryId: string, month: string): string {
+  return `${categoryId}-${month}`;
+}
+
+function esLineaIgnorar(linea: string): boolean {
+  return linea.trim().toLowerCase() === MARCA_IGNORAR_MES;
+}
+
+/** `true` si la nota de mes lleva la marca `#ignorar-mes`. */
+export function notaIgnoraMes(nota: string | null | undefined): boolean {
+  return (nota ?? '').split('\n').some(esLineaIgnorar);
+}
+
+/**
+ * Nota de mes con la marca `#ignorar-mes` puesta o quitada. El resto de la
+ * nota se conserva; si queda vacía devuelve `''`.
+ */
+export function notaConIgnorarMes(
+  nota: string | null | undefined,
+  ignorar: boolean,
+): string {
+  const resto = (nota ?? '')
+    .split('\n')
+    .filter(linea => !esLineaIgnorar(linea))
+    .join('\n')
+    .replace(/\n+$/, '');
+  if (!ignorar) {
+    return resto;
+  }
+  return resto === '' ? MARCA_IGNORAR_MES : `${resto}\n${MARCA_IGNORAR_MES}`;
+}
+
+/**
+ * Categorías ignoradas en `month` a partir de todas las notas: las de id
+ * `<categoría>-<mes>` cuyo texto lleva la marca.
+ */
+export function categoriasIgnoradas(
+  notas: readonly { id: string; note: string | null }[] | null | undefined,
+  month: string,
+): Set<string> {
+  const sufijo = `-${month}`;
+  const ignoradas = new Set<string>();
+  for (const nota of notas ?? []) {
+    if (nota.id.endsWith(sufijo) && notaIgnoraMes(nota.note)) {
+      ignoradas.add(nota.id.slice(0, -sufijo.length));
+    }
+  }
+  return ignoradas;
 }
 
 /** Marca `#objetivo …` de la nota: día del mes o fecha. */

@@ -126,5 +126,11 @@
   "Needed for": "Para el",
   "Assigned {{amount}} to {{count}} underfunded categories._many": "Asignados {{amount}} a {{count}} categorías infrafinanciadas.",
   "Every {{count}} months_many": "Cada {{count}} meses",
-  "every {{count}} months_many": "cada {{count}} meses"
+  "every {{count}} months_many": "cada {{count}} meses",
+  "Ignored this month": "Ignorada este mes",
+  "Ignore this month ({{month}})": "Ignorar este mes ({{month}})",
+  "Not counted as underfunded in {{month}}. The target stays.": "No cuenta como infrafinanciada en {{month}}. El objetivo se mantiene.",
+  "Already covered but short of the target? Skip it this month.": "¿Ya está cubierta pero no llega al objetivo? Ignórala este mes.",
+  "{{categoryName}} ignored in {{month}}.": "{{categoryName}} ignorada en {{month}}.",
+  "{{categoryName}} is no longer ignored in {{month}}.": "{{categoryName}} ya no se ignora en {{month}}."
 }

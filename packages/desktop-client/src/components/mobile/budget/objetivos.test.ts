@@ -3,13 +3,16 @@ import type { Template } from '@actual-app/core/types/models/templates';
 import {
   asignarGastadoMesPasado,
   asignarInfrafinanciadas,
+  categoriasIgnoradas,
   cuotaMensual,
   estadoFila,
   faltante,
   importeDePlantilla,
   lineasDeObjetivo,
   marcaDeNota,
+  notaConIgnorarMes,
   notaConObjetivo,
+  notaIgnoraMes,
   objetivoDesdePlantillas,
   totalInfrafinanciado,
 } from './objetivos';
@@ -62,6 +65,106 @@ describe('faltante (infrafinanciado)', () => {
         datos({ goal: 300_00, budgeted: 99_30 }),
       ]),
     ).toBe(86_32 + 200_70);
+  });
+});
+
+describe('ignorar este mes', () => {
+  it('una categoría ignorada no cuenta como infrafinanciada', () => {
+    // Gas: objetivo 134,17 €, asignado 47,85 €, pero ignorada este mes.
+    expect(
+      faltante(datos({ goal: 134_17, budgeted: 47_85, ignorada: true })),
+    ).toBe(0);
+    // Tampoco con objetivo a largo plazo (#goal).
+    expect(
+      faltante(
+        datos({
+          goal: 3000_00,
+          longGoal: true,
+          balance: 1200_00,
+          ignorada: true,
+        }),
+      ),
+    ).toBe(0);
+  });
+
+  it('el total de la cabecera excluye las ignoradas', () => {
+    expect(
+      totalInfrafinanciado([
+        datos({ goal: 134_17, budgeted: 47_85, ignorada: true }),
+        datos({ goal: 98_37, budgeted: 98_37 }),
+        datos({ goal: 300_00, budgeted: 99_30 }),
+      ]),
+    ).toBe(200_70);
+  });
+
+  it('auto-asignar por infrafinanciadas se salta las ignoradas', () => {
+    expect(
+      asignarInfrafinanciadas(
+        [
+          {
+            id: 'gas',
+            datos: datos({ goal: 134_17, budgeted: 47_85, ignorada: true }),
+          },
+          { id: 'agua', datos: datos({ goal: 300_00, budgeted: 99_30 }) },
+        ],
+        1000_00,
+      ),
+    ).toEqual([{ category: 'agua', amount: 300_00 }]);
+  });
+
+  it('la fila enseña «Ignorada este mes» con la barra hasta donde llega', () => {
+    expect(
+      estadoFila(
+        datos({
+          goal: 100_00,
+          budgeted: 25_00,
+          balance: 25_00,
+          ignorada: true,
+        }),
+      ),
+    ).toEqual({ tipo: 'ignorada', progreso: 0.25 });
+    // Sobregastada manda: ignorar solo quita el aviso de infrafinanciada.
+    expect(
+      estadoFila(
+        datos({
+          goal: 100_00,
+          budgeted: 25_00,
+          balance: -5_00,
+          ignorada: true,
+        }),
+      ),
+    ).toEqual({ tipo: 'sobregastada', importe: 5_00, progreso: 1 });
+  });
+
+  it('la marca va y viene en la nota de mes sin tocar el resto', () => {
+    expect(notaIgnoraMes(null)).toBe(false);
+    expect(notaIgnoraMes('#ignorar-mes')).toBe(true);
+    expect(notaIgnoraMes('Pagado el 3\n#Ignorar-Mes ')).toBe(true);
+    expect(notaIgnoraMes('#ignorar-mes-no')).toBe(false);
+
+    expect(notaConIgnorarMes(null, true)).toBe('#ignorar-mes');
+    expect(notaConIgnorarMes('Pagado el 3', true)).toBe(
+      'Pagado el 3\n#ignorar-mes',
+    );
+    expect(notaConIgnorarMes('Pagado el 3\n#ignorar-mes', true)).toBe(
+      'Pagado el 3\n#ignorar-mes',
+    );
+    expect(notaConIgnorarMes('Pagado el 3\n#ignorar-mes', false)).toBe(
+      'Pagado el 3',
+    );
+    expect(notaConIgnorarMes('#ignorar-mes', false)).toBe('');
+  });
+
+  it('solo las notas de ese mes marcan la categoría', () => {
+    const notas = [
+      { id: 'gas-2026-10', note: '#ignorar-mes' },
+      { id: 'agua-2026-09', note: '#ignorar-mes' },
+      { id: 'luz-2026-10', note: 'Factura alta' },
+      { id: 'luz', note: '#template 50\n#ignorar-mes' },
+    ];
+    expect([...categoriasIgnoradas(notas, '2026-10')]).toEqual(['gas']);
+    expect([...categoriasIgnoradas(notas, '2026-09')]).toEqual(['agua']);
+    expect([...categoriasIgnoradas(undefined, '2026-10')]).toEqual([]);
   });
 });
 

@@ -49,5 +49,25 @@ del teclado. Solo los tipos que usa Vadym:
 - Plantillas que esta pantalla no sabe editar (`#goal`, porcentajes, varias líneas…) se marcan como
   «Automatización avanzada»; guardar aquí las sustituye.
 
+## Ignorar este mes (`#ignorar-mes`, el *snooze* de YNAB)
+
+«Si algo ya está cubierto, pero no llega a lo planeado, que pueda ignorarlo este mes.»
+
+- Estado por categoría y mes: una línea `#ignorar-mes` en la **nota de mes** de la categoría (id
+  `<categoría>-<AAAA-MM>`, tabla `notes`, la misma nota que Actual edita desde el menú de la celda).
+  Solo afecta a ese mes y no toca la plantilla ni el objetivo. Funciones puras en `objetivos.ts`
+  (`notaIgnoraMes`, `notaConIgnorarMes`, `categoriasIgnoradas`); hook `useIgnorarMes(categoryId, month)`.
+- Efecto (`faltante` devuelve 0 si `ignorada`): no cuenta en «X en categorías infrafinanciadas» ni en
+  «Auto-asignar → Infrafinanciadas»; la fila de Asignar el mes enseña «zZ Ignorada este mes» en gris; en
+  la pestaña Presupuesto el texto corto pasa a «Ignorada este mes» y el disponible deja de ir en ámbar
+  (`BalanceWithCarryover` recibe `goalIgnored`), también en las fijadas del Inicio. Sobregastada manda:
+  ignorar solo quita el aviso de infrafinanciada.
+- UI: conmutador «Ignorar este mes (octubre)» en `ObjetivoPage` (debajo del objetivo, solo si hay
+  objetivo) y en el menú «⋯ Más» del teclado de Asignar.
+- Tests en `objetivos.test.ts` (bloque «ignorar este mes»).
+
+Capturas en `capturas/ignorar-mes.png` (Asignar el mes), `ignorar-mes-mas.png` (menú del teclado),
+`ignorar-mes-objetivo.png` (conmutador) y `ignorar-mes-presupuesto.png` (pestaña Presupuesto).
+
 Capturas en `capturas/asignar-mes*.png`, `objetivo-editar*.png`, `objetivo-ficha.png`,
 `presupuesto-faltan.png` (presupuesto demo, 390×844).

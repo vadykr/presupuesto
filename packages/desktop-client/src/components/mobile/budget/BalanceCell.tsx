@@ -19,6 +19,7 @@ import type { Binding } from '#spreadsheet';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
 import { getColumnWidth, PILL_STYLE } from './BudgetTable';
+import { useIgnorarMes } from './useIgnorarMes';
 
 type BalanceCellProps = {
   binding: Binding<
@@ -26,6 +27,8 @@ type BalanceCellProps = {
     'leftover' | 'sum-amount'
   >;
   category: CategoryEntity;
+  /** Mes de la hoja: con él se sabe si la categoría está «ignorada este mes». */
+  month: string;
   show3Columns?: boolean;
   onPress?: () => void;
   'aria-label'?: string;
@@ -34,6 +37,7 @@ type BalanceCellProps = {
 export function BalanceCell({
   binding,
   category,
+  month,
   show3Columns,
   onPress,
   'aria-label': ariaLabel,
@@ -65,9 +69,11 @@ export function BalanceCell({
       : envelopeBudget.catCarryover(category.id);
 
   const format = useFormat();
+  const { ignorada } = useIgnorarMes(category.id, month);
 
   return (
     <BalanceWithCarryover
+      goalIgnored={ignorada}
       aria-label={t('Balance for {{categoryName}} category', {
         categoryName: category.name,
       })} // Translated aria-label

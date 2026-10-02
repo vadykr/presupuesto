@@ -12,6 +12,7 @@ import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { theme } from '@actual-app/components/theme';
+import { Toggle } from '@actual-app/components/toggle';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
@@ -38,6 +39,7 @@ import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
+import { IconoZz } from './IconoZz';
 import {
   CADENCIAS_ANUALES,
   cuotaMensual,
@@ -46,6 +48,7 @@ import {
   objetivoDesdePlantillas,
 } from './objetivos';
 import type { CadenciaMeses, Objetivo, TipoObjetivo } from './objetivos';
+import { useIgnorarMes } from './useIgnorarMes';
 
 const ALTO_BOTON = 44;
 
@@ -493,6 +496,10 @@ export function ObjetivoPage() {
                 )}
             </Tarjeta>
 
+            {objetivoActual !== null && (
+              <IgnorarEsteMes categoryId={categoryId} month={month} />
+            )}
+
             <Tendencias
               categoryId={categoryId}
               month={month}
@@ -625,6 +632,67 @@ function Pestanas({
         );
       })}
     </View>
+  );
+}
+
+/**
+ * «Ignorar este mes» (el *snooze* de YNAB): la categoría deja de contar como
+ * infrafinanciada solo este mes. Se guarda en su nota de mes, no en la
+ * plantilla.
+ */
+function IgnorarEsteMes({
+  categoryId,
+  month,
+}: {
+  categoryId: string;
+  month: string;
+}) {
+  const { t } = useTranslation();
+  const locale = useLocale();
+  const { ignorada, setIgnorada } = useIgnorarMes(categoryId, month);
+  const nombreMes = monthUtils.format(month, 'MMMM', locale);
+  return (
+    <Tarjeta>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          padding: '12px 14px',
+        }}
+      >
+        <IconoZz
+          width={18}
+          height={18}
+          style={{
+            color: ignorada ? theme.pageTextPositive : theme.pageTextSubdued,
+          }}
+        />
+        <View style={{ flex: 1, gap: 2 }}>
+          <label htmlFor="ignorar-mes" style={{ fontSize: 15 }}>
+            {t('Ignore this month ({{month}})', { month: nombreMes })}
+          </label>
+          <Text style={{ ...styles.tinyText, color: theme.pageTextSubdued }}>
+            {ignorada
+              ? t(
+                  'Not counted as underfunded in {{month}}. The target stays.',
+                  {
+                    month: nombreMes,
+                  },
+                )
+              : t(
+                  'Already covered but short of the target? Skip it this month.',
+                )}
+          </Text>
+        </View>
+        <Toggle
+          id="ignorar-mes"
+          isOn={ignorada}
+          onToggle={on => void setIgnorada(on)}
+          aria-label={t('Ignore this month ({{month}})', { month: nombreMes })}
+        />
+      </View>
+    </Tarjeta>
   );
 }
 
