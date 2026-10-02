@@ -110,172 +110,177 @@ export function SimuladorPage({
       }}
       data-testid="simulador"
     >
-      <Text style={{ marginTop: 14, color: theme.pageTextSubdued }}>
-        {t('Current balance: {{amount}} · payment {{payment}}', {
-          amount: format(deuda.saldo, 'financial'),
-          payment: format(deuda.cuota ?? 0, 'financial'),
-        })}
-      </Text>
-
-      <FieldLabel title={t('One-off extra payment')} style={{ padding: 0 }} />
-      <InputField
-        aria-label={t('One-off extra payment')}
-        inputMode="decimal"
-        value={unicoTexto}
-        placeholder={format(0, 'financial')}
-        onChangeValue={setUnicoTexto}
-        data-testid="simulador-unico"
-        style={{ margin: 0 }}
-      />
-
-      <FieldLabel title={t('Extra payment per month')} style={{ padding: 0 }} />
-      <InputField
-        aria-label={t('Extra payment per month')}
-        inputMode="decimal"
-        value={mensualTexto}
-        placeholder={format(0, 'financial')}
-        onChangeValue={setMensualTexto}
-        disabled={modo === 'reducir-cuota'}
-        data-testid="simulador-mensual"
-        style={{ margin: 0, opacity: modo === 'reducir-cuota' ? 0.5 : 1 }}
-      />
-
-      <FieldLabel title={t('Use the extra to')} style={{ padding: 0 }} />
-      <Select
-        value={modo}
-        onChange={setModo}
-        options={[
-          ['reducir-plazo', t('Shorten the term')],
-          ['reducir-cuota', t('Lower the monthly payment')],
-        ]}
-        style={{ height: styles.mobileMinHeight }}
-      />
-      {modo === 'reducir-cuota' && (
-        <Text
-          style={{ fontSize: 12, color: theme.pageTextSubdued, marginTop: 6 }}
-        >
-          {t('Lowering the payment only uses the one-off extra.')}
+      <View style={{ flexShrink: 0 }}>
+        <Text style={{ marginTop: 14, color: theme.pageTextSubdued }}>
+          {t('Current balance: {{amount}} · payment {{payment}}', {
+            amount: format(deuda.saldo, 'financial'),
+            payment: format(deuda.cuota ?? 0, 'financial'),
+          })}
         </Text>
-      )}
 
-      {resultado && resultado.simulada.noAmortiza && !resultado.saldada && (
-        <Text
-          style={{ marginTop: 18, color: theme.errorText }}
-          data-testid="simulador-aviso"
-        >
-          {t(
-            'With this payment the debt never goes down because it does not cover the monthly interest. Add a monthly extra to see a result.',
-          )}
-        </Text>
-      )}
+        <FieldLabel title={t('One-off extra payment')} style={{ padding: 0 }} />
+        <InputField
+          aria-label={t('One-off extra payment')}
+          inputMode="decimal"
+          value={unicoTexto}
+          placeholder={format(0, 'financial')}
+          onChangeValue={setUnicoTexto}
+          data-testid="simulador-unico"
+          style={{ margin: 0 }}
+        />
 
-      {resultado && (!resultado.simulada.noAmortiza || resultado.saldada) && (
-        <View
-          data-testid="simulador-resultado"
-          style={{
-            marginTop: 20,
-            padding: 14,
-            borderRadius: 10,
-            backgroundColor: theme.tableBackground,
-            border: `1px solid ${theme.tableBorder}`,
-            gap: 10,
-          }}
-        >
-          {resultado.saldada ? (
-            <Text style={{ fontWeight: 600, color: theme.numberPositive }}>
-              <Trans>That payment would clear the whole debt.</Trans>
-            </Text>
-          ) : (
-            <Fila
-              titulo={t('New end date')}
-              valor={
-                resultado.nuevaFechaFin
-                  ? textoMes(resultado.nuevaFechaFin, idioma)
-                  : '—'
-              }
-              sub={
-                resultado.simulada.mesesRestantes != null
-                  ? hayExtra && resultado.mesesAhorrados > 0
-                    ? t('{{time}} sooner', {
-                        time: textoDuracion(t, resultado.mesesAhorrados),
-                      })
-                    : textoDuracion(t, resultado.simulada.mesesRestantes)
-                  : undefined
-              }
-              testId="simulador-fecha"
-            />
-          )}
-          <Fila
-            titulo={t('Monthly payment')}
-            valor={format(resultado.nuevaCuota, 'financial')}
-            testId="simulador-cuota"
-          />
-          <Fila
-            titulo={t('Interest saved')}
-            valor={format(resultado.interesAhorrado, 'financial')}
-            color={
-              resultado.interesAhorrado > 0 ? theme.numberPositive : undefined
-            }
-            testId="simulador-ahorro"
-          />
-        </View>
-      )}
+        <FieldLabel
+          title={t('Extra payment per month')}
+          style={{ padding: 0 }}
+        />
+        <InputField
+          aria-label={t('Extra payment per month')}
+          inputMode="decimal"
+          value={mensualTexto}
+          placeholder={format(0, 'financial')}
+          onChangeValue={setMensualTexto}
+          disabled={modo === 'reducir-cuota'}
+          data-testid="simulador-mensual"
+          style={{ margin: 0, opacity: modo === 'reducir-cuota' ? 0.5 : 1 }}
+        />
 
-      {datosGrafica.length > 1 && (
-        <View style={{ marginTop: 20 }} data-testid="simulador-grafica">
-          <Text style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
-            <Trans>Remaining balance</Trans>
+        <FieldLabel title={t('Use the extra to')} style={{ padding: 0 }} />
+        <Select
+          value={modo}
+          onChange={setModo}
+          options={[
+            ['reducir-plazo', t('Shorten the term')],
+            ['reducir-cuota', t('Lower the monthly payment')],
+          ]}
+          style={{ height: styles.mobileMinHeight }}
+        />
+        {modo === 'reducir-cuota' && (
+          <Text
+            style={{ fontSize: 12, color: theme.pageTextSubdued, marginTop: 6 }}
+          >
+            {t('Lowering the payment only uses the one-off extra.')}
           </Text>
-          <View style={{ height: 200 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={datosGrafica}
-                margin={{ top: 6, right: 8, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid vertical={false} stroke={theme.tableBorder} />
-                <XAxis
-                  dataKey="mes"
-                  interval="preserveStartEnd"
-                  minTickGap={40}
-                  tickFormatter={(m: string) =>
-                    `${m.slice(5)}/${m.slice(2, 4)}`
-                  }
-                  tick={{ fill: theme.reportsLabel, fontSize: 11 }}
-                  stroke={theme.tableBorder}
-                />
-                <YAxis
-                  width={44}
-                  tickFormatter={(v: number) =>
-                    v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
-                  }
-                  tick={{ fill: theme.reportsLabel, fontSize: 11 }}
-                  stroke={theme.tableBorder}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  stroke={theme.reportsGray}
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="simulada"
-                  stroke={theme.reportsGreen}
-                  strokeWidth={2}
-                  dot={false}
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+        )}
+
+        {resultado && resultado.simulada.noAmortiza && !resultado.saldada && (
+          <Text
+            style={{ marginTop: 18, color: theme.errorText }}
+            data-testid="simulador-aviso"
+          >
+            {t(
+              'With this payment the debt never goes down because it does not cover the monthly interest. Add a monthly extra to see a result.',
+            )}
+          </Text>
+        )}
+
+        {resultado && (!resultado.simulada.noAmortiza || resultado.saldada) && (
+          <View
+            data-testid="simulador-resultado"
+            style={{
+              marginTop: 20,
+              padding: 14,
+              borderRadius: 10,
+              backgroundColor: theme.tableBackground,
+              border: `1px solid ${theme.tableBorder}`,
+              gap: 10,
+            }}
+          >
+            {resultado.saldada ? (
+              <Text style={{ fontWeight: 600, color: theme.numberPositive }}>
+                <Trans>That payment would clear the whole debt.</Trans>
+              </Text>
+            ) : (
+              <Fila
+                titulo={t('New end date')}
+                valor={
+                  resultado.nuevaFechaFin
+                    ? textoMes(resultado.nuevaFechaFin, idioma)
+                    : '—'
+                }
+                sub={
+                  resultado.simulada.mesesRestantes != null
+                    ? hayExtra && resultado.mesesAhorrados > 0
+                      ? t('{{time}} sooner', {
+                          time: textoDuracion(t, resultado.mesesAhorrados),
+                        })
+                      : textoDuracion(t, resultado.simulada.mesesRestantes)
+                    : undefined
+                }
+                testId="simulador-fecha"
+              />
+            )}
+            <Fila
+              titulo={t('Monthly payment')}
+              valor={format(resultado.nuevaCuota, 'financial')}
+              testId="simulador-cuota"
+            />
+            <Fila
+              titulo={t('Interest saved')}
+              valor={format(resultado.interesAhorrado, 'financial')}
+              color={
+                resultado.interesAhorrado > 0 ? theme.numberPositive : undefined
+              }
+              testId="simulador-ahorro"
+            />
           </View>
-          <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
-            <Leyenda color={theme.reportsGray} texto={t('Current')} />
-            <Leyenda color={theme.reportsGreen} texto={t('With the extra')} />
+        )}
+
+        {datosGrafica.length > 1 && (
+          <View style={{ marginTop: 20 }} data-testid="simulador-grafica">
+            <Text style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+              <Trans>Remaining balance</Trans>
+            </Text>
+            <View style={{ height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={datosGrafica}
+                  margin={{ top: 6, right: 8, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} stroke={theme.tableBorder} />
+                  <XAxis
+                    dataKey="mes"
+                    interval="preserveStartEnd"
+                    minTickGap={40}
+                    tickFormatter={(m: string) =>
+                      `${m.slice(5)}/${m.slice(2, 4)}`
+                    }
+                    tick={{ fill: theme.reportsLabel, fontSize: 11 }}
+                    stroke={theme.tableBorder}
+                  />
+                  <YAxis
+                    width={44}
+                    tickFormatter={(v: number) =>
+                      v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)
+                    }
+                    tick={{ fill: theme.reportsLabel, fontSize: 11 }}
+                    stroke={theme.tableBorder}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="actual"
+                    stroke={theme.reportsGray}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="simulada"
+                    stroke={theme.reportsGreen}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 16, marginTop: 6 }}>
+              <Leyenda color={theme.reportsGray} texto={t('Current')} />
+              <Leyenda color={theme.reportsGreen} texto={t('With the extra')} />
+            </View>
           </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 }

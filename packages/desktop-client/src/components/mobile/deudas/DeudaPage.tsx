@@ -192,192 +192,197 @@ function ResumenDeuda({
       }}
       data-testid="resumen-deuda"
     >
-      <View style={{ alignItems: 'center', marginTop: 4 }}>
-        <Text style={{ color: theme.pageTextSubdued, fontSize: 13 }}>
-          <Trans>Balance</Trans>
-        </Text>
-        <PrivacyFilter>
-          <Text
-            data-testid="deuda-saldo"
-            style={{
-              ...styles.tnum,
-              fontSize: 32,
-              fontWeight: 700,
-              color:
-                deuda.saldo > 0 ? theme.numberNegative : theme.numberPositive,
-            }}
-          >
-            {format(-deuda.saldo, 'financial')}
+      {/* El View de Actual no fija flexShrink: 0 y, dentro de una columna con
+          scroll, sus hijos se comprimen y se solapan. Un único envoltorio con
+          flexShrink: 0 hace que el contenido crezca a su altura natural. */}
+      <View style={{ flexShrink: 0 }}>
+        <View style={{ alignItems: 'center', marginTop: 4 }}>
+          <Text style={{ color: theme.pageTextSubdued, fontSize: 13 }}>
+            <Trans>Balance</Trans>
           </Text>
-        </PrivacyFilter>
-      </View>
-
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 18,
-          marginTop: 14,
-        }}
-      >
-        <Donut porcentaje={deuda.porcentajePagado} />
-        <View style={{ flex: 1, gap: 10 }}>
-          <Dato
-            titulo={t('Paid so far')}
-            valor={format(deuda.pagado, 'financial')}
-            sub={t('of {{amount}}', {
-              amount: format(deuda.saldoInicial, 'financial'),
-            })}
-          />
-          <Dato
-            titulo={t('Paid this month')}
-            valor={format(deuda.pagadoEsteMes, 'financial')}
-            testId="deuda-pagado-mes"
-          />
-        </View>
-      </View>
-
-      <Tarjeta>
-        {deuda.saldo === 0 ? (
-          <Text style={{ fontWeight: 600, color: theme.numberPositive }}>
-            <Trans>Debt paid off!</Trans>
-          </Text>
-        ) : amort?.noAmortiza ? (
-          <Text style={{ color: theme.errorText }} data-testid="deuda-aviso">
-            {t(
-              'The payment does not even cover the monthly interest, so the debt never goes down. Raise the payment.',
-            )}
-          </Text>
-        ) : amort && amort.mesesRestantes != null && amort.fechaFin ? (
-          <Text style={{ lineHeight: '1.4em' }} data-testid="deuda-frase">
-            {t(
-              'You will pay it off in {{time}} if you pay the monthly payment',
-              {
-                time: textoDuracion(t, amort.mesesRestantes),
-              },
-            )}{' '}
-            <Text style={{ fontWeight: 600 }}>
-              ({textoMes(amort.fechaFin, idioma)})
-            </Text>
-          </Text>
-        ) : (
-          <Text style={{ color: theme.pageTextSubdued }}>
-            <Trans>
-              Add the interest and the monthly payment to see the end date.
-            </Trans>
-          </Text>
-        )}
-      </Tarjeta>
-
-      {!faltanDatos && (
-        <View
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 10,
-            marginTop: 12,
-          }}
-        >
-          <Celda
-            titulo={t('Monthly payment')}
-            valor={format(deuda.cuota ?? 0, 'financial')}
-          />
-          <Celda
-            titulo={t('Annual interest')}
-            valor={`${(deuda.interesAnual ?? 0).toLocaleString(idioma, { maximumFractionDigits: 3 })} %`}
-          />
-          <Celda
-            titulo={t('Interest still to pay')}
-            valor={
-              amort && !amort.noAmortiza
-                ? format(amort.interesTotal, 'financial')
-                : '—'
-            }
-            testId="deuda-interes-total"
-          />
-          <Celda
-            titulo={t('Debt-free date')}
-            valor={amort?.fechaFin ? textoMes(amort.fechaFin, idioma) : '—'}
-          />
-        </View>
-      )}
-
-      <View style={{ gap: 10, marginTop: 18 }}>
-        <Button
-          variant="primary"
-          onPress={onSimular}
-          isDisabled={faltanDatos || deuda.saldo === 0}
-          style={{ height: styles.mobileMinHeight }}
-          data-testid="deuda-simular"
-        >
-          <Trans>Simulate early repayment</Trans>
-        </Button>
-        <Button
-          onPress={registrarIntereses}
-          isDisabled={
-            registrando ||
-            faltanDatos ||
-            deuda.hayInteresEsteMes ||
-            interesMes <= 0
-          }
-          style={{ height: styles.mobileMinHeight }}
-          data-testid="deuda-registrar-intereses"
-        >
-          {deuda.hayInteresEsteMes
-            ? t('Interest for this month already recorded')
-            : t('Record interest for this month ({{amount}})', {
-                amount: format(interesMes, 'financial'),
-              })}
-        </Button>
-        <Button
-          variant="bare"
-          onPress={onEditar}
-          style={{ height: 40 }}
-          data-testid="deuda-editar"
-        >
-          <Trans>Edit loan details</Trans>
-        </Button>
-      </View>
-
-      {deuda.letras.length > 0 && (
-        <View style={{ marginTop: 22 }}>
-          <Text style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
-            {t('Payments: interest and principal')}
-          </Text>
-          {deuda.letras.slice(0, 12).map(l => (
-            <View
-              key={l.id}
-              data-testid="deuda-letra"
+          <PrivacyFilter>
+            <Text
+              data-testid="deuda-saldo"
               style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '10px 0',
-                borderBottom: `1px solid ${theme.tableBorder}`,
+                ...styles.tnum,
+                fontSize: 32,
+                fontWeight: 700,
+                color:
+                  deuda.saldo > 0 ? theme.numberNegative : theme.numberPositive,
               }}
             >
-              <View>
-                <Text style={{ fontSize: 14 }}>
-                  {new Date(l.date + 'T00:00:00').toLocaleDateString(idioma, {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </Text>
-                <Text style={{ fontSize: 12, color: theme.pageTextSubdued }}>
-                  {t('Interest {{interest}} · Principal {{principal}}', {
-                    interest: format(l.interes, 'financial'),
-                    principal: format(l.capital, 'financial'),
-                  })}
+              {format(-deuda.saldo, 'financial')}
+            </Text>
+          </PrivacyFilter>
+        </View>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 18,
+            marginTop: 14,
+          }}
+        >
+          <Donut porcentaje={deuda.porcentajePagado} />
+          <View style={{ flex: 1, gap: 10 }}>
+            <Dato
+              titulo={t('Paid so far')}
+              valor={format(deuda.pagado, 'financial')}
+              sub={t('of {{amount}}', {
+                amount: format(deuda.saldoInicial, 'financial'),
+              })}
+            />
+            <Dato
+              titulo={t('Paid this month')}
+              valor={format(deuda.pagadoEsteMes, 'financial')}
+              testId="deuda-pagado-mes"
+            />
+          </View>
+        </View>
+
+        <Tarjeta>
+          {deuda.saldo === 0 ? (
+            <Text style={{ fontWeight: 600, color: theme.numberPositive }}>
+              <Trans>Debt paid off!</Trans>
+            </Text>
+          ) : amort?.noAmortiza ? (
+            <Text style={{ color: theme.errorText }} data-testid="deuda-aviso">
+              {t(
+                'The payment does not even cover the monthly interest, so the debt never goes down. Raise the payment.',
+              )}
+            </Text>
+          ) : amort && amort.mesesRestantes != null && amort.fechaFin ? (
+            <Text style={{ lineHeight: '1.4em' }} data-testid="deuda-frase">
+              {t(
+                'You will pay it off in {{time}} if you pay the monthly payment',
+                {
+                  time: textoDuracion(t, amort.mesesRestantes),
+                },
+              )}{' '}
+              <Text style={{ fontWeight: 600 }}>
+                ({textoMes(amort.fechaFin, idioma)})
+              </Text>
+            </Text>
+          ) : (
+            <Text style={{ color: theme.pageTextSubdued }}>
+              <Trans>
+                Add the interest and the monthly payment to see the end date.
+              </Trans>
+            </Text>
+          )}
+        </Tarjeta>
+
+        {!faltanDatos && (
+          <View
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 10,
+              marginTop: 12,
+            }}
+          >
+            <Celda
+              titulo={t('Monthly payment')}
+              valor={format(deuda.cuota ?? 0, 'financial')}
+            />
+            <Celda
+              titulo={t('Annual interest')}
+              valor={`${(deuda.interesAnual ?? 0).toLocaleString(idioma, { maximumFractionDigits: 3 })} %`}
+            />
+            <Celda
+              titulo={t('Interest still to pay')}
+              valor={
+                amort && !amort.noAmortiza
+                  ? format(amort.interesTotal, 'financial')
+                  : '—'
+              }
+              testId="deuda-interes-total"
+            />
+            <Celda
+              titulo={t('Debt-free date')}
+              valor={amort?.fechaFin ? textoMes(amort.fechaFin, idioma) : '—'}
+            />
+          </View>
+        )}
+
+        <View style={{ gap: 10, marginTop: 18 }}>
+          <Button
+            variant="primary"
+            onPress={onSimular}
+            isDisabled={faltanDatos || deuda.saldo === 0}
+            style={{ height: styles.mobileMinHeight }}
+            data-testid="deuda-simular"
+          >
+            <Trans>Simulate early repayment</Trans>
+          </Button>
+          <Button
+            onPress={registrarIntereses}
+            isDisabled={
+              registrando ||
+              faltanDatos ||
+              deuda.hayInteresEsteMes ||
+              interesMes <= 0
+            }
+            style={{ height: styles.mobileMinHeight }}
+            data-testid="deuda-registrar-intereses"
+          >
+            {deuda.hayInteresEsteMes
+              ? t('Interest for this month already recorded')
+              : t('Record interest for this month ({{amount}})', {
+                  amount: format(interesMes, 'financial'),
+                })}
+          </Button>
+          <Button
+            variant="bare"
+            onPress={onEditar}
+            style={{ height: 40 }}
+            data-testid="deuda-editar"
+          >
+            <Trans>Edit loan details</Trans>
+          </Button>
+        </View>
+
+        {deuda.letras.length > 0 && (
+          <View style={{ marginTop: 22 }}>
+            <Text style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>
+              {t('Payments: interest and principal')}
+            </Text>
+            {deuda.letras.slice(0, 12).map(l => (
+              <View
+                key={l.id}
+                data-testid="deuda-letra"
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px 0',
+                  borderBottom: `1px solid ${theme.tableBorder}`,
+                }}
+              >
+                <View>
+                  <Text style={{ fontSize: 14 }}>
+                    {new Date(l.date + 'T00:00:00').toLocaleDateString(idioma, {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.pageTextSubdued }}>
+                    {t('Interest {{interest}} · Principal {{principal}}', {
+                      interest: format(l.interes, 'financial'),
+                      principal: format(l.capital, 'financial'),
+                    })}
+                  </Text>
+                </View>
+                <Text style={{ ...styles.tnum, fontWeight: 600 }}>
+                  {format(l.amount, 'financial')}
                 </Text>
               </View>
-              <Text style={{ ...styles.tnum, fontWeight: 600 }}>
-                {format(l.amount, 'financial')}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
+            ))}
+          </View>
+        )}
+      </View>
     </View>
   );
 }

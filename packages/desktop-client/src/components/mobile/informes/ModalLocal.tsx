@@ -86,7 +86,9 @@ export function ModalLocal({
               </Button>
             </View>
             <View style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-              {children}
+              {/* Sin este envoltorio los hijos (View: flexShrink 1, minHeight 0)
+                  se comprimen dentro del scroll y se pintan unos sobre otros. */}
+              <View style={{ flexShrink: 0 }}>{children}</View>
             </View>
             {pie && (
               <View
