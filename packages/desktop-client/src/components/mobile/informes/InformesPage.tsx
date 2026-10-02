@@ -9,6 +9,7 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
+import { TarjetaConsejosInforme } from '#components/mobile/analisis/TarjetaConsejos';
 import { createAgeOfMoneySpreadsheet } from '#components/reports/spreadsheets/age-of-money-spreadsheet';
 import type { AgeOfMoneyData } from '#components/reports/spreadsheets/age-of-money-spreadsheet';
 import { createSpreadsheet as netWorthSpreadsheet } from '#components/reports/spreadsheets/net-worth-spreadsheet';
@@ -206,6 +207,9 @@ export function InformesPage() {
           {t('How you are doing, at a glance.')}
         </Text>
       </View>
+
+      {/* Consejos del análisis inteligente */}
+      <TarjetaConsejosInforme />
 
       {/* a. Este mes */}
       <TarjetaInforme

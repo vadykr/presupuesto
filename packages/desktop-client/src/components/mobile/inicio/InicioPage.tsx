@@ -23,6 +23,7 @@ import {
 } from '#components/budget/BalanceWithCarryover';
 import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
 import { prewarmMonth } from '#components/budget/util';
+import { TarjetaConsejosInicio } from '#components/mobile/analisis/TarjetaConsejos';
 import { useIgnorarMes } from '#components/mobile/budget/useIgnorarMes';
 import { MobilePageHeader, Page } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -125,6 +126,7 @@ export function InicioPage() {
                   {budgetType === 'envelope' && (
                     <PorHacer month={month} onBudgetAction={onBudgetAction} />
                   )}
+                  {budgetType === 'envelope' && <TarjetaConsejosInicio />}
                   <Fijadas
                     month={month}
                     onOpenCategory={id =>
