@@ -3,6 +3,9 @@
 // puras para poder probarlas con datos sintéticos; el importador (`ynab5.ts`)
 // las conecta con la base de datos.
 
+import { PAYEE_INTERESES, PREFIJO_PRESTAMO } from '#shared/prestamos';
+import type { DatosPrestamo } from '#shared/prestamos';
+
 import type { Account, AccountType, Transaction } from './ynab5-types';
 
 /** Tipos de cuenta de YNAB que son préstamos (acumulan intereses «virtuales»). */
@@ -15,14 +18,19 @@ const TIPOS_DE_DEUDA: ReadonlySet<AccountType> = new Set<AccountType>([
   'otherDebt',
 ]);
 
-export const PAYEE_INTERESES = 'Intereses del préstamo';
 export const PAYEE_AJUSTE = 'Ajuste de saldo';
 export const NOTA_INTERESES =
   'Intereses acumulados en YNAB hasta la importación';
 export const NOTA_AJUSTE = 'Ajuste para cuadrar con el saldo de YNAB';
 
-/** Prefijo de la línea de la nota de cuenta que guarda los datos de deuda. */
-export const PREFIJO_PRESTAMO = '#prestamo';
+// El formato `#prestamo {...}` y su lectura viven en `shared/prestamos` para que
+// el cliente (pantalla de deuda) los use sin importar código del servidor.
+export {
+  PAYEE_INTERESES,
+  PREFIJO_PRESTAMO,
+  leerDatosPrestamo,
+} from '#shared/prestamos';
+export type { DatosPrestamo } from '#shared/prestamos';
 
 export function esCuentaDeDeuda(account: Pick<Account, 'type'>): boolean {
   return TIPOS_DE_DEUDA.has(account.type);
@@ -88,18 +96,6 @@ function primerDiaDelMes(month: string | null | undefined): string {
   return `${hoy.getFullYear()}-${mes}-01`;
 }
 
-export type DatosPrestamo = {
-  tipo: AccountType;
-  /** Interés anual en %, p. ej. 8.72. */
-  interes_anual: number | null;
-  /** Cuota mínima mensual en euros, p. ej. 246.72. */
-  cuota_minima: number | null;
-  /** Mes (`YYYY-MM-DD`) desde el que rigen el interés y la cuota actuales. */
-  desde: string | null;
-  /** Importe de la plica/escrow mensual en euros, si YNAB lo tenía. */
-  escrow?: number;
-};
-
 function ultimoValor(
   valores: Record<string, number> | null | undefined,
 ): { fecha: string; valor: number } | null {
@@ -158,25 +154,4 @@ export function notaDeCuenta(account: Account): string | null {
     lineas.push(`${PREFIJO_PRESTAMO} ${JSON.stringify(prestamo)}`);
   }
   return lineas.length > 0 ? lineas.join('\n') : null;
-}
-
-/** Lee los datos de deuda de una nota de cuenta escrita por `notaDeCuenta`. */
-export function leerDatosPrestamo(
-  note: string | null | undefined,
-): DatosPrestamo | null {
-  if (!note) {
-    return null;
-  }
-  for (const linea of note.split('\n')) {
-    const recortada = linea.trim();
-    if (!recortada.startsWith(PREFIJO_PRESTAMO)) {
-      continue;
-    }
-    try {
-      return JSON.parse(recortada.slice(PREFIJO_PRESTAMO.length).trim());
-    } catch {
-      return null;
-    }
-  }
-  return null;
 }

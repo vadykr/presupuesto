@@ -9,14 +9,17 @@ import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
+import { leerDatosPrestamo } from '@actual-app/core/shared/prestamos';
 import type { AccountEntity } from '@actual-app/core/types/models';
 
 import { useReopenAccountMutation, useUpdateAccountMutation } from '#accounts';
 import { isAccountFailedSync } from '#accounts/syncStatus';
+import { DeudaPage } from '#components/mobile/deudas/DeudaPage';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import { AddTransactionButton } from '#components/mobile/transactions/AddTransactionButton';
 import { MobilePageHeader, Page } from '#components/Page';
 import { useAccount } from '#hooks/useAccount';
+import { useNotes } from '#hooks/useNotes';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import {
   collapseModals,
@@ -39,6 +42,16 @@ export function AccountPage() {
   const { id: accountIdParam } = useParams();
 
   const account = useAccount(accountIdParam || '');
+
+  // Cuenta de deuda: la nota lleva una línea `#prestamo {...}` (o el usuario
+  // la está marcando como préstamo desde el menú de la cuenta).
+  const [searchParams] = useSearchParams();
+  const notaCuenta = useNotes(`account-${accountIdParam || ''}`);
+  const notaAntigua = useNotes(accountIdParam || '');
+  const nota = notaCuenta ?? notaAntigua;
+  const datosPrestamo = leerDatosPrestamo(nota);
+  const esDeuda =
+    !!account && (!!datosPrestamo || searchParams.get('prestamo') === '1');
 
   const nameFromId = useCallback(
     (id: string | undefined) => {
@@ -77,7 +90,9 @@ export function AccountPage() {
     >
       {/* This key forces the whole table rerender when the number format changes */}
       <Fragment key={numberFormat + hideFraction}>
-        {account ? (
+        {account && esDeuda ? (
+          <DeudaPage account={account} nota={nota} datos={datosPrestamo} />
+        ) : account ? (
           <AccountTransactions account={account} />
         ) : accountIdParam === 'onbudget' ? (
           <OnBudgetAccountTransactions />
@@ -190,6 +205,14 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
     );
   }, [hideReconciled, setHideReconciled, dispatch]);
 
+  const onEditPrestamo = useCallback(() => {
+    setSearchParams(prev => {
+      prev.set('prestamo', '1');
+      return prev;
+    });
+    dispatch(collapseModals({ rootModalName: 'account-menu' }));
+  }, [dispatch, setSearchParams]);
+
   const onClick = useCallback(() => {
     dispatch(
       pushModal({
@@ -197,6 +220,7 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
           name: 'account-menu',
           options: {
             accountId: account.id,
+            onEditPrestamo,
             onSave,
             onEditNotes,
             onCloseAccount,
@@ -213,6 +237,7 @@ function AccountHeader({ account }: { readonly account: AccountEntity }) {
     dispatch,
     onCloseAccount,
     onEditNotes,
+    onEditPrestamo,
     onReconcile,
     onReopenAccount,
     onSave,

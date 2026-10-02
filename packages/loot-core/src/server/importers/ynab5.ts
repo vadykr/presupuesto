@@ -291,7 +291,7 @@ function importAccounts(
         // interés, cuota y fecha (la lee la fase 4).
         const note = notaDeCuenta(account);
         if (note) {
-          await send('notes-save', { id, note });
+          await send('notes-save', { id: `account-${id}`, note });
         }
         tick();
       }
