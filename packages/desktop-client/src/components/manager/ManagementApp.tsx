@@ -23,7 +23,11 @@ import {
   useServerVersion,
 } from '#components/ServerContext';
 import { useMetaThemeColor } from '#hooks/useMetaThemeColor';
-import { consumirListaSolicitada, SOLO_UN_PRESUPUESTO } from '#presupuesto';
+import {
+  consumirListaSolicitada,
+  primeraAperturaAutomatica,
+  SOLO_UN_PRESUPUESTO,
+} from '#presupuesto';
 import { useDispatch, useSelector } from '#redux';
 import { loggedIn } from '#users/usersSlice';
 
@@ -100,7 +104,8 @@ export function ManagementApp() {
       return;
     }
     autoAperturaDecidida.current = true;
-    if (consumirListaSolicitada() || files.length !== 1) {
+    const listaSolicitada = consumirListaSolicitada();
+    if (!primeraAperturaAutomatica() || listaSolicitada || files.length !== 1) {
       return;
     }
     const [unico] = files;

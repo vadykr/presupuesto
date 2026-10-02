@@ -14,6 +14,22 @@ export const SOLO_UN_PRESUPUESTO = true;
 
 const CLAVE_LISTA_SOLICITADA = 'presupuesto:lista-solicitada';
 
+// La apertura automática solo se intenta una vez por carga de la página:
+// después de «Cambiar de archivo» (desde cualquier sitio: Ajustes, barra
+// lateral, pestaña Presupuesto…) la lista debe quedarse visible.
+let aperturaAutomaticaIntentada = false;
+
+/**
+ * Devuelve `true` solo la primera vez que se llama en esta carga de la página.
+ */
+export function primeraAperturaAutomatica(): boolean {
+  if (aperturaAutomaticaIntentada) {
+    return false;
+  }
+  aperturaAutomaticaIntentada = true;
+  return true;
+}
+
 /**
  * Marca que el usuario ha pedido ver la lista de archivos a propósito
  * («Cambiar de archivo» en Ajustes o en la barra lateral), para que el modo
