@@ -62,3 +62,11 @@ Uso siempre desde el móvil. Idioma: castellano (las categorías se quedan en ca
 - Las credenciales viven solo en el servidor (secretos cifrados). Claude no las ve ni las pide.
 - Cambios mínimos sobre el código de Actual para poder traer mejoras futuras del proyecto original.
 - Antes de subir: `yarn typecheck` y `yarn lint:fix` desde la raíz.
+
+### Fase 5 — asistente con IA (idea de Vadym, 3-oct-2026)
+15. Chat dentro de la app («¿de dónde saco 80 € para una cena?») que responde con los datos del motor de
+    análisis (habitual por categoría, atípicos, estacionalidad, asignado en meses futuros) y propone
+    movimientos concretos; con «ok» los ejecuta (`transfer-category`, `budget-amount(s)`) con Deshacer.
+    Reglas: propone antes de tocar nada; solo puede citar cifras que recibe (nada inventado); pide
+    confirmación; clave de API en el servidor (nunca en el móvil); contexto por pregunta, sin «entrenar».
+    Requiere el servidor desplegado. Estimación: 2-3 sesiones desde el PC.
