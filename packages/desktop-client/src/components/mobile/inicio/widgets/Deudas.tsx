@@ -42,6 +42,7 @@ export function Deudas({ tamano }: PropsWidget) {
       {prestamos.length === 0 ? (
         cargando ? null : (
           <EstadoVacio
+            anchoIlustracion={96}
             ilustracion="barquito"
             titulo={t('No loans')}
             texto={t('No loans. Mark an account as a loan from its menu.')}

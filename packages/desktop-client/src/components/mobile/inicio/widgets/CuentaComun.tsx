@@ -141,6 +141,7 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
         data-testid="inicio-cuenta-comun"
       >
         <EstadoVacio
+          anchoIlustracion={96}
           titulo={t('How much to deposit?')}
           texto={t(
             'Choose the categories paid from the joint account to see how much to deposit each month.',

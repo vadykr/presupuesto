@@ -84,6 +84,7 @@ export function Fijadas({ tamano, month }: PropsWidget) {
     >
       {fijadas.length === 0 ? (
         <EstadoVacio
+          anchoIlustracion={96}
           titulo={t('Nothing pinned yet')}
           texto={t(
             'No pinned categories yet. Open a category menu in the Budget tab and choose "Pin to home".',

@@ -43,6 +43,7 @@ export function Huchas({ tamano }: PropsWidget) {
       {huchas.length === 0 ? (
         !cargando && (
           <EstadoVacio
+            anchoIlustracion={96}
             ilustracion="barquito"
             titulo={t('No piggy banks')}
             texto={t('No off-budget accounts to show.')}

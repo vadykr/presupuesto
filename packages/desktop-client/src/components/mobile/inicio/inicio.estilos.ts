@@ -168,9 +168,9 @@ export const estilos = {
     flexShrink: 0,
     display: 'flex',
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: espacio.fila,
-    padding: '10px 8px 10px 4px',
+    alignItems: 'flex-start',
+    gap: 4,
+    padding: '8px 12px 12px 2px',
     marginBottom: 10,
   },
   editarNombre: {

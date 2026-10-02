@@ -60,6 +60,7 @@ export function GastoMes({ tamano, month }: PropsWidget) {
       <PaletaInformes />
       {vacio ? (
         <EstadoVacio
+          anchoIlustracion={96}
           ilustracion="barquito"
           titulo={t('No spending yet')}
           texto={t('No spending yet this month.')}

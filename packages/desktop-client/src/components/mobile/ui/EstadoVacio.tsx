@@ -13,6 +13,8 @@ type EstadoVacioProps = {
   /** «sombrero» (nada pendiente) o «barquito» (aún no hay nada). */
   ilustracion?: 'sombrero' | 'barquito';
   accion?: ReactNode;
+  /** Ancho de la ilustración (150 por defecto; menos dentro de un widget). */
+  anchoIlustracion?: number;
   style?: CSSProperties;
   'data-testid'?: string;
 };
@@ -23,6 +25,7 @@ export function EstadoVacio({
   texto,
   ilustracion = 'sombrero',
   accion,
+  anchoIlustracion = 150,
   style,
   'data-testid': testId = 'estado-vacio',
 }: EstadoVacioProps) {
@@ -41,9 +44,9 @@ export function EstadoVacio({
     >
       <View style={{ color: color.fg2 }}>
         {ilustracion === 'sombrero' ? (
-          <Sombrero width={150} />
+          <Sombrero width={anchoIlustracion} />
         ) : (
-          <Barquito width={150} />
+          <Barquito width={anchoIlustracion} />
         )}
       </View>
       <Text

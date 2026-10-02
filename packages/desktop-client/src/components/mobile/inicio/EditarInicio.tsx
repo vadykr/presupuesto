@@ -150,15 +150,59 @@ export function EditarInicio({
                 >
                   <Icono nombre="grip" size={20} />
                 </Button>
-                <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
-                  <Text style={estilos.editarNombre}>
-                    {nombre}
-                    {noDisponibles.has(w.id) && (
-                      <Text style={{ ...estilos.filaSub, marginLeft: 6 }}>
-                        {t('(not available)')}
-                      </Text>
-                    )}
-                  </Text>
+                <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 2,
+                    }}
+                  >
+                    <Text style={estilos.editarNombre}>
+                      {nombre}
+                      {noDisponibles.has(w.id) && (
+                        <Text style={{ ...estilos.filaSub, marginLeft: 6 }}>
+                          {t('(not available)')}
+                        </Text>
+                      )}
+                    </Text>
+                    <Button
+                      variant="bare"
+                      aria-label={t('Move {{name}} up', { name: nombre })}
+                      isDisabled={i <= 0}
+                      onPress={() => onChange(moverWidget(widgets, w.id, -1))}
+                      style={{
+                        ...estilos.botonIcono,
+                        opacity: i <= 0 ? 0.3 : 1,
+                      }}
+                    >
+                      <Icono nombre="cu" size={20} />
+                    </Button>
+                    <Button
+                      variant="bare"
+                      aria-label={t('Move {{name}} down', { name: nombre })}
+                      isDisabled={i >= widgets.length - 1}
+                      onPress={() => onChange(moverWidget(widgets, w.id, 1))}
+                      style={{
+                        ...estilos.botonIcono,
+                        opacity: i >= widgets.length - 1 ? 0.3 : 1,
+                      }}
+                    >
+                      <Icono nombre="cd" size={20} />
+                    </Button>
+                    <Button
+                      variant="bare"
+                      aria-label={t('Remove {{name}}', { name: nombre })}
+                      onPress={() => onChange(quitarWidget(widgets, w.id))}
+                      style={({ isPressed }) => ({
+                        ...estilos.botonIcono,
+                        color: color.bad,
+                        backgroundColor: isPressed ? color.badSoft : undefined,
+                      })}
+                    >
+                      <Icono nombre="x" size={20} />
+                    </Button>
+                  </View>
                   <View
                     style={estilos.segmentado}
                     role="group"
@@ -184,41 +228,6 @@ export function EditarInicio({
                     ))}
                   </View>
                 </View>
-                <View>
-                  <Button
-                    variant="bare"
-                    aria-label={t('Move {{name}} up', { name: nombre })}
-                    isDisabled={i <= 0}
-                    onPress={() => onChange(moverWidget(widgets, w.id, -1))}
-                    style={{ ...estilos.botonIcono, opacity: i <= 0 ? 0.3 : 1 }}
-                  >
-                    <Icono nombre="cu" size={20} />
-                  </Button>
-                  <Button
-                    variant="bare"
-                    aria-label={t('Move {{name}} down', { name: nombre })}
-                    isDisabled={i >= widgets.length - 1}
-                    onPress={() => onChange(moverWidget(widgets, w.id, 1))}
-                    style={{
-                      ...estilos.botonIcono,
-                      opacity: i >= widgets.length - 1 ? 0.3 : 1,
-                    }}
-                  >
-                    <Icono nombre="cd" size={20} />
-                  </Button>
-                </View>
-                <Button
-                  variant="bare"
-                  aria-label={t('Remove {{name}}', { name: nombre })}
-                  onPress={() => onChange(quitarWidget(widgets, w.id))}
-                  style={({ isPressed }) => ({
-                    ...estilos.botonIcono,
-                    color: color.bad,
-                    backgroundColor: isPressed ? color.badSoft : undefined,
-                  })}
-                >
-                  <Icono nombre="x" size={20} />
-                </Button>
               </GridListItem>
             );
           }}
@@ -236,6 +245,7 @@ export function EditarInicio({
               style={{
                 ...estiloTarjeta('normal', 0),
                 ...estilos.editarItem,
+                alignItems: 'center',
                 padding: '10px 8px 10px 12px',
                 gap: espacio.icono,
               }}
