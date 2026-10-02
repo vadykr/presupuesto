@@ -6,19 +6,20 @@ import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
+import { q } from '@actual-app/core/shared/query';
 import { groupById } from '@actual-app/core/shared/util';
-import type { CategoryEntity } from '@actual-app/core/types/models';
+import type { CategoryEntity, NoteEntity } from '@actual-app/core/types/models';
 
 import { plantillasDe } from '#components/mobile/anual/useAnual';
-import { objetivoDesdePlantillas } from '#components/mobile/budget/objetivos';
 import type { DatosCategoriaMes } from '#components/mobile/budget/objetivos';
 import { useDatosObjetivos } from '#components/mobile/budget/useDatosObjetivos';
 import {
   avanceFijada,
   iconoDeNombre,
+  metaConFecha,
   porcentajeAvance,
 } from '#components/mobile/inicio/avance';
-import type { Avance } from '#components/mobile/inicio/avance';
+import type { Avance, MetaFecha } from '#components/mobile/inicio/avance';
 import {
   AccionTexto,
   Anillo,
@@ -40,8 +41,8 @@ import { useCategories } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
 import { useNavigate } from '#hooks/useNavigate';
-import { useNotes } from '#hooks/useNotes';
 import { usePinnedCategories } from '#hooks/usePinnedCategories';
+import { useQuery } from '#hooks/useQuery';
 
 const SIN_DATOS: DatosCategoriaMes = {
   goal: null,
@@ -77,6 +78,21 @@ export function Fijadas({ tamano, month }: PropsWidget) {
 
   const datos = useDatosObjetivos(month, fijadas);
 
+  // Metas con fecha (plantilla `by …`): se miden sobre el saldo.
+  const { data: notas } = useQuery<NoteEntity>(
+    () => q('notes').select('*'),
+    [],
+  );
+  const metas = useMemo(() => {
+    const notaDe = new Map((notas ?? []).map(n => [n.id, n.note]));
+    return new Map<string, MetaFecha | null>(
+      fijadas.map(c => [
+        c.id,
+        metaConFecha(plantillasDe(c.goal_def), notaDe.get(c.id)),
+      ]),
+    );
+  }, [fijadas, notas]);
+
   const abrir = (id: CategoryEntity['id']) =>
     void navigate(`/categories/${id}?month=${month}`);
 
@@ -108,6 +124,7 @@ export function Fijadas({ tamano, month }: PropsWidget) {
               key={c.id}
               category={c}
               datos={datos.get(c.id) ?? SIN_DATOS}
+              meta={metas.get(c.id)}
               separada={i > 0}
               onPress={() => abrir(c.id)}
             />
@@ -117,6 +134,7 @@ export function Fijadas({ tamano, month }: PropsWidget) {
         <HeroeFijada
           category={fijadas[0]}
           datos={datos.get(fijadas[0].id) ?? SIN_DATOS}
+          meta={metas.get(fijadas[0].id)}
           onPress={() => abrir(fijadas[0].id)}
         />
       ) : (
@@ -134,6 +152,7 @@ export function Fijadas({ tamano, month }: PropsWidget) {
               key={c.id}
               category={c}
               datos={datos.get(c.id) ?? SIN_DATOS}
+              meta={metas.get(c.id)}
               compacta={tamano === 'compacto'}
               mediana={tamano === 'normal' && fijadas.length === 2}
               onPress={() => abrir(c.id)}
@@ -193,19 +212,21 @@ function IconoCategoria({ nombre }: { nombre: string }) {
 function BaldosaFijada({
   category,
   datos,
+  meta,
   compacta,
   mediana = false,
   onPress,
 }: {
   category: CategoryEntity;
   datos: DatosCategoriaMes;
+  meta?: MetaFecha | null;
   compacta: boolean;
   mediana?: boolean;
   onPress: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
-  const avance = avanceFijada(datos);
+  const avance = avanceFijada(datos, meta);
   const textoAvance = useTextoAvance(avance);
   const { nombre } = iconoDeNombre(category.name);
   const porcentaje = useTextoPorcentaje(avance);
@@ -267,17 +288,19 @@ function BaldosaFijada({
 function FilaFijada({
   category,
   datos,
+  meta,
   separada,
   onPress,
 }: {
   category: CategoryEntity;
   datos: DatosCategoriaMes;
+  meta?: MetaFecha | null;
   separada: boolean;
   onPress: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
-  const avance = avanceFijada(datos);
+  const avance = avanceFijada(datos, meta);
   const textoAvance = useTextoAvance(avance);
   const { nombre } = iconoDeNombre(category.name);
 
@@ -335,32 +358,26 @@ function FilaFijada({
 function HeroeFijada({
   category,
   datos,
+  meta,
   onPress,
 }: {
   category: CategoryEntity;
   datos: DatosCategoriaMes;
+  meta?: MetaFecha | null;
   onPress: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
   const locale = useLocale();
-  const avance = avanceFijada(datos);
+  const avance = avanceFijada(datos, meta);
   const textoAvance = useTextoAvance(avance);
   const porcentaje = useTextoPorcentaje(avance);
   const { nombre } = iconoDeNombre(category.name);
-  const nota = useNotes(category.id);
   const { color: colorEstado } = coloresEstado[avance.estado];
 
-  const fecha = useMemo(() => {
-    const plantillas = plantillasDe(category.goal_def);
-    if (plantillas.length === 0) {
-      return null;
-    }
-    const objetivo = objetivoDesdePlantillas(plantillas, nota);
-    return objetivo && objetivo !== 'otro' && 'fecha' in objetivo
-      ? monthUtils.format(objetivo.fecha, 'd MMM yyyy', locale)
-      : null;
-  }, [category.goal_def, nota, locale]);
+  const fecha = meta
+    ? monthUtils.format(meta.fecha, 'd MMM yyyy', locale)
+    : null;
 
   const conObjetivo = avance.modo === 'objetivo';
   const cifras = conObjetivo
@@ -368,7 +385,7 @@ function HeroeFijada({
         { etiqueta: t('So far'), valor: avance.hecho, color: colorEstado },
         {
           etiqueta: t('To go'),
-          valor: Math.max(0, avance.total - avance.hecho),
+          valor: avance.falta,
           color: color.fg,
         },
       ]

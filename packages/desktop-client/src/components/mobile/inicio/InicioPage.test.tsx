@@ -274,7 +274,7 @@ describe('InicioPage', () => {
             goal_def: JSON.stringify([
               {
                 type: 'by',
-                amount: 400,
+                amount: 1000,
                 month: '2027-07',
                 directive: 'template',
               },
@@ -290,13 +290,14 @@ describe('InicioPage', () => {
 
     const heroe = await screen.findByTestId('fijada-heroe');
     expect(within(heroe).getByTestId('fijada-porcentaje')).toHaveTextContent(
-      '25%',
+      '40%',
     );
     expect(within(heroe).getByText('completed')).toBeInTheDocument();
     expect(within(heroe).getByText('So far')).toBeInTheDocument();
-    expect(within(heroe).getByText('100.00')).toBeInTheDocument();
+    // Meta con fecha: se mide el saldo (401.74) contra el total (1000).
+    expect(within(heroe).getByText('401.74')).toBeInTheDocument();
     expect(within(heroe).getByText('To go')).toBeInTheDocument();
-    expect(within(heroe).getByText('300.00')).toBeInTheDocument();
+    expect(within(heroe).getByText('598.26')).toBeInTheDocument();
     expect(within(heroe).getByTestId('fijada-fecha')).toHaveTextContent(
       'by 1 Jul 2027',
     );
