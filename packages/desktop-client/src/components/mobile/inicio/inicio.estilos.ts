@@ -266,7 +266,7 @@ const MAX_ESCALONES = 8;
  */
 export const entradaEscalonada = {
   '& > *': {
-    animation: `${entrar} ${movimiento.tarjeta}ms ${movimiento.muelle} both`,
+    animation: `${entrar} ${movimiento.tarjeta}ms ${movimiento.muelle} backwards`,
   },
   ...Object.fromEntries(
     Array.from({ length: MAX_ESCALONES }, (_, i) => [
