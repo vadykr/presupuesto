@@ -9,11 +9,14 @@ import type {
 import { Button } from '@actual-app/components/button';
 import { Input } from '@actual-app/components/input';
 import { styles } from '@actual-app/components/styles';
+import type { CSSProperties as EstiloAnidado } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { Toggle } from '@actual-app/components/toggle';
 import { View } from '@actual-app/components/view';
 import { css, cx } from '@emotion/css';
+
+import { color } from './ui/tokens';
 
 type FieldLabelProps = {
   title: string;
@@ -42,6 +45,7 @@ export function FieldLabel({ title, flush, style }: FieldLabelProps) {
 const valueStyle = {
   borderWidth: 1,
   borderColor: theme.formInputBorder,
+  borderRadius: 14,
   marginLeft: 8,
   marginRight: 8,
   height: styles.mobileMinHeight,
@@ -71,6 +75,8 @@ const iconFieldWrapperClassName = css({
 type InputFieldProps = ComponentPropsWithRef<typeof Input> & {
   iconStart?: ReactNode;
   iconEnd?: ReactNode;
+  /** Concepto A: fila de formulario con etiqueta (ver `TapField`). */
+  etiqueta?: string;
 };
 
 const iconStyle: CSSProperties = {
@@ -89,9 +95,57 @@ export function InputField({
   iconStart,
   iconEnd,
   className,
+  etiqueta,
   ref,
   ...props
 }: InputFieldProps) {
+  if (etiqueta) {
+    return (
+      <View
+        className={cx(
+          filaFormularioClassName,
+          css({ '&:focus-within': { backgroundColor: color.surface2 } }),
+        )}
+        style={{ display: 'flex' }}
+      >
+        {iconStart && <CajaIconoFila>{iconStart}</CajaIconoFila>}
+        <EtiquetaFila>{etiqueta}</EtiquetaFila>
+        <Input
+          ref={ref}
+          autoCorrect="false"
+          autoCapitalize="none"
+          disabled={disabled}
+          onUpdate={onUpdate}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: 'none',
+            backgroundColor: 'transparent',
+            height: 52,
+            padding: 0,
+            textAlign: 'right',
+            fontSize: 14.5,
+            fontWeight: 700,
+            color: disabled ? color.fg3 : color.fg,
+            ...style,
+            borderRadius: 0,
+            boxShadow: 'none',
+          }}
+          {...props}
+          className={renderProps =>
+            cx(
+              hideNativeDateIconClassName,
+              css({ '&::-webkit-date-and-time-value': { textAlign: 'right' } }),
+              typeof className === 'function'
+                ? className(renderProps)
+                : className,
+            )
+          }
+        />
+        {iconEnd && <View style={iconStyle}>{iconEnd}</View>}
+      </View>
+    );
+  }
   if (iconStart || iconEnd) {
     return (
       <View
@@ -165,7 +219,81 @@ type TapFieldProps = ComponentPropsWithRef<typeof Button> & {
   rightContent?: ReactNode;
   alwaysShowRightContent?: boolean;
   textStyle?: CSSProperties;
+  /**
+   * Concepto A: fila de formulario dentro de una tarjeta, con el icono en su
+   * cajita, la etiqueta a la izquierda y el valor a la derecha.
+   */
+  etiqueta?: string;
+  /** Valor como nodo (p. ej. la píldora de categoría) en el modo `etiqueta`. */
+  valorNodo?: ReactNode;
 };
+
+/**
+ * Fila de formulario del sistema A (sin borde, 54 px). Los separadores los
+ * pone la tarjeta que las agrupa (`tarjetaFormularioStyle`).
+ */
+export const filaFormularioClassName = css({
+  minHeight: 54,
+  margin: 0,
+  padding: '0 14px',
+  gap: 12,
+  border: 0,
+  borderRadius: 0,
+  backgroundColor: 'transparent',
+  flexDirection: 'row',
+  alignItems: 'center',
+  '&[data-disabled]': { backgroundColor: 'transparent', opacity: 0.6 },
+  '&[data-pressed]': { backgroundColor: color.surface2, boxShadow: 'none' },
+  '&[data-hovered]': { backgroundColor: color.surface2, boxShadow: 'none' },
+});
+
+/** Tarjeta que agrupa filas de formulario con una línea entre ellas. */
+export const tarjetaFormularioStyle: EstiloAnidado = {
+  backgroundColor: color.surface,
+  borderRadius: 20,
+  boxShadow: 'var(--p-shadow, none)',
+  overflow: 'hidden',
+  margin: '0 16px',
+  '& > * + *': { borderTop: `1px solid ${color.line}` },
+};
+
+function CajaIconoFila({ children }: { children: ReactNode }) {
+  return (
+    <View
+      aria-hidden
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 10,
+        backgroundColor: color.surface2,
+        color: color.fg2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+function EtiquetaFila({ children }: { children: ReactNode }) {
+  return (
+    <Text
+      style={{
+        fontSize: 13,
+        fontWeight: 700,
+        color: color.fg3,
+        width: 86,
+        flexShrink: 0,
+        textAlign: 'left',
+        userSelect: 'none',
+      }}
+    >
+      {children}
+    </Text>
+  );
+}
 
 const defaultTapFieldClassName = () =>
   css({
@@ -194,10 +322,63 @@ export function TapField({
   rightContent,
   alwaysShowRightContent,
   textStyle,
+  etiqueta,
+  valorNodo,
   ref,
   ...props
 }: TapFieldProps) {
   const showPlaceholder = !value && !!placeholder;
+  if (etiqueta) {
+    return (
+      <Button
+        ref={ref}
+        bounce={false}
+        variant="bare"
+        className={renderProps =>
+          cx(
+            filaFormularioClassName,
+            typeof className === 'function'
+              ? className(renderProps)
+              : className,
+          )
+        }
+        {...props}
+      >
+        {icon && <CajaIconoFila>{icon}</CajaIconoFila>}
+        <EtiquetaFila>{etiqueta}</EtiquetaFila>
+        <View
+          style={{
+            flex: 1,
+            minWidth: 0,
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+        >
+          {!showPlaceholder && valorNodo ? (
+            valorNodo
+          ) : (
+            <Text
+              style={{
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                textAlign: 'right',
+                fontSize: 14.5,
+                fontWeight: 700,
+                color: showPlaceholder ? color.fg3 : color.fg,
+                ...textStyle,
+              }}
+            >
+              {showPlaceholder ? placeholder : value}
+            </Text>
+          )}
+        </View>
+        {(!props.isDisabled || alwaysShowRightContent) && rightContent}
+      </Button>
+    );
+  }
   return (
     <Button
       ref={ref}

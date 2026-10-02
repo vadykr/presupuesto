@@ -173,6 +173,8 @@ export type FocusableAmountInputProps = Omit<AmountInputProps, 'onFocus'> & {
   focused?: boolean;
   disabled?: boolean;
   focusedStyle?: CSSProperties;
+  /** Oculta el botón «±» (cuando hay un selector Gasto/Ingreso aparte). */
+  hideSignButton?: boolean;
   buttonProps?: Omit<ComponentPropsWithRef<typeof Button>, 'style'> & {
     style?: EmotionCSSProperties;
   };
@@ -188,6 +190,7 @@ export const FocusableAmountInput = memo(function FocusableAmountInput({
   textStyle,
   style,
   focusedStyle,
+  hideSignButton = false,
   buttonProps,
   onFocus,
   onBlur,
@@ -260,7 +263,7 @@ export const FocusableAmountInput = memo(function FocusableAmountInput({
       />
 
       <View>
-        {!focused && (
+        {!focused && !hideSignButton && (
           <Button
             style={{
               position: 'absolute',

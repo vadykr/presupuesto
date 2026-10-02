@@ -25,6 +25,7 @@ import {
   SvgWallet,
 } from '@actual-app/components/icons/v1';
 import {
+  SvgCheckCircle1,
   SvgNotesPaper,
   SvgPencilWriteAlternate,
 } from '@actual-app/components/icons/v2';
@@ -73,13 +74,17 @@ import {
 
 import { NoteInsertHashButton } from '#components/autocomplete/NoteInsertHashButton';
 import { NoteTagAutocomplete } from '#components/autocomplete/NoteTagAutocomplete';
+import { useColoresCategorias } from '#components/mobile/informes/useColoresCategorias';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import {
   FieldLabel,
   InputField,
   TapField,
+  tarjetaFormularioStyle,
   ToggleField,
 } from '#components/mobile/MobileForms';
+import { PildoraCategoria } from '#components/mobile/ui/PildoraCategoria';
+import { color, movimiento, radio, sombra } from '#components/mobile/ui/tokens';
 import { getPrettyPayee } from '#components/mobile/utils';
 import { MobilePageHeader, Page } from '#components/Page';
 import { shouldApplyRuleChange } from '#components/transactions/table/utils';
@@ -227,6 +232,66 @@ export function Status({
   );
 }
 
+type SelectorGastoIngresoProps = {
+  esIngreso: boolean;
+  isDisabled?: boolean;
+  onChange: (esIngreso: boolean) => void;
+};
+
+/** Selector «Gasto / Ingreso» bajo el importe (concepto A). */
+function SelectorGastoIngreso({
+  esIngreso,
+  isDisabled,
+  onChange,
+}: SelectorGastoIngresoProps) {
+  const { t } = useTranslation();
+  const opcion = (ingreso: boolean, etiqueta: string) => {
+    const activa = esIngreso === ingreso;
+    return (
+      <Button
+        variant="bare"
+        aria-pressed={activa}
+        isDisabled={isDisabled}
+        onPress={() => onChange(ingreso)}
+        data-testid={ingreso ? 'selector-ingreso' : 'selector-gasto'}
+        style={{
+          flex: 1,
+          minHeight: 44,
+          borderRadius: 11,
+          fontSize: 14,
+          fontWeight: 800,
+          color: activa ? (ingreso ? color.ok : color.bad) : color.fg3,
+          backgroundColor: activa
+            ? ingreso
+              ? color.okSoft
+              : color.badSoft
+            : 'transparent',
+          transition: `background-color ${movimiento.pildora}ms, color ${movimiento.pildora}ms`,
+        }}
+      >
+        {etiqueta}
+      </Button>
+    );
+  };
+  return (
+    <View
+      role="group"
+      aria-label={t('Transaction type')}
+      style={{
+        flexDirection: 'row',
+        alignSelf: 'stretch',
+        padding: 4,
+        gap: 4,
+        borderRadius: radio.boton,
+        backgroundColor: color.surface2,
+      }}
+    >
+      {opcion(false, t('Spending (sign)'))}
+      {opcion(true, t('Income (sign)'))}
+    </View>
+  );
+}
+
 type FooterProps = {
   transactions: TransactionEntity[];
   isAdding: boolean;
@@ -275,14 +340,21 @@ function Footer({
     <View
       data-testid="transaction-form-footer"
       style={{
-        paddingLeft: styles.mobileEditingPadding,
-        paddingRight: styles.mobileEditingPadding,
-        paddingTop: 10,
-        paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
-        backgroundColor: theme.tableHeaderBackground,
-        borderTopWidth: 1,
-        borderColor: theme.tableBorder,
+        paddingLeft: 16,
+        paddingRight: 16,
+        paddingTop: 12,
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        background: `linear-gradient(to top, ${color.bg} 70%, transparent)`,
         gap: 8,
+        '& button': {
+          minHeight: 54,
+          height: 54,
+          borderRadius: 18,
+          fontWeight: 800,
+          fontSize: 16,
+          border: 0,
+        },
+        '& button span': { fontWeight: 800, fontSize: 16 },
       }}
     >
       {isFuture && (
@@ -917,6 +989,28 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
       [onClearActiveEdit, onUpdate],
     );
 
+    // Gasto / Ingreso: el signo del importe. Con importe 0 solo cambia el
+    // signo con el que se empezará a teclear.
+    const [esIngreso, setEsIngreso] = useState(transaction.amount > 0);
+    useEffect(() => {
+      if (transaction.amount !== 0) {
+        setEsIngreso(transaction.amount > 0);
+      }
+    }, [transaction.amount]);
+    const onCambiarSigno = useCallback(
+      (ingreso: boolean) => {
+        setEsIngreso(ingreso);
+        const conSigno = ingreso
+          ? Math.abs(transaction.amount)
+          : -Math.abs(transaction.amount);
+        if (conSigno !== transaction.amount) {
+          void onUpdateInner(transaction, 'amount', conSigno);
+        }
+      },
+      [onUpdateInner, transaction],
+    );
+    const { huecoDe } = useColoresCategorias();
+
     const onTotalAmountUpdate = useCallback(
       (value: number) => {
         if (transaction.amount !== value) {
@@ -1199,17 +1293,36 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
       >
         <View
           data-testid="transaction-form"
-          style={{ flexShrink: 0, marginTop: 20, marginBottom: 20 }}
+          style={{ flexShrink: 0, marginTop: 8, marginBottom: 20, gap: 14 }}
         >
           <View
+            data-testid="importe-movimiento"
+            data-ingreso={esIngreso || undefined}
             style={{
               alignItems: 'center',
+              gap: 14,
+              margin: '0 16px',
+              padding: '18px 16px 16px',
+              borderRadius: radio.heroe,
+              boxShadow: sombra.tarjeta,
+              backgroundColor: esIngreso
+                ? `color-mix(in srgb, ${color.ok} 16%, ${color.surface})`
+                : color.surface,
+              transition: `background-color ${movimiento.pildora}ms`,
             }}
           >
-            <FieldLabel title={t('Amount')} flush style={{ marginBottom: 0 }} />
+            <FieldLabel
+              title={t('Amount')}
+              flush
+              style={{
+                marginBottom: -8,
+                fontSize: 12,
+                fontWeight: 800,
+                color: color.fg3,
+              }}
+            />
             <AmountInput
               value={transaction.amount}
-              negate
               disabled={
                 !!editingField &&
                 editingField !== getFieldName(transaction.id, 'amount')
@@ -1221,13 +1334,19 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
               }}
               onBlur={() => onClearActiveEdit()}
               onChange={onTotalAmountUpdate}
+              negate={!esIngreso}
               variant="large"
+            />
+            <SelectorGastoIngreso
+              esIngreso={esIngreso}
+              isDisabled={!!editingField}
+              onChange={onCambiarSigno}
             />
           </View>
 
-          <View>
-            <FieldLabel title={t('Payee')} />
+          <View style={tarjetaFormularioStyle}>
             <TapField
+              etiqueta={t('Payee')}
               icon={<SvgUser width={17} height={17} />}
               placeholder={
                 transaction.amount > 0
@@ -1324,12 +1443,22 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
                 )
               }
             />
-          </View>
 
-          {!transaction.is_parent && (
-            <View>
-              <FieldLabel title={t('Category')} />
+            {!transaction.is_parent && (
               <TapField
+                etiqueta={t('Category')}
+                valorNodo={
+                  isOffBudget || isBudgetTransfer(transaction) ? undefined : (
+                    <PildoraCategoria
+                      nombre={getCategory(transaction, isOffBudget) ?? ''}
+                      hueco={
+                        transaction.category
+                          ? huecoDe(transaction.category)
+                          : null
+                      }
+                    />
+                  )
+                }
                 icon={<SvgTag width={17} height={17} />}
                 placeholder={t('Select a category')}
                 rightContent={dropdownChevron}
@@ -1351,8 +1480,8 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
                 onPress={() => onEditFieldInner(transaction.id, 'category')}
                 data-testid="category-field"
               />
-            </View>
-          )}
+            )}
+          </View>
 
           {childTransactions.map((childTrans, i, arr) => (
             <ChildTransactionEdit
@@ -1422,9 +1551,9 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
             </View>
           )}
 
-          <View>
-            <FieldLabel title={t('Account')} />
+          <View style={tarjetaFormularioStyle}>
             <TapField
+              etiqueta={t('Account')}
               icon={<SvgWallet width={17} height={17} />}
               placeholder={t('Select an account')}
               rightContent={dropdownChevron}
@@ -1436,58 +1565,78 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
               onPress={() => onEditFieldInner(transaction.id, 'account')}
               data-testid="account-field"
             />
-          </View>
 
-          <View style={{ flexDirection: 'row' }}>
-            <View style={{ flex: 1 }}>
-              <FieldLabel title={t('Date')} />
-              <InputField
-                type="date"
-                iconStart={<SvgCalendar width={17} height={17} />}
-                disabled={
-                  !!editingField &&
-                  editingField !== getFieldName(transaction.id, 'date')
-                }
-                required
-                style={{
-                  color: theme.tableText,
-                  minWidth: '150px',
-                  appearance: 'none',
-                }}
-                defaultValue={dateDefaultValue}
-                onBlur={() => onClearActiveEdit()}
-                onFocus={() =>
-                  onRequestActiveEdit(getFieldName(transaction.id, 'date'))
-                }
-                onChange={event =>
-                  onUpdateInner(
-                    transaction,
-                    'date',
-                    formatDate(parseISO(event.target.value), dateFormat),
-                  )
-                }
-              />
-            </View>
-            {transaction.reconciled ? (
-              <View style={{ alignItems: 'center' }}>
-                <FieldLabel title={t('Reconciled')} />
-                <Toggle id="Reconciled" isOn isDisabled />
+            <InputField
+              etiqueta={t('Date')}
+              type="date"
+              iconStart={<SvgCalendar width={17} height={17} />}
+              disabled={
+                !!editingField &&
+                editingField !== getFieldName(transaction.id, 'date')
+              }
+              required
+              style={{
+                minWidth: '120px',
+                appearance: 'none',
+              }}
+              defaultValue={dateDefaultValue}
+              onBlur={() => onClearActiveEdit()}
+              onFocus={() =>
+                onRequestActiveEdit(getFieldName(transaction.id, 'date'))
+              }
+              onChange={event =>
+                onUpdateInner(
+                  transaction,
+                  'date',
+                  formatDate(parseISO(event.target.value), dateFormat),
+                )
+              }
+            />
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                minHeight: 54,
+                padding: '0 14px',
+              }}
+            >
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+              >
+                <View
+                  aria-hidden
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    backgroundColor: color.surface2,
+                    color: color.fg2,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <SvgCheckCircle1 width={17} height={17} />
+                </View>
+                <Text
+                  style={{ fontSize: 13, fontWeight: 700, color: color.fg3 }}
+                >
+                  {transaction.reconciled ? t('Reconciled') : t('Cleared')}
+                </Text>
               </View>
-            ) : (
-              <View style={{ alignItems: 'center' }}>
-                <FieldLabel title={t('Cleared')} />
+              {transaction.reconciled ? (
+                <Toggle id="Reconciled" isOn isDisabled />
+              ) : (
                 <ToggleField
                   id="cleared"
                   isOn={!!transaction.cleared}
                   onToggle={on => onUpdateInner(transaction, 'cleared', on)}
                 />
-              </View>
-            )}
-          </View>
+              )}
+            </View>
 
-          <View>
-            <FieldLabel title={t('Notes')} />
             <InputField
+              etiqueta={t('Notes')}
               ref={noteRef}
               iconStart={<SvgNotesPaper width={17} height={17} />}
               iconEnd={<NoteInsertHashButton inputRef={noteRef} />}
@@ -1505,8 +1654,8 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
                 onUpdateInner(transaction, 'notes', event.target.value)
               }
             />
-            <NoteTagAutocomplete inputRef={noteRef} />
           </View>
+          <NoteTagAutocomplete inputRef={noteRef} />
 
           {!isAdding && (
             <View style={{ alignItems: 'center' }}>

@@ -21,10 +21,13 @@ import { CalculatorKeyboard } from './CalculatorKeyboard';
 
 export const calculatorAmountLargeStyle = {
   ...styles.veryLargeText,
+  fontSize: 46,
+  fontWeight: 800,
+  letterSpacing: '-0.035em',
+  fontVariantNumeric: 'tabular-nums',
   backgroundColor: 'transparent',
   border: 0,
-  borderBottom: '1px solid',
-  borderBottomColor: theme.formInputBorder,
+  borderBottom: '1px solid transparent',
   display: 'block',
   fieldSizing: 'content',
   minWidth: '80px',

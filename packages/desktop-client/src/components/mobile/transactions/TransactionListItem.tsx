@@ -12,13 +12,11 @@ import {
   SvgCheckCircle1,
   SvgLockClosed,
 } from '@actual-app/components/icons/v2';
-import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { isPreviewId } from '@actual-app/core/shared/transactions';
-import { integerToCurrency } from '@actual-app/core/shared/util';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type {
   AccountEntity,
@@ -30,31 +28,37 @@ import {
   usePress,
 } from '@react-aria/interactions';
 
-import { makeAmountFullStyle } from '#components/budget/util';
 import { TransferDirectionIcon } from '#components/common/TransferDirectionIcon';
+import { useColoresCategorias } from '#components/mobile/informes/useColoresCategorias';
+import { separarEmoji } from '#components/mobile/ui/emoji';
+import { IconoCaja } from '#components/mobile/ui/IconoCaja';
+import { PildoraCategoria } from '#components/mobile/ui/PildoraCategoria';
+import { color, colorCategoria, num } from '#components/mobile/ui/tokens';
+import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useAccount } from '#hooks/useAccount';
 import { useCachedSchedules } from '#hooks/useCachedSchedules';
 import { useCategories } from '#hooks/useCategories';
 import { useDisplayPayee } from '#hooks/useDisplayPayee';
+import { useFormat } from '#hooks/useFormat';
 import { usePayee } from '#hooks/usePayee';
 import { NotesTagFormatter } from '#notes/NotesTagFormatter';
 import { useSelector } from '#redux';
 
 import { lookupName, Status } from './TransactionEdit';
 
-export const ROW_HEIGHT = 60;
+export const ROW_HEIGHT = 64;
 
 const getTextStyle = ({
   isPreview,
 }: {
   isPreview: boolean;
 }): CSSProperties => ({
-  ...styles.text,
   fontSize: 14,
+  color: color.fg,
   ...(isPreview
     ? {
         fontStyle: 'italic',
-        color: theme.pageTextLight,
+        color: color.fg2,
       }
     : {}),
 });
@@ -88,6 +92,8 @@ export function TransactionListItem({
 }: TransactionListItemProps) {
   const { t } = useTranslation();
   const { data: { list: categories } = { list: [] } } = useCategories();
+  const format = useFormat();
+  const { huecoDe } = useColoresCategorias();
 
   const { data: payee } = usePayee(transaction?.payee);
   const displayPayee = useDisplayPayee({ transaction });
@@ -155,32 +161,27 @@ export function TransactionListItem({
   const prettyCategory = specialCategory || categoryName;
   const textStyle = getTextStyle({ isPreview });
 
+  const { emoji } = categoryName ? separarEmoji(categoryName) : { emoji: null };
+  const hueco = categoryId && !specialCategory ? huecoDe(categoryId) : null;
+  const colorIcono = hueco != null ? colorCategoria(hueco) : undefined;
+
   return (
     <View
       style={{
         flexDirection: 'row',
         alignItems: 'stretch',
         width: '100%',
-        height: ROW_HEIGHT,
+        minHeight: ROW_HEIGHT,
         overflow: 'hidden',
-        ...(itemProps.isSelected
-          ? {
-              borderWidth: '0 0 0 4px',
-              borderColor: theme.mobileTransactionSelected,
-              borderStyle: 'solid',
-            }
-          : {
-              borderWidth: '0 0 1px 0',
-              borderColor: theme.tableBorder,
-              borderStyle: 'solid',
-            }),
-        ...(isPreview
-          ? {
-              backgroundColor: theme.tableRowHeaderBackground,
-            }
-          : {
-              backgroundColor: theme.tableBackground,
-            }),
+        borderTop: `1px solid ${color.line}`,
+        backgroundColor: itemProps.isSelected
+          ? color.accentSoft
+          : isPreview
+            ? color.surface2
+            : color.surface,
+        ...(itemProps.isSelected && {
+          boxShadow: `inset 4px 0 0 ${color.accent}`,
+        }),
       }}
     >
       <PressResponder {...mergeProps(pressProps, longPressProps)}>
@@ -188,18 +189,13 @@ export function TransactionListItem({
           {...itemProps}
           style={{
             userSelect: 'none',
-            height: '100%',
+            minHeight: ROW_HEIGHT,
             flex: 1,
             borderRadius: 0,
             borderWidth: 0,
+            padding: '8px 14px',
+            backgroundColor: 'transparent',
             ...(isReconciling && { paddingRight: 0 }),
-            ...(isPreview
-              ? {
-                  backgroundColor: theme.tableRowHeaderBackground,
-                }
-              : {
-                  backgroundColor: theme.tableBackground,
-                }),
           }}
         >
           <View
@@ -208,10 +204,27 @@ export function TransactionListItem({
               flex: 1,
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: isReconciling ? '0 0 0 4px' : '0 4px',
+              gap: 10,
+              minWidth: 0,
             }}
           >
-            <View style={{ flex: 1 }}>
+            <IconoCaja
+              size={36}
+              icono={
+                emoji
+                  ? undefined
+                  : transferAccount
+                    ? 'move'
+                    : isParent
+                      ? 'arrowupdown'
+                      : 'tag'
+              }
+              colorPropio={colorIcono}
+              style={{ fontSize: 18 }}
+            >
+              {emoji}
+            </IconoCaja>
+            <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <PayeeIcons
                   transaction={transaction}
@@ -220,10 +233,11 @@ export function TransactionListItem({
                 <TextOneLine
                   style={{
                     ...textStyle,
-                    fontWeight: isAdded ? '600' : '400',
+                    fontWeight: 800,
+                    ...(isAdded && { color: color.accent }),
                     ...(!displayPayee && !isPreview
                       ? {
-                          color: theme.pageTextLight,
+                          color: color.fg3,
                           fontStyle: 'italic',
                         }
                       : {}),
@@ -239,7 +253,8 @@ export function TransactionListItem({
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    marginTop: 3,
+                    gap: 5,
+                    minWidth: 0,
                   }}
                 >
                   {!isReconciling &&
@@ -248,8 +263,8 @@ export function TransactionListItem({
                         style={{
                           width: 11,
                           height: 11,
-                          color: theme.noticeTextLight,
-                          marginRight: 5,
+                          flexShrink: 0,
+                          color: color.ok,
                         }}
                       />
                     ) : (
@@ -257,85 +272,88 @@ export function TransactionListItem({
                         style={{
                           width: 11,
                           height: 11,
-                          color: isCleared
-                            ? theme.noticeTextLight
-                            : theme.pageTextSubdued,
-                          marginRight: 5,
+                          flexShrink: 0,
+                          color: isCleared ? color.ok : color.fg3,
                         }}
                       />
                     ))}
                   {(isParent || isChild) && (
                     <SvgSplit
-                      style={{
-                        width: 12,
-                        height: 12,
-                        marginRight: 5,
-                      }}
+                      style={{ width: 12, height: 12, flexShrink: 0 }}
                     />
                   )}
-                  <TextOneLine
-                    style={{
-                      fontSize: 11,
-                      marginTop: 1,
-                      fontWeight: '400',
-                      color: prettyCategory
-                        ? theme.tableText
-                        : theme.menuItemTextSelected,
-                      fontStyle:
-                        specialCategory || !prettyCategory
-                          ? 'italic'
-                          : undefined,
-                      textAlign: 'left',
-                    }}
-                  >
-                    {prettyCategory || t('Uncategorized')}
-                  </TextOneLine>
+                  {prettyCategory && !specialCategory ? (
+                    <PildoraCategoria
+                      nombre={prettyCategory}
+                      hueco={hueco}
+                      tamano="pequena"
+                    />
+                  ) : (
+                    <TextOneLine
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: prettyCategory ? color.fg3 : color.warn,
+                        fontStyle: 'italic',
+                        textAlign: 'left',
+                      }}
+                    >
+                      {prettyCategory || t('Uncategorized')}
+                    </TextOneLine>
+                  )}
                 </View>
               )}
               {displayedNotes && (
                 <TextOneLine
                   style={{
-                    fontSize: 11,
-                    marginTop: 4,
-                    fontWeight: '400',
-                    color: theme.tableText,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: color.fg3,
                     textAlign: 'left',
-                    opacity: 0.85,
                   }}
                 >
                   <NotesTagFormatter notes={displayedNotes} />
                 </TextOneLine>
               )}
             </View>
-            <View style={{ justifyContent: 'center', alignItems: 'flex-end' }}>
-              <Text
-                style={{
-                  ...styles.tnum,
-                  ...makeAmountFullStyle(amount, {
-                    positiveColor: theme.tableText,
-                    negativeColor: theme.tableText,
-                    zeroColor: theme.numberNeutral,
-                  }),
-                  ...textStyle,
-                }}
-              >
-                {integerToCurrency(amount)}
-              </Text>
-              {showRunningBalance && runningBalance !== undefined && (
+            <View
+              style={{
+                justifyContent: 'center',
+                alignItems: 'flex-end',
+                flexShrink: 0,
+              }}
+            >
+              <PrivacyFilter>
                 <Text
                   style={{
-                    fontSize: 11,
-                    fontWeight: '400',
-                    ...styles.tnum,
-                    ...makeAmountFullStyle(runningBalance, {
-                      positiveColor: theme.numberPositive,
-                      negativeColor: theme.numberNegative,
-                      zeroColor: theme.numberNeutral,
-                    }),
+                    ...num,
+                    ...textStyle,
+                    fontWeight: 800,
+                    color:
+                      amount > 0
+                        ? color.ok
+                        : amount === 0
+                          ? color.fg3
+                          : color.fg,
                   }}
                 >
-                  {integerToCurrency(runningBalance)}
+                  {amount > 0 ? '+' : ''}
+                  {format(amount, 'financial')}
                 </Text>
+              </PrivacyFilter>
+              {showRunningBalance && runningBalance !== undefined && (
+                <PrivacyFilter>
+                  <Text
+                    style={{
+                      ...num,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: runningBalance < 0 ? color.bad : color.fg3,
+                    }}
+                  >
+                    {format(runningBalance, 'financial')}
+                  </Text>
+                </PrivacyFilter>
               )}
             </View>
           </View>
