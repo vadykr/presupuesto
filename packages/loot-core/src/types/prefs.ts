@@ -72,7 +72,11 @@ export type SyncedPrefs = Partial<
     // Presupuesto · Informes: hueco de color por categoría (JSON { id: 0..7 })
     | 'category-colors'
     // Presupuesto · Informes: ids de categorías que no cuentan (JSON array)
-    | 'informes-excluidas',
+    | 'informes-excluidas'
+    // Presupuesto · Inicio: widgets en orden (JSON [{ id, tamano }])
+    | 'inicio-widgets'
+    // Presupuesto · Inicio: categorías de la cuenta común (JSON array de ids)
+    | 'cuenta-comun-categorias',
     string
   >
 >;
