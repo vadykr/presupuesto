@@ -20,7 +20,6 @@
   "Fix": "Corregir",
   "Pinned": "Fijadas",
   "Edit": "Editar",
-  "No pinned categories yet. Open a category menu in the Budget tab and choose “Pin to home”.": "Todavía no hay categorías fijadas. Abre el menú de una categoría en la pestaña Presupuesto y elige «Fijar en inicio».",
   "Summary of {{month}}": "Resumen de {{month}}",
   "Assigned": "Asignado",
   "Spent": "Gastado",
@@ -28,5 +27,7 @@
   "Assigned in future months": "Asignado en meses futuros",
   "Available": "Disponible",
   "Subtract {{amount}} from budget": "Restar {{amount}} al presupuesto",
-  "Add {{amount}} to budget": "Sumar {{amount}} al presupuesto"
+  "Add {{amount}} to budget": "Sumar {{amount}} al presupuesto",
+  "Open {{categoryName}} category": "Abrir la categoría {{categoryName}}",
+  "No pinned categories yet. Open a category menu in the Budget tab and choose \"Pin to home\".": "Todavía no hay categorías fijadas. Abre el menú de una categoría en la pestaña Presupuesto y elige «Fijar en inicio»."
 }

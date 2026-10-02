@@ -30,6 +30,7 @@ import { EnableBankingCallback } from './EnableBankingCallback';
 import { FeatureErrorFallback } from './FeatureErrorFallback';
 import { GlobalKeys } from './GlobalKeys';
 import { MobileBankSyncAccountEditPage } from './mobile/banksync/MobileBankSyncAccountEditPage';
+import { InicioPage } from './mobile/inicio/InicioPage';
 import { MobileNavTabs } from './mobile/MobileNavTabs';
 import { TransactionEdit } from './mobile/transactions/TransactionEdit';
 import { NotificationsPage } from './news/NotificationsPage';
@@ -78,6 +79,15 @@ function WideNotSupported({
     }
   }, [isNarrowWidth, navigate, redirectTo]);
   return isNarrowWidth ? children : null;
+}
+
+/**
+ * Presupuesto: la raíz lleva a la pantalla de inicio en el móvil y al
+ * presupuesto en escritorio (que sigue como en Actual).
+ */
+function RaizRedirect() {
+  const { isNarrowWidth } = useResponsive();
+  return <Navigate to={isNarrowWidth ? '/inicio' : '/budget'} replace />;
 }
 
 function RouterBehaviors() {
@@ -252,9 +262,20 @@ export function FinancesApp() {
                   {isNarrowWidth && <MobilePageHeaderSlot />}
 
                   <Routes>
+                    <Route path="/" element={<RaizRedirect />} />
+
                     <Route
-                      path="/"
-                      element={<Navigate to="/budget" replace />}
+                      path="/inicio"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <WideNotSupported>
+                            <InicioPage />
+                          </WideNotSupported>
+                        </ErrorBoundary>
+                      }
                     />
 
                     <Route path="/reports/*" element={<Reports />} />
@@ -468,6 +489,7 @@ export function FinancesApp() {
                 </View>
 
                 <Routes>
+                  <Route path="/inicio" element={<MobileNavTabs />} />
                   <Route path="/budget" element={<MobileNavTabs />} />
                   <Route path="/accounts" element={<MobileNavTabs />} />
                   <Route path="/settings" element={<MobileNavTabs />} />

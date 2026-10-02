@@ -373,7 +373,8 @@ export function ExpenseCategoryListItem({
         modal: {
           name: 'cover',
           options: {
-            title: t('Add money from…'),
+            // Título corto: «Añadir dinero desde…» se corta a 390 px de ancho.
+            title: t('Add from…'),
             amountLabel: t('Add this amount:'),
             month,
             amount: 0,
