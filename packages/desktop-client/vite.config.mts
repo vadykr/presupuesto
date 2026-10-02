@@ -240,6 +240,24 @@ const pluginsServiceAssets = (): Plugin => ({
   },
 });
 
+// Ruta base bajo la que se sirve la app. Por defecto la raíz («/»), que es lo
+// que usan la imagen Docker y el servidor de desarrollo. Para servirla en una
+// subruta (p. ej. la vista previa en GitHub Pages, https://usuario.github.io/repo/)
+// se exporta PUBLIC_URL=/repo/ al compilar: la misma variable que ya lee la
+// compilación del backend (loot-core) para localizar sql-wasm.wasm y data/.
+// Se normaliza para que empiece y termine en «/».
+function normalizePublicUrl(value: string | undefined): string {
+  const trimmed = (value ?? '').trim().replace(/^\/+|\/+$/g, '');
+  return trimmed ? `/${trimmed}/` : '/';
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+}
+
+const publicUrl = normalizePublicUrl(process.env.PUBLIC_URL);
+process.env.PUBLIC_URL = publicUrl;
+
 export default defineConfig(async ({ mode, command }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isVitest = process.env.VITEST === 'true';
@@ -283,7 +301,7 @@ export default defineConfig(async ({ mode, command }) => {
   const browserOpen = env.BROWSER_OPEN ? `//${env.BROWSER_OPEN}` : true;
 
   return {
-    base: '/',
+    base: publicUrl,
     envPrefix: 'REACT_APP_',
     build: {
       minify: 'oxc',
@@ -372,18 +390,18 @@ export default defineConfig(async ({ mode, command }) => {
                 '**/*.{js,css,html,txt,wasm,sql,sqlite,ico,png,woff2,webmanifest}',
               ],
               ignoreURLParametersMatching: [/^v$/],
-              navigateFallback: '/index.html',
+              navigateFallback: `${publicUrl}index.html`,
               maximumFileSizeToCacheInBytes: 10 * 1024 * 1024, // 10MB
               navigateFallbackDenylist: [
-                /^\/account\/.*$/,
-                /^\/admin\/.*$/,
-                /^\/secret\/.*$/,
-                /^\/openid\/.*$/,
-                /^\/plugins\/.*$/,
-                /^\/kcab\/.*$/,
-                /^\/plugin-data\/.*$/,
-                /^\/enablebanking\/.*$/,
-              ],
+                'account',
+                'admin',
+                'secret',
+                'openid',
+                'plugins',
+                'kcab',
+                'plugin-data',
+                'enablebanking',
+              ].map(dir => new RegExp(`^${escapeRegExp(publicUrl)}${dir}/.*$`)),
             },
           }),
       injectShims(),

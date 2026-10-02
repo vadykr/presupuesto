@@ -115,7 +115,7 @@ global.Actual = {
     // Unregister the service worker handling routing and then reload. This should force the reload
     // to query the actual server rather than delegating to the worker
     return window.navigator.serviceWorker
-      .getRegistration('/')
+      .getRegistration(import.meta.env.BASE_URL)
       .then(registration => {
         if (registration == null) return;
         return registration.unregister();
