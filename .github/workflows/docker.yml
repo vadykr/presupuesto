@@ -1,0 +1,108 @@
+name: Imagen Docker
+
+# Cada push a master (o un lanzamiento manual) construye la imagen del servidor
+# (sync-server + cliente web en castellano) y la publica en GitHub Container Registry:
+#   ghcr.io/vadykr/presupuesto:latest        (solo desde master)
+#   ghcr.io/vadykr/presupuesto:sha-abc1234   (SHA corto del commit)
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+# Si llegan dos pushes seguidos, se cancela la construcción anterior.
+concurrency:
+  group: docker-imagen
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGEN: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    name: Construir y publicar la imagen
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # Igual que hace upstream: el cliente web y el servidor se compilan UNA vez
+      # en el runner (incluye la descarga de las traducciones desde
+      # actualbudget/translations) y el Dockerfile de packages/sync-server/docker/
+      # solo empaqueta el resultado. Compilar dentro de la imagen
+      # (sync-server.Dockerfile de la raíz) obligaría a compilar dos veces,
+      # y la de arm64 bajo emulación QEMU tardaría horas.
+      - name: Preparar Node, dependencias y traducciones
+        uses: ./.github/actions/setup
+
+      - name: Compilar cliente web y servidor
+        run: yarn build:server
+        env:
+          NODE_OPTIONS: --max_old_space_size=6144
+
+      # QEMU permite construir la variante arm64 (VM Ampere de Oracle Cloud,
+      # Raspberry Pi…) desde un runner amd64.
+      - name: Preparar QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Preparar Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Calcular etiquetas de la imagen
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ${{ env.IMAGEN }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+
+      - name: Iniciar sesión en GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Primero una imagen amd64 local para comprobar que el servidor arranca
+      # antes de publicar nada.
+      - name: Construir imagen de prueba (amd64)
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: packages/sync-server/docker/ubuntu.Dockerfile
+          push: false
+          load: true
+          tags: presupuesto-prueba
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Comprobar que el servidor arranca
+        timeout-minutes: 2
+        run: |
+          docker run --detach --network=host --name presupuesto presupuesto-prueba
+          until docker exec presupuesto sh -c 'node scripts/health-check.js'; do sleep 1; done
+
+      - name: Mostrar los registros del contenedor si falla
+        if: failure()
+        run: docker logs presupuesto || true
+
+      # Reutiliza la caché del paso anterior. Para construir solo amd64 (más rápido)
+      # cambia `platforms` a `linux/amd64`.
+      - name: Construir y publicar (amd64 + arm64)
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: packages/sync-server/docker/ubuntu.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

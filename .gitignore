@@ -116,3 +116,6 @@ storybook-static
 .actualrc.yaml
 .actualrc.yml
 actual.config.js
+
+# Despliegue: configuración local de la VM (dominio), no se sube
+despliegue/.env

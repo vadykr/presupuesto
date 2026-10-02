@@ -1,0 +1,54 @@
+# Servidor «Presupuesto» (fork de Actual Budget) para una VM Linux con Docker.
+# Uso: copia esta carpeta a la VM, ajusta DOMINIO en .env (ver DESPLIEGUE.md) y
+#   docker compose up -d
+name: presupuesto
+
+services:
+  presupuesto:
+    # Imagen construida por .github/workflows/docker.yml en cada push a master.
+    # Para fijar una versión concreta usa la etiqueta del SHA: :sha-abc1234
+    image: ghcr.io/vadykr/presupuesto:latest
+    container_name: presupuesto
+    restart: unless-stopped
+    environment:
+      # Carpeta donde el servidor guarda TODO (presupuestos, contraseña del servidor
+      # y las claves de Enable Banking que se introducen desde la propia app).
+      - ACTUAL_DATA_DIR=/data
+      - ACTUAL_PORT=5006
+      # Caddy hace de proxy inverso; estas redes son las que Docker usa por defecto.
+      - ACTUAL_TRUSTED_PROXIES=10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+    volumes:
+      # Volumen persistente: sobrevive a actualizaciones y reinicios del contenedor.
+      - datos:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'node scripts/health-check.js']
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    # El puerto 5006 NO se publica al exterior: solo Caddy (misma red) llega a él.
+
+  caddy:
+    # Proxy inverso con HTTPS automático (Let's Encrypt). Necesita que el dominio
+    # apunte a la IP pública de la VM y los puertos 80 y 443 abiertos.
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    depends_on:
+      - presupuesto
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp' # HTTP/3
+    environment:
+      # Se define en el archivo .env junto a este compose: DOMINIO=presupuesto.ejemplo.duckdns.org
+      - DOMINIO=${DOMINIO:?Define DOMINIO en el archivo .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data
+      - caddy_config:/config
+
+volumes:
+  datos:
+  caddy_datos:
+  caddy_config:
