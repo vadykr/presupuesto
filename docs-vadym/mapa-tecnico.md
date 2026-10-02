@@ -6,9 +6,9 @@ Rutas relativas a `packages/`.
 
 - Cubrir y traspasar entre categorías YA existen en móvil: `mobile/budget/ExpenseCategoryListItem.tsx` (`onTransfer`, `onCover`) → modales `modals/CoverModal.tsx`, `modals/TransferModal.tsx`; servidor `loot-core/src/server/budget/actions.ts` (`coverOverspending` l.518 limita al saldo origen; `transferCategory` l.643 no valida).
 - Objetivos (goals) detrás del flag `goalTemplatesEnabled` (`hooks/useFeatureFlag.ts`, pref `flags.goalTemplatesEnabled`). Definición en `categories.goal_def` (JSON) y `#template`/`#goal` en notas; cálculo en `loot-core/src/server/budget/goal-template.ts`.
-- El importador YNAB (`loot-core/src/server/importers/ynab5.ts`) NO importa objetivos. Hay que ampliarlo (ynab5-types tiene goal_type/goal_target/goal_target_month) → mapear a plantillas.
+- El importador YNAB (`loot-core/src/server/importers/ynab5.ts`) ya importa objetivos como plantillas (`ynab5-objetivos.ts`, tabla en [importacion-ynab.md](importacion-ynab.md)), cuadra los saldos de préstamo (`ynab5-prestamos.ts`) y «Listo para asignar» descuenta meses futuros ([listo-para-asignar.md](listo-para-asignar.md), flag `RTA_COMO_YNAB`).
 - `BudgetAnalysis` (flag `budgetAnalysisReport`) solo agrega; reutilizar `budgetDataQuery.ts` (`fetchBudgetData`, `envelope-budget-month`).
-- No hay préstamos: crear tabla aditiva `loans (id, account, rate, payment, start, term, tombstone)` + esquema AQL + db/types.
+- No hay préstamos. Decidido (fase «datos correctos»): el importador guarda interés, cuota y fecha en la **nota de la cuenta** (`#prestamo {...}`, ver [prestamos.md](prestamos.md)); la tabla aditiva `loans` queda como opción si la fase 4 necesita histórico.
 - No hay «home» ni «fijadas»: ruta nueva `/home` en `FinancesApp.tsx` + pestaña en `mobile/MobileNavTabs.tsx` (array `navTabs` l.95) + synced pref `pinned-categories`.
 - Sincronización bancaria: no hay endpoint HTTP en el servidor; usar `@actual-app/api` `runBankSync()` o CLI `server bank-sync` en un contenedor/cron aparte (descargar, sincronizar, subir).
 - Enable Banking: secretos en tabla `secrets` de `account.sqlite` en `/data` (`POST /enablebanking/configure`).
