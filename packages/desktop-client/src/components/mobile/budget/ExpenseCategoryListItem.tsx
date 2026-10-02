@@ -4,16 +4,15 @@ import { GridListItem } from 'react-aria-components';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { styles } from '@actual-app/components/styles';
 import type { CSSProperties } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { BudgetType } from '@actual-app/core/server/prefs';
-import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
+import { separarEmoji } from '#components/mobile/ui/emoji';
+import { color, movimiento, radio } from '#components/mobile/ui/tokens';
 import { useCategoriesById } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
 import { useNavigate } from '#hooks/useNavigate';
@@ -27,9 +26,9 @@ import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 import { useAssignKeypad } from './AssignKeypadContext';
 import { BalanceCell } from './BalanceCell';
 import { BudgetCell } from './BudgetCell';
-import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
+import { getColumnWidth } from './BudgetTable';
 import { EstadoObjetivoCorto } from './EstadoObjetivoCorto';
-import { SpentCell } from './SpentCell';
+import { useIgnorarMes } from './useIgnorarMes';
 
 type ExpenseCategoryNameProps = {
   category: CategoryEntity;
@@ -37,22 +36,20 @@ type ExpenseCategoryNameProps = {
   show3Columns: boolean;
 };
 
+/** Nombre de la categoría con su emoji en una cajita de 24 px (concepto A). */
 function ExpenseCategoryName({
   category,
   onEditCategory,
-  show3Columns,
 }: ExpenseCategoryNameProps) {
-  const sidebarColumnWidth = getColumnWidth({
-    show3Columns,
-    isSidebar: true,
-  });
+  const { emoji, resto } = separarEmoji(category.name);
 
   return (
     <View
       style={{
         flex: 1,
+        minWidth: 0,
         justifyContent: 'center',
-        alignItems: 'flex-start',
+        alignItems: 'stretch',
       }}
     >
       {/* Hidden drag button */}
@@ -69,7 +66,10 @@ function ExpenseCategoryName({
       <Button
         variant="bare"
         style={{
-          maxWidth: sidebarColumnWidth,
+          justifyContent: 'flex-start',
+          minHeight: 44,
+          padding: '0 2px',
+          borderRadius: radio.sm,
         }}
         onPress={() => onEditCategory?.(category.id)}
       >
@@ -78,24 +78,37 @@ function ExpenseCategoryName({
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'flex-start',
+            gap: 6,
+            minWidth: 0,
           }}
         >
+          {emoji && (
+            <Text
+              aria-hidden
+              style={{
+                fontSize: 18,
+                lineHeight: 1,
+                width: 24,
+                textAlign: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {emoji}
+            </Text>
+          )}
           <Text
             style={{
               ...styles.lineClamp(2),
-              width: sidebarColumnWidth,
               textAlign: 'left',
-              ...styles.smallText,
+              fontSize: 14,
+              fontWeight: 700,
+              lineHeight: 1.2,
+              color: color.fg,
             }}
             data-testid="category-name"
           >
-            {category.name}
+            {emoji ? resto : category.name}
           </Text>
-          <SvgCheveronRight
-            style={{ flexShrink: 0, color: theme.tableTextSubdued }}
-            width={14}
-            height={14}
-          />
         </View>
       </Button>
     </View>
@@ -116,16 +129,10 @@ function ExpenseCategoryCells({
   category,
   month,
   onBudgetAction,
-  show3Columns,
-  showBudgetedColumn,
   onOpenBalanceMenu,
-  onShowActivity,
 }: ExpenseCategoryCellsProps) {
   const { t } = useTranslation();
-  const columnWidth = getColumnWidth({
-    show3Columns,
-    isSidebar: false,
-  });
+  const columnWidth = getColumnWidth();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
 
   const budgeted =
@@ -149,11 +156,11 @@ function ExpenseCategoryCells({
         justifyContent: 'flex-end',
         alignItems: 'center',
         flexDirection: 'row',
+        gap: 8,
       }}
     >
       <View
         style={{
-          ...(!show3Columns && !showBudgetedColumn && { display: 'none' }),
           width: columnWidth,
           justifyContent: 'center',
           alignItems: 'flex-end',
@@ -165,22 +172,7 @@ function ExpenseCategoryCells({
           category={category}
           month={month}
           onBudgetAction={onBudgetAction}
-        />
-      </View>
-      <View
-        style={{
-          ...(!show3Columns && showBudgetedColumn && { display: 'none' }),
-          width: columnWidth,
-          justifyContent: 'center',
-          alignItems: 'flex-end',
-        }}
-      >
-        <SpentCell
-          binding={spent}
-          category={category}
-          month={month}
-          show3Columns={show3Columns}
-          onPress={onShowActivity}
+          spentBinding={spent}
         />
       </View>
       <View
@@ -194,13 +186,11 @@ function ExpenseCategoryCells({
           binding={balance}
           category={category}
           month={month}
-          show3Columns={show3Columns}
           onPress={onOpenBalanceMenu}
           aria-label={t('Open balance menu for {{categoryName}} category', {
             categoryName: category.name,
           })}
         />
-        <EstadoObjetivoCorto category={category} month={month} />
       </View>
     </View>
   );
@@ -478,6 +468,7 @@ export function ExpenseCategoryListItem({
   // Fila resaltada mientras el teclado de asignación está abierto para ella.
   const keypad = useAssignKeypad();
   const isSelected = !!category && keypad?.selectedCategory?.id === category.id;
+  const { ignorada } = useIgnorarMes(category?.id ?? '', month);
 
   if (!category) {
     return null;
@@ -493,40 +484,41 @@ export function ExpenseCategoryListItem({
         data-category-id={category.id}
         data-selected={isSelected || undefined}
         style={{
-          height: ROW_HEIGHT,
-          borderColor: theme.tableBorder,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingLeft: 5,
-          paddingRight: 5,
-          borderBottomWidth: 1,
-          opacity: isHidden ? 0.5 : undefined,
-          backgroundColor: isSelected
-            ? theme.tableRowBackgroundHighlight
-            : monthUtils.isCurrentMonth(month)
-              ? theme.budgetCurrentMonth
-              : theme.budgetOtherMonth,
-          ...(isSelected && {
-            boxShadow: `inset 4px 0 0 ${theme.pillBorderSelected}`,
-          }),
+          minHeight: 56,
+          justifyContent: 'center',
+          gap: 2,
+          padding: '6px 14px',
+          borderTop: `1px solid ${color.line}`,
+          opacity: isHidden ? 0.5 : ignorada ? 0.62 : undefined,
+          backgroundColor: isSelected ? color.accentSoft : 'transparent',
+          transition: `background-color ${movimiento.pildora}ms`,
         }}
       >
-        <ExpenseCategoryName
-          category={category}
-          onEditCategory={onEditCategory}
-          show3Columns={show3Columns}
-        />
-        <ExpenseCategoryCells
-          key={`${category.id}-${show3Columns}-${showBudgetedColumn}`}
-          category={category}
-          month={month}
-          onBudgetAction={onBudgetAction}
-          show3Columns={show3Columns}
-          showBudgetedColumn={showBudgetedColumn}
-          onOpenBalanceMenu={onOpenBalanceMenu}
-          onShowActivity={onShowActivity}
-        />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
+          <ExpenseCategoryName
+            category={category}
+            onEditCategory={onEditCategory}
+            show3Columns={show3Columns}
+          />
+          <ExpenseCategoryCells
+            key={`${category.id}-${show3Columns}-${showBudgetedColumn}`}
+            category={category}
+            month={month}
+            onBudgetAction={onBudgetAction}
+            show3Columns={show3Columns}
+            showBudgetedColumn={showBudgetedColumn}
+            onOpenBalanceMenu={onOpenBalanceMenu}
+            onShowActivity={onShowActivity}
+          />
+        </View>
+        <EstadoObjetivoCorto category={category} month={month} />
       </View>
     </GridListItem>
   );

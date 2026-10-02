@@ -4,27 +4,25 @@ import { GridListItem } from 'react-aria-components';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { Card } from '@actual-app/components/card';
-import { SvgExpandArrow } from '@actual-app/components/icons/v0';
-import { styles } from '@actual-app/components/styles';
 import type { CSSProperties } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
-import * as monthUtils from '@actual-app/core/shared/months';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
 } from '@actual-app/core/types/models';
 import { AutoTextSize } from 'auto-text-size';
 
+import { Icono } from '#components/mobile/ui/Icono';
+import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
+import { color, espacio, movimiento, num } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { CellValue } from '#components/spreadsheet/CellValue';
 import { useFormat } from '#hooks/useFormat';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
-import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
+import { getColumnWidth } from './BudgetTable';
 import { ExpenseCategoryList } from './ExpenseCategoryList';
 import { RowName } from './RowName';
 
@@ -81,10 +79,11 @@ export function ExpenseGroupListItem({
 
   return (
     <GridListItem textValue={categoryGroup.name} {...props}>
-      <Card
+      <View
         style={{
-          marginTop: 4,
-          marginBottom: 4,
+          ...estiloTarjeta('normal', 0),
+          overflow: 'hidden',
+          margin: `0 ${espacio.margen}px ${espacio.tarjetas}px`,
         }}
       >
         <ExpenseGroupHeader
@@ -108,7 +107,7 @@ export function ExpenseGroupListItem({
           show3Columns={show3Columns}
           showBudgetedColumn={showBudgetedColumn}
         />
-      </Card>
+      </View>
     </GridListItem>
   );
 }
@@ -138,19 +137,16 @@ export function ExpenseGroupHeader({
     <View
       data-testid="category-group-row"
       onClick={() => onToggleCollapse(categoryGroup.id)}
+      data-month={month}
       style={{
         cursor: 'pointer',
-        height: ROW_HEIGHT,
-        borderBottomWidth: 1,
-        borderColor: theme.tableBorder,
+        minHeight: 48,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: 5,
-        paddingRight: 5,
+        gap: 8,
+        padding: '2px 14px',
         opacity: isHidden ? 0.5 : undefined,
-        backgroundColor: monthUtils.isCurrentMonth(month)
-          ? theme.budgetHeaderCurrentMonth
-          : theme.budgetHeaderOtherMonth,
+        backgroundColor: color.surface,
       }}
     >
       <ExpenseGroupName
@@ -208,7 +204,7 @@ function ExpenseGroupName({
       <RowName
         name={group.name}
         width={sidebarColumnWidth}
-        textStyle={{ fontWeight: '500' }}
+        textStyle={{ fontWeight: 800, fontSize: 15, color: color.fg }}
         data-testid="category-group-name"
         onPress={() => onToggleCollapse(group.id)}
         onHold={() => onEditCategoryGroup(group.id)}
@@ -217,14 +213,13 @@ function ExpenseGroupName({
           groupName: group.name,
         })}
         leading={
-          <SvgExpandArrow
-            width={8}
-            height={8}
+          <Icono
+            nombre="cd"
+            size={18}
             style={{
-              flexShrink: 0,
               marginRight: 6,
-              color: theme.pageTextSubdued,
-              transition: 'transform .1s',
+              color: color.fg3,
+              transition: `transform ${movimiento.pildora}ms ${movimiento.muelle}`,
               transform: isCollapsed(group.id) ? 'rotate(-90deg)' : '',
             }}
           />
@@ -251,11 +246,11 @@ function ExpenseGroupCells({
   const columnWidth = getColumnWidth({ show3Columns });
 
   const amountStyle: CSSProperties = {
-    ...styles.tnum,
+    ...num,
     width: columnWidth,
-    fontSize: 12,
-    fontWeight: '500',
-    paddingLeft: 5,
+    fontSize: 13,
+    fontWeight: 800,
+    color: color.fg2,
     textAlign: 'right',
   };
 
@@ -280,7 +275,7 @@ function ExpenseGroupCells({
         flexDirection: 'row',
         justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingRight: 5,
+        gap: 8,
       }}
     >
       <View

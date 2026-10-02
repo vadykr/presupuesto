@@ -15,7 +15,17 @@ import { styles } from '@actual-app/components/styles';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { CategoryEntity } from '@actual-app/core/types/models';
+import { keyframes } from '@emotion/css';
 
+import { Icono } from '#components/mobile/ui/Icono';
+import { IconoZz } from '#components/mobile/ui/IconoZz';
+import {
+  color,
+  movimiento,
+  num,
+  radio,
+  sombra,
+} from '#components/mobile/ui/tokens';
 import { useCategoriesById } from '#hooks/useCategories';
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { useFormat } from '#hooks/useFormat';
@@ -30,10 +40,16 @@ import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
 import { useAssignKeypad } from './AssignKeypadContext';
 import type { KeypadKey } from './AssignKeypadContext';
+import { useIgnorarMes } from './useIgnorarMes';
+
+const entrarDesdeAbajo = keyframes({
+  from: { transform: 'translateY(100%)' },
+  to: { transform: 'translateY(0)' },
+});
 
 /** Por encima de la barra de pestañas (zIndex 100) y debajo de los modales. */
 export const KEYPAD_Z_INDEX = 200;
-const KEY_HEIGHT = 46;
+const KEY_HEIGHT = 48;
 const PILL_HEIGHT = 44;
 const GAP = 6;
 
@@ -122,7 +138,8 @@ export function AssignKeypad({
       return;
     }
     const rowRect = row.getBoundingClientRect();
-    const panelTop = panel.getBoundingClientRect().top;
+    // Sin `getBoundingClientRect`: el panel puede estar aún entrando (animado).
+    const panelTop = window.innerHeight - panelHeight;
     const scrollerTop = scroller.getBoundingClientRect().top;
     const margin = 8;
     if (rowRect.bottom > panelTop - margin) {
@@ -144,12 +161,22 @@ export function AssignKeypad({
 
   const { selectedCategory, press, done, cancel } = keypad;
 
-  const key = (label: ReactNode, value: KeypadKey, ariaLabel?: string) => (
+  const key = (
+    label: ReactNode,
+    value: KeypadKey,
+    ariaLabel?: string,
+    operador = false,
+  ) => (
     <KeypadButton
       key={value}
       aria-label={ariaLabel}
       onPress={() => press(value)}
       data-testid={`keypad-${value}`}
+      style={
+        operador
+          ? { backgroundColor: color.surface3, color: color.fg2 }
+          : undefined
+      }
     >
       {label}
     </KeypadButton>
@@ -169,15 +196,27 @@ export function AssignKeypad({
         right: 0,
         bottom: 0,
         zIndex: KEYPAD_Z_INDEX,
-        gap: GAP,
-        padding: 8,
-        paddingBottom: 'calc(8px + env(safe-area-inset-bottom))',
-        backgroundColor: theme.modalBackground,
-        borderTopWidth: 1,
-        borderColor: theme.tooltipBorder,
-        ...styles.shadowLarge,
+        gap: 8,
+        padding: '8px 10px 12px',
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        backgroundColor: color.surface2,
+        borderRadius: '26px 26px 0 0',
+        boxShadow: sombra.hoja,
+        animation: `${entrarDesdeAbajo} ${movimiento.hoja}ms ${movimiento.muelle} both`,
+        '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
       }}
     >
+      <View
+        aria-hidden
+        style={{
+          width: 40,
+          height: 5,
+          borderRadius: 3,
+          backgroundColor: color.line2,
+          alignSelf: 'center',
+          marginBottom: 2,
+        }}
+      />
       {renderActions ? (
         renderActions(selectedCategory)
       ) : (
@@ -196,30 +235,34 @@ export function AssignKeypad({
         {key('7', '7')}
         {key('8', '8')}
         {key('9', '9')}
-        {key('−', '-', t('Subtract from assigned'))}
+        {key('−', '-', t('Subtract from assigned'), true)}
         {key('4', '4')}
         {key('5', '5')}
         {key('6', '6')}
-        {key('+', '+', t('Add to assigned'))}
+        {key('+', '+', t('Add to assigned'), true)}
         {key('1', '1')}
         {key('2', '2')}
         {key('3', '3')}
-        {key('=', '=', t('Equals'))}
+        {key('=', '=', t('Equals'), true)}
         <KeypadButton
           aria-label={t('Cancel')}
           onPress={cancel}
           data-testid="keypad-cancel"
-          style={{ color: theme.errorText }}
+          style={{ color: color.bad }}
         >
-          ✕
+          <Icono nombre="x" size={22} />
         </KeypadButton>
         {key('0', '0')}
-        {key('⌫', 'backspace', t('Delete last digit'))}
+        {key(
+          <Icono nombre="bksp" size={22} />,
+          'backspace',
+          t('Delete last digit'),
+        )}
         <KeypadButton
           variant="primary"
           onPress={done}
           data-testid="keypad-done"
-          style={{ fontWeight: 600 }}
+          style={{ fontSize: 16, fontWeight: 800 }}
         >
           <Trans>Done</Trans>
         </KeypadButton>
@@ -244,9 +287,10 @@ function KeypadButton({
   style,
   ...rest
 }: KeypadButtonProps) {
+  const primario = variant === 'primary';
   return (
     <Button
-      variant={variant}
+      variant="bare"
       bounce={false}
       onPointerDown={() => {
         if ('vibrate' in navigator) {
@@ -254,14 +298,21 @@ function KeypadButton({
         }
       }}
       onPress={onPress}
-      style={{
+      style={({ isPressed }) => ({
         height: KEY_HEIGHT,
         minHeight: KEY_HEIGHT,
         padding: 0,
-        fontSize: 20,
-        ...styles.tnum,
+        borderRadius: radio.boton,
+        fontSize: 21,
+        fontWeight: 600,
+        backgroundColor: primario ? color.accent : color.surface,
+        color: primario ? color.accentInk : color.fg,
+        transform: isPressed ? 'scale(0.95)' : undefined,
+        filter: isPressed ? 'brightness(0.92)' : undefined,
+        transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}`,
+        ...num,
         ...style,
-      }}
+      })}
       {...rest}
     >
       {children}
@@ -373,16 +424,25 @@ function ActionPills({ category, onEditCategory }: ActionPillsProps) {
 
   const onMoveMoney = useMoveMoneyModal(category);
 
-  const pillStyle: CSSProperties = {
+  const { ignorada, setIgnorada } = useIgnorarMes(category.id, month);
+
+  const pillStyle = ({ isPressed }: { isPressed: boolean }): CSSProperties => ({
     flex: 1,
+    minWidth: 0,
     height: PILL_HEIGHT,
     minHeight: PILL_HEIGHT,
-    borderRadius: PILL_HEIGHT / 2,
-    padding: '0 6px',
-    fontSize: 13,
-    fontWeight: 500,
+    borderRadius: radio.boton,
+    padding: '0 4px',
+    gap: 5,
+    fontSize: 12,
+    fontWeight: 800,
     whiteSpace: 'nowrap',
-  };
+    backgroundColor: color.surface,
+    color: color.fg,
+    transform: isPressed ? 'scale(0.96)' : undefined,
+    transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}, background-color ${movimiento.pildora}ms`,
+  });
+  const icono = { color: color.accent };
 
   const menuItemStyle: CSSProperties = {
     ...styles.mobileMenuItem,
@@ -392,12 +452,15 @@ function ActionPills({ category, onEditCategory }: ActionPillsProps) {
   return (
     <View style={{ flexDirection: 'row', gap: GAP }}>
       <Button
+        variant="bare"
         ref={autoAssignRef}
         style={pillStyle}
         onPress={() => setAutoAssignOpen(true)}
         data-testid="keypad-auto-assign"
+        aria-label={t('Auto-assign')}
       >
-        <Trans>Auto-assign</Trans>
+        <Icono nombre="zap" size={16} style={icono} />
+        <Trans>Auto</Trans>
       </Button>
       <Popover
         triggerRef={autoAssignRef}
@@ -435,21 +498,64 @@ function ActionPills({ category, onEditCategory }: ActionPillsProps) {
       </Popover>
       {budgetType === 'envelope' && (
         <Button
+          variant="bare"
           style={pillStyle}
           onPress={onMoveMoney}
           data-testid="keypad-move-money"
+          aria-label={t('Move money')}
         >
-          <Trans>Move money</Trans>
+          <Icono nombre="move" size={16} style={icono} />
+          <Trans>Move</Trans>
         </Button>
       )}
       <Button
+        variant="bare"
         style={pillStyle}
         onPress={() => onEditCategory(category.id)}
         data-testid="keypad-details"
       >
+        <Icono nombre="info" size={16} style={icono} />
         <Trans>Details</Trans>
       </Button>
+      <BotonIgnorar
+        ignorada={ignorada}
+        onPress={() => void setIgnorada(!ignorada)}
+        style={pillStyle}
+      />
     </View>
+  );
+}
+
+/**
+ * Píldora «zZ Ignorar» del teclado: un toque marca o desmarca «Ignorar este
+ * mes». Rellena (gris fuerte) mientras la categoría está ignorada.
+ */
+export function BotonIgnorar({
+  ignorada,
+  onPress,
+  style,
+}: {
+  ignorada: boolean;
+  onPress: () => void;
+  style: (estado: { isPressed: boolean }) => CSSProperties;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Button
+      variant="bare"
+      aria-pressed={ignorada}
+      aria-label={t('Ignore this month')}
+      onPress={onPress}
+      data-testid="keypad-ignorar"
+      data-ignorada={ignorada || undefined}
+      style={estado => ({
+        ...style(estado),
+        ...(ignorada && { backgroundColor: color.fg2, color: color.bg }),
+      })}
+    >
+      <IconoZz color={ignorada ? color.bg : color.accent} />
+      <Trans>Ignore</Trans>
+    </Button>
   );
 }
 

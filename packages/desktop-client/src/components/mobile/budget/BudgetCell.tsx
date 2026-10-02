@@ -4,9 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
-import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
@@ -14,20 +12,22 @@ import type { CategoryEntity } from '@actual-app/core/types/models';
 import { AutoTextSize } from 'auto-text-size';
 
 import { makeAmountGrey } from '#components/budget/util';
+import { color, num, radio } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { CellValue } from '#components/spreadsheet/CellValue';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
 import { useNotes } from '#hooks/useNotes';
+import { useSheetValue } from '#hooks/useSheetValue';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { useUndo } from '#hooks/useUndo';
 import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
-import type { SheetFields } from '#spreadsheet';
+import type { Binding, SheetFields } from '#spreadsheet';
 
 import { describe as describeExpression } from './assignExpression';
 import { useAssignKeypad } from './AssignKeypadContext';
-import { getColumnWidth, PILL_STYLE } from './BudgetTable';
+import { getColumnWidth } from './BudgetTable';
 
 type BudgetCellProps<
   SheetFieldName extends SheetFields<'envelope-budget' | 'tracking-budget'>,
@@ -37,6 +37,8 @@ type BudgetCellProps<
   category: CategoryEntity;
   month: string;
   onBudgetAction: (month: string, action: string, args: unknown) => void;
+  /** Gasto del mes: se pinta en pequeño y en rojo bajo lo asignado. */
+  spentBinding?: Binding<'envelope-budget' | 'tracking-budget', 'sum-amount'>;
 };
 
 export function BudgetCell<
@@ -46,6 +48,7 @@ export function BudgetCell<
   category,
   month,
   onBudgetAction,
+  spentBinding,
   children,
   ...props
 }: BudgetCellProps<SheetFieldName>) {
@@ -212,13 +215,17 @@ export function BudgetCell<
           <Button
             variant="bare"
             style={{
-              ...PILL_STYLE,
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              minHeight: 44,
               maxWidth: columnWidth,
-              ...makeAmountGrey(value),
+              padding: isSelected ? '4px 7px' : '4px 2px',
+              borderRadius: radio.sm,
+              color: color.fg,
               ...(isSelected && {
-                backgroundColor: theme.pillBackgroundSelected,
-                color: theme.pillTextSelected,
-                outline: `2px solid ${theme.pillBorderSelected}`,
+                border: `2px solid ${color.accent}`,
+                backgroundColor: color.bg,
               }),
             }}
             onPress={onOpenCategoryBudgetMenu}
@@ -232,10 +239,12 @@ export function BudgetCell<
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text
                     style={{
-                      ...styles.tnum,
+                      ...num,
                       maxWidth: columnWidth,
                       textAlign: 'right',
-                      fontSize: 12,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      lineHeight: 1.2,
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -244,16 +253,16 @@ export function BudgetCell<
                   {display.secondary && (
                     <Text
                       style={{
-                        ...styles.tnum,
+                        ...num,
                         maxWidth: columnWidth,
                         textAlign: 'right',
-                        fontSize: 12,
-                        fontWeight: 600,
+                        fontSize: 11.5,
+                        fontWeight: 700,
                         whiteSpace: 'nowrap',
                         color:
                           display.secondary.op === '-'
-                            ? theme.errorText
-                            : theme.noticeText,
+                            ? color.bad
+                            : color.accent,
                       }}
                       data-testid="budget-cell-expression"
                     >
@@ -263,26 +272,61 @@ export function BudgetCell<
                   )}
                 </View>
               ) : (
-                <AutoTextSize
-                  key={value}
-                  as={Text}
-                  minFontSizePx={6}
-                  maxFontSizePx={12}
-                  mode="oneline"
-                  style={{
-                    ...styles.tnum,
-                    maxWidth: columnWidth,
-                    textAlign: 'right',
-                    fontSize: 12,
-                  }}
-                >
-                  {format(value, type)}
-                </AutoTextSize>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <AutoTextSize
+                    key={value}
+                    as={Text}
+                    minFontSizePx={9}
+                    maxFontSizePx={14}
+                    mode="oneline"
+                    style={{
+                      ...num,
+                      maxWidth: columnWidth,
+                      textAlign: 'right',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      lineHeight: 1.2,
+                      ...makeAmountGrey(value),
+                    }}
+                  >
+                    {format(value, type)}
+                  </AutoTextSize>
+                  {spentBinding && <GastoDelMes binding={spentBinding} />}
+                </View>
               )}
             </PrivacyFilter>
           </Button>
         )
       }
     </CellValue>
+  );
+}
+
+/** «−13,00 €» en rojo bajo lo asignado: lo gastado este mes (nada si es 0). */
+function GastoDelMes({
+  binding,
+}: {
+  binding: Binding<'envelope-budget' | 'tracking-budget', 'sum-amount'>;
+}) {
+  const format = useFormat();
+  const spent = useSheetValue(binding) ?? 0;
+  if (spent === 0) {
+    return null;
+  }
+  return (
+    <Text
+      data-testid="budget-cell-spent"
+      style={{
+        ...num,
+        fontSize: 11.5,
+        fontWeight: 700,
+        lineHeight: 1.2,
+        whiteSpace: 'nowrap',
+        color: spent < 0 ? color.bad : color.ok,
+      }}
+    >
+      {spent < 0 ? '−' : '+'}
+      {format(Math.abs(spent), 'financial')}
+    </Text>
   );
 }
