@@ -23,8 +23,11 @@ import {
   useServerVersion,
 } from '#components/ServerContext';
 import { useMetaThemeColor } from '#hooks/useMetaThemeColor';
+import { useNavigate } from '#hooks/useNavigate';
 import {
+  consumirConfigServidor,
   consumirListaSolicitada,
+  MODO_PRESUPUESTO,
   primeraAperturaAutomatica,
   SOLO_UN_PRESUPUESTO,
 } from '#presupuesto';
@@ -43,6 +46,11 @@ import { WelcomeScreen } from './WelcomeScreen';
 
 function Version() {
   const version = useServerVersion();
+
+  // Presupuesto: la versión de Actual no aporta nada aquí (sigue en Ajustes).
+  if (MODO_PRESUPUESTO) {
+    return null;
+  }
 
   return (
     <Text
@@ -93,9 +101,28 @@ export function ManagementApp() {
     void fetchData();
   }, [dispatch]);
 
+  const autoAperturaDecidida = useRef(false);
+  // Presupuesto: Ajustes → «Servidor» pide abrir la configuración del servidor.
+  const navigate = useNavigate();
+  const configServidorConsumida = useRef(false);
+  useEffect(() => {
+    if (
+      !MODO_PRESUPUESTO ||
+      configServidorConsumida.current ||
+      !managerHasInitialized ||
+      isLoading
+    ) {
+      return;
+    }
+    configServidorConsumida.current = true;
+    if (consumirConfigServidor()) {
+      autoAperturaDecidida.current = true;
+      void navigate('/config-server');
+    }
+  }, [isLoading, managerHasInitialized, navigate]);
+
   // Presupuesto: con un solo archivo se abre directamente, salvo que el
   // usuario haya pedido ver la lista («Cambiar de archivo»).
-  const autoAperturaDecidida = useRef(false);
   useEffect(() => {
     if (!SOLO_UN_PRESUPUESTO || autoAperturaDecidida.current) {
       return;

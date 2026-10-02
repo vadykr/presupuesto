@@ -19,12 +19,12 @@ import { Link } from '#components/common/Link';
 import { Checkbox, FormField, FormLabel } from '#components/forms';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { Page } from '#components/Page';
-import { useServerVersion } from '#components/ServerContext';
+import { useServerURL, useServerVersion } from '#components/ServerContext';
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { useGlobalPref } from '#hooks/useGlobalPref';
 import { useMetadataPref } from '#hooks/useMetadataPref';
 import { loadPrefs, saveSyncedPrefs } from '#prefs/prefsSlice';
-import { solicitarListaDePresupuestos } from '#presupuesto';
+import { MODO_PRESUPUESTO, solicitarListaDePresupuestos } from '#presupuesto';
 import { useDispatch, useSelector } from '#redux';
 
 import { AuthSettings } from './AuthSettings';
@@ -38,6 +38,7 @@ import { FormatSettings } from './Format';
 import { LanguageSettings } from './LanguageSettings';
 import { RepairTransactions } from './RepairTransactions';
 import { ResetCache, ResetSync } from './Reset';
+import { ServerSettings } from './ServerSettings';
 import { ThemeSettings } from './Themes';
 import { AdvancedToggle, Setting } from './UI';
 
@@ -85,65 +86,73 @@ function About() {
           <Trans>Server version: {{ version }}</Trans>
         </Text>
 
-        {notifyWhenUpdateIsAvailable && versionInfo?.isOutdated ? (
-          <Link
-            variant="external"
-            to="https://actualbudget.org/docs/releases"
-            linkColor="purple"
-          >
-            <Trans>New version available: {versionInfo.latestVersion}</Trans>
-          </Link>
-        ) : (
-          <Text style={{ color: theme.noticeText, fontWeight: 600 }}>
-            {notifyWhenUpdateIsAvailable ? (
-              <Trans>You're up to date!</Trans>
-            ) : null}
-          </Text>
-        )}
-        <Text>
-          <Link
-            variant="external"
-            to="https://actualbudget.org/docs/releases"
-            linkColor="purple"
-          >
-            <Trans>Release Notes</Trans>
-          </Link>
-          {isNewsFeedEnabled && (
-            <>
-              {' · '}
-              <Link variant="internal" to="/notifications">
-                <Trans>Notifications</Trans>
+        {!MODO_PRESUPUESTO && (
+          <>
+            {notifyWhenUpdateIsAvailable && versionInfo?.isOutdated ? (
+              <Link
+                variant="external"
+                to="https://actualbudget.org/docs/releases"
+                linkColor="purple"
+              >
+                <Trans>
+                  New version available: {versionInfo.latestVersion}
+                </Trans>
               </Link>
-            </>
-          )}
-        </Text>
+            ) : (
+              <Text style={{ color: theme.noticeText, fontWeight: 600 }}>
+                {notifyWhenUpdateIsAvailable ? (
+                  <Trans>You're up to date!</Trans>
+                ) : null}
+              </Text>
+            )}
+            <Text>
+              <Link
+                variant="external"
+                to="https://actualbudget.org/docs/releases"
+                linkColor="purple"
+              >
+                <Trans>Release Notes</Trans>
+              </Link>
+              {isNewsFeedEnabled && (
+                <>
+                  {' · '}
+                  <Link variant="internal" to="/notifications">
+                    <Trans>Notifications</Trans>
+                  </Link>
+                </>
+              )}
+            </Text>
+          </>
+        )}
       </View>
-      <View style={{ gap: 5 }}>
-        <Text style={{ display: 'flex' }}>
-          <Checkbox
-            id="settings-notifyWhenUpdateIsAvailable"
-            checked={notifyWhenUpdateIsAvailable}
-            onChange={e =>
-              setNotifyWhenUpdateIsAvailablePref(e.currentTarget.checked)
-            }
-          />
-          <label htmlFor="settings-notifyWhenUpdateIsAvailable">
-            <Trans>Display a notification when updates are available</Trans>
-          </label>
-        </Text>
-        <Text style={{ display: 'flex' }}>
-          <Checkbox
-            id="settings-showNewsFeed"
-            checked={showNewsFeed}
-            onChange={e => setShowNewsFeedPref(e.currentTarget.checked)}
-          />
-          <label htmlFor="settings-showNewsFeed">
-            <Trans>
-              Show in-app notifications (release notes and announcements)
-            </Trans>
-          </label>
-        </Text>
-      </View>
+      {!MODO_PRESUPUESTO && (
+        <View style={{ gap: 5 }}>
+          <Text style={{ display: 'flex' }}>
+            <Checkbox
+              id="settings-notifyWhenUpdateIsAvailable"
+              checked={notifyWhenUpdateIsAvailable}
+              onChange={e =>
+                setNotifyWhenUpdateIsAvailablePref(e.currentTarget.checked)
+              }
+            />
+            <label htmlFor="settings-notifyWhenUpdateIsAvailable">
+              <Trans>Display a notification when updates are available</Trans>
+            </label>
+          </Text>
+          <Text style={{ display: 'flex' }}>
+            <Checkbox
+              id="settings-showNewsFeed"
+              checked={showNewsFeed}
+              onChange={e => setShowNewsFeedPref(e.currentTarget.checked)}
+            />
+            <label htmlFor="settings-showNewsFeed">
+              <Trans>
+                Show in-app notifications (release notes and announcements)
+              </Trans>
+            </label>
+          </Text>
+        </View>
+      )}
     </Setting>
   );
 }
@@ -194,6 +203,7 @@ export function Settings() {
   const [budgetName] = useMetadataPref('budgetName');
   const dispatch = useDispatch();
   const isCurrencyExperimentalEnabled = useFeatureFlag('currency');
+  const serverURL = useServerURL();
 
   const onCloseBudget = () => {
     solicitarListaDePresupuestos();
@@ -263,9 +273,10 @@ export function Settings() {
         <FormatSettings />
         {isCurrencyExperimentalEnabled && <CurrencySettings />}
         <LanguageSettings />
-        <AuthSettings />
-        <EncryptionSettings />
-        <BudgetTypeSettings />
+        {MODO_PRESUPUESTO && <ServerSettings />}
+        {!MODO_PRESUPUESTO && <AuthSettings />}
+        {(!MODO_PRESUPUESTO || serverURL) && <EncryptionSettings />}
+        {!MODO_PRESUPUESTO && <BudgetTypeSettings />}
         {isElectron() && <Backups />}
         <ExportBudget />
         <AdvancedToggle>

@@ -12,6 +12,27 @@
  */
 export const SOLO_UN_PRESUPUESTO = true;
 
+/**
+ * Modo «Presupuesto»: quita los restos de Actual de las pantallas previas al
+ * presupuesto, la importación, las novedades/avisos de actualización, la ayuda
+ * y Ajustes (usuario único en PWA). Ver docs-vadym/simplificacion.md.
+ *
+ * Poner a `false` para recuperar el comportamiento original de Actual.
+ */
+export const MODO_PRESUPUESTO = true;
+
+/** Nombre visible de la app. */
+export const appName = 'Presupuesto';
+
+/** Documentación propia (sustituye a actualbudget.org/docs). */
+export const URL_AYUDA =
+  'https://github.com/vadykr/presupuesto/tree/master/docs-vadym';
+
+/** En modo Presupuesto los enlaces a la documentación de Actual van a la propia. */
+export function urlAyuda(urlUpstream: string): string {
+  return MODO_PRESUPUESTO ? URL_AYUDA : urlUpstream;
+}
+
 const CLAVE_LISTA_SOLICITADA = 'presupuesto:lista-solicitada';
 
 // La apertura automática solo se intenta una vez por carga de la página:
@@ -50,6 +71,34 @@ export function consumirListaSolicitada(): boolean {
   try {
     const solicitada = sessionStorage.getItem(CLAVE_LISTA_SOLICITADA) === '1';
     sessionStorage.removeItem(CLAVE_LISTA_SOLICITADA);
+    return solicitada;
+  } catch {
+    return false;
+  }
+}
+
+const CLAVE_CONFIG_SERVIDOR = 'presupuesto:config-servidor';
+
+/**
+ * Ajustes → «Servidor»: pide que, tras cerrar el presupuesto, se abra la
+ * pantalla de configuración del servidor (`/config-server`).
+ */
+export function solicitarConfigServidor() {
+  try {
+    sessionStorage.setItem(CLAVE_CONFIG_SERVIDOR, '1');
+  } catch {
+    // sessionStorage no disponible: simplemente no se recuerda la petición
+  }
+}
+
+/**
+ * Devuelve `true` (una sola vez) si Ajustes pidió abrir la configuración del
+ * servidor.
+ */
+export function consumirConfigServidor(): boolean {
+  try {
+    const solicitada = sessionStorage.getItem(CLAVE_CONFIG_SERVIDOR) === '1';
+    sessionStorage.removeItem(CLAVE_CONFIG_SERVIDOR);
     return solicitada;
   } catch {
     return false;

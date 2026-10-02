@@ -14,6 +14,7 @@ import { Link } from '#components/common/Link';
 import { Modal, ModalCloseButton, ModalHeader } from '#components/common/Modal';
 import { ImportProgress } from '#components/modals/manager/ImportProgress';
 import { useNavigate } from '#hooks/useNavigate';
+import { MODO_PRESUPUESTO, URL_AYUDA } from '#presupuesto';
 import { useDispatch } from '#redux';
 
 export function ImportYNAB5Modal() {
@@ -91,7 +92,11 @@ export function ImportYNAB5Modal() {
                 <Trans>
                   <Link
                     variant="external"
-                    to="https://actualbudget.org/docs/migration/nynab"
+                    to={
+                      MODO_PRESUPUESTO
+                        ? `${URL_AYUDA}/importacion-ynab.md`
+                        : 'https://actualbudget.org/docs/migration/nynab'
+                    }
                   >
                     Read here
                   </Link>{' '}

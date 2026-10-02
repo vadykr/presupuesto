@@ -19,6 +19,7 @@ import type { OpenIdConfig } from '@actual-app/core/types/models';
 import { Link } from '#components/common/Link';
 import { FormField, FormLabel } from '#components/forms';
 import { useServerURL } from '#components/ServerContext';
+import { urlAyuda } from '#presupuesto';
 
 type OpenIdCallback = (config: OpenIdConfig) => Promise<void>;
 
@@ -343,7 +344,7 @@ const openIdProviders: (OpenIdProviderOption | typeof Menu.line)[] = [
           </Text>{' '}
           <Link
             variant="external"
-            to="https://actualbudget.org/docs/"
+            to={urlAyuda('https://actualbudget.org/docs/')}
             linkColor="muted"
           >
             <Trans>Learn more</Trans>
@@ -393,7 +394,7 @@ const openIdProviders: (OpenIdProviderOption | typeof Menu.line)[] = [
         </Trans>{' '}
         <Link
           variant="external"
-          to="https://actualbudget.org/docs/"
+          to={urlAyuda('https://actualbudget.org/docs/')}
           linkColor="muted"
         >
           <Trans>Learn more</Trans>

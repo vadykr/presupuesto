@@ -18,6 +18,7 @@ import { useServerURL, useSetServerURL } from '#components/ServerContext';
 import { useGlobalPref } from '#hooks/useGlobalPref';
 import { useNavigate } from '#hooks/useNavigate';
 import { saveGlobalPrefs } from '#prefs/prefsSlice';
+import { urlAyuda } from '#presupuesto';
 import { useDispatch, useSelector } from '#redux';
 import { loggedIn, signOut } from '#users/usersSlice';
 
@@ -148,7 +149,7 @@ export function ElectronServerConfig({
             Need to expose your server to the internet? Follow our step-by-step{' '}
             <Link
               variant="external"
-              to="https://actualbudget.org/docs/install/desktop-app"
+              to={urlAyuda('https://actualbudget.org/docs/install/desktop-app')}
             >
               guide
             </Link>{' '}
@@ -443,7 +444,7 @@ export function ConfigServer() {
                 can{' '}
                 <Link
                   variant="external"
-                  to="https://actualbudget.org/docs/install/"
+                  to={urlAyuda('https://actualbudget.org/docs/install/')}
                   linkColor="purple"
                 >
                   learn how to set one up

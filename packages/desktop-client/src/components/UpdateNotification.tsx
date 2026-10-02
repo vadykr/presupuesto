@@ -8,6 +8,7 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
 import { setAppState, updateApp } from '#app/appSlice';
+import { MODO_PRESUPUESTO } from '#presupuesto';
 import { useDispatch, useSelector } from '#redux';
 
 import { Link } from './common/Link';
@@ -24,7 +25,8 @@ export function UpdateNotification() {
     void dispatch(updateApp());
   };
 
-  if (updateInfo && showUpdateNotification) {
+  // Presupuesto: sin aviso de actualización de Actual ni enlace a sus notas.
+  if (!MODO_PRESUPUESTO && updateInfo && showUpdateNotification) {
     const notes = updateInfo.releaseNotes;
 
     return (

@@ -10,6 +10,7 @@ import { View } from '@actual-app/components/view';
 
 import { Modal, ModalCloseButton, ModalHeader } from '#components/common/Modal';
 import { pushModal } from '#modals/modalsSlice';
+import { MODO_PRESUPUESTO } from '#presupuesto';
 import { useDispatch } from '#redux';
 
 export function ImportModal() {
@@ -73,12 +74,14 @@ export function ImportModal() {
               </Trans>
             </Text>
 
-            <Button style={itemStyle} onPress={() => onSelectType('ynab4')}>
-              <span style={{ fontWeight: 700 }}>YNAB4</span>
-              <View style={{ color: theme.pageTextLight }}>
-                <Trans>The old unsupported desktop app</Trans>
-              </View>
-            </Button>
+            {!MODO_PRESUPUESTO && (
+              <Button style={itemStyle} onPress={() => onSelectType('ynab4')}>
+                <span style={{ fontWeight: 700 }}>YNAB4</span>
+                <View style={{ color: theme.pageTextLight }}>
+                  <Trans>The old unsupported desktop app</Trans>
+                </View>
+              </Button>
+            )}
             <Button style={itemStyle} onPress={() => onSelectType('ynab5')}>
               <span style={{ fontWeight: 700 }}>nYNAB</span>
               <View style={{ color: theme.pageTextLight }}>
@@ -88,7 +91,9 @@ export function ImportModal() {
               </View>
             </Button>
             <Button style={itemStyle} onPress={() => onSelectType('actual')}>
-              <span style={{ fontWeight: 700 }}>Actual</span>
+              <span style={{ fontWeight: 700 }}>
+                {MODO_PRESUPUESTO ? t('Budget file (.zip)') : 'Actual'}
+              </span>
               <View style={{ color: theme.pageTextLight }}>
                 <div>
                   <Trans>Import a file exported from Actual</Trans>

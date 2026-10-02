@@ -17,6 +17,7 @@ import { useServerURL } from '#components/ServerContext';
 import { useNavigate } from '#hooks/useNavigate';
 import { useReducedMotion } from '#hooks/useReducedMotion';
 import { pushModal } from '#modals/modalsSlice';
+import { appName, MODO_PRESUPUESTO } from '#presupuesto';
 import { useDispatch } from '#redux';
 
 const fadeInUp = keyframes({
@@ -34,7 +35,82 @@ function entrance(delay: number) {
   });
 }
 
+function WelcomeScreenPresupuesto() {
+  const dispatch = useDispatch();
+  const { isNarrowWidth } = useResponsive();
+  const isReducedMotion = useReducedMotion();
+
+  const entranceClass = (delay: number) =>
+    isReducedMotion ? undefined : entrance(delay);
+
+  const buttonStyle = {
+    fontSize: 15,
+    padding: '12px 15px',
+    flexShrink: 0,
+    ...(isNarrowWidth && { minHeight: styles.mobileMinHeight }),
+  };
+
+  return (
+    <View
+      style={{
+        alignItems: 'center',
+        gap: 25,
+        width: '100%',
+        maxWidth: 480,
+        fontSize: 15,
+        maxHeight: '100%',
+        overflowY: 'auto',
+        paddingTop: 20,
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <View
+        className={entranceClass(0)}
+        style={{ alignItems: 'center', gap: 10, flexShrink: 0 }}
+      >
+        <img
+          src="/icono.svg"
+          alt=""
+          width={64}
+          height={64}
+          style={{ borderRadius: 14 }}
+        />
+        <Text style={{ ...styles.veryLargeText, textAlign: 'center' }}>
+          {appName}
+        </Text>
+      </View>
+
+      <View
+        className={entranceClass(150)}
+        style={{ width: '100%', maxWidth: 400, gap: 10, flexShrink: 0 }}
+      >
+        <Button
+          variant="primary"
+          autoFocus={!isNarrowWidth}
+          style={buttonStyle}
+          onPress={() =>
+            dispatch(pushModal({ modal: { name: 'import-ynab5' } }))
+          }
+        >
+          <Trans>Import from YNAB</Trans>
+        </Button>
+        <Button style={buttonStyle} onPress={() => dispatch(createBudget({}))}>
+          <Trans>Start from scratch</Trans>
+        </Button>
+      </View>
+    </View>
+  );
+}
+
 export function WelcomeScreen() {
+  return MODO_PRESUPUESTO ? (
+    <WelcomeScreenPresupuesto />
+  ) : (
+    <WelcomeScreenActual />
+  );
+}
+
+function WelcomeScreenActual() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const serverURL = useServerURL();
