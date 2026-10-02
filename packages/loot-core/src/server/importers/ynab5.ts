@@ -1324,6 +1324,47 @@ export async function doImport(data: Budget) {
   ]);
 
   await importGoals(data);
+  await importarFormatoMoneda(data);
+}
+
+/**
+ * Formato de números y moneda del presupuesto de YNAB («1.234,56 €»): se
+ * guardan como preferencias para que la app muestre los importes igual.
+ */
+type PrefFormato =
+  | 'numberFormat'
+  | 'hideFraction'
+  | 'defaultCurrencyCode'
+  | 'currencySymbolPosition'
+  | 'currencySpaceBetweenAmountAndSymbol';
+
+export function formatoDesdeYnab(
+  cf: Budget['currency_format'],
+): Record<PrefFormato, string> {
+  const dec = cf?.decimal_separator ?? ',';
+  const grp = cf?.group_separator ?? '.';
+  let numberFormat = 'comma-dot';
+  if (dec === ',' && grp === '.') {
+    numberFormat = 'dot-comma';
+  } else if (dec === ',' && (grp === ' ' || grp === '\u00a0')) {
+    numberFormat = 'space-comma';
+  } else if (dec === '.' && grp === "'") {
+    numberFormat = 'apostrophe-dot';
+  }
+  return {
+    numberFormat,
+    hideFraction: cf && cf.decimal_digits === 0 ? 'true' : 'false',
+    defaultCurrencyCode: cf?.iso_code ?? 'EUR',
+    currencySymbolPosition: cf?.symbol_first ? 'before' : 'after',
+    currencySpaceBetweenAmountAndSymbol: 'true',
+  };
+}
+
+async function importarFormatoMoneda(data: Budget) {
+  const prefs = formatoDesdeYnab(data.currency_format);
+  for (const id of Object.keys(prefs) as PrefFormato[]) {
+    await send('preferences/save', { id, value: prefs[id] });
+  }
 }
 
 /**

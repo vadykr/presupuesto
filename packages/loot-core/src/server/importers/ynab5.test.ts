@@ -427,3 +427,33 @@ describe('saldos de préstamo (ajuste al saldo de YNAB)', () => {
     });
   });
 });
+
+describe('formatoDesdeYnab', () => {
+  test('es-ES: 1.234,56 € con símbolo detrás', async () => {
+    const { formatoDesdeYnab } = await import('./ynab5');
+    expect(
+      formatoDesdeYnab({
+        iso_code: 'EUR',
+        example_format: '123.456,78',
+        decimal_digits: 2,
+        decimal_separator: ',',
+        symbol_first: false,
+        group_separator: '.',
+        currency_symbol: '€',
+        display_symbol: true,
+      }),
+    ).toEqual({
+      numberFormat: 'dot-comma',
+      hideFraction: 'false',
+      defaultCurrencyCode: 'EUR',
+      currencySymbolPosition: 'after',
+      currencySpaceBetweenAmountAndSymbol: 'true',
+    });
+  });
+
+  test('sin formato: euros con coma decimal por defecto', async () => {
+    const { formatoDesdeYnab } = await import('./ynab5');
+    expect(formatoDesdeYnab(null).numberFormat).toBe('dot-comma');
+    expect(formatoDesdeYnab(undefined).defaultCurrencyCode).toBe('EUR');
+  });
+});
