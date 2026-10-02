@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Trans } from 'react-i18next';
 import { Navigate, Route, Routes } from 'react-router';
 
@@ -10,6 +10,7 @@ import { View } from '@actual-app/components/view';
 import { setAppState } from '#app/appSlice';
 import { ProtectedRoute } from '#auth/ProtectedRoute';
 import { Permissions } from '#auth/types';
+import { downloadBudget, loadBudget } from '#budgetfiles/budgetfilesSlice';
 import {
   BackToFileListButton,
   UserDirectoryPage,
@@ -22,6 +23,7 @@ import {
   useServerVersion,
 } from '#components/ServerContext';
 import { useMetaThemeColor } from '#hooks/useMetaThemeColor';
+import { consumirListaSolicitada, SOLO_UN_PRESUPUESTO } from '#presupuesto';
 import { useDispatch, useSelector } from '#redux';
 import { loggedIn } from '#users/usersSlice';
 
@@ -86,6 +88,28 @@ export function ManagementApp() {
 
     void fetchData();
   }, [dispatch]);
+
+  // Presupuesto: con un solo archivo se abre directamente, salvo que el
+  // usuario haya pedido ver la lista («Cambiar de archivo»).
+  const autoAperturaDecidida = useRef(false);
+  useEffect(() => {
+    if (!SOLO_UN_PRESUPUESTO || autoAperturaDecidida.current) {
+      return;
+    }
+    if (!managerHasInitialized || isLoading || !userData || !files) {
+      return;
+    }
+    autoAperturaDecidida.current = true;
+    if (consumirListaSolicitada() || files.length !== 1) {
+      return;
+    }
+    const [unico] = files;
+    if (unico.state === 'remote') {
+      void dispatch(downloadBudget({ cloudFileId: unico.cloudFileId }));
+    } else {
+      void dispatch(loadBudget({ id: unico.id }));
+    }
+  }, [dispatch, files, isLoading, managerHasInitialized, userData]);
 
   return (
     <View style={{ height: '100%', color: theme.pageText }}>

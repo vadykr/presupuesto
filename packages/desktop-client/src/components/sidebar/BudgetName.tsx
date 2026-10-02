@@ -17,6 +17,7 @@ import { useContextMenu } from '#hooks/useContextMenu';
 import { useMetadataPref } from '#hooks/useMetadataPref';
 import { useNavigate } from '#hooks/useNavigate';
 import { pushModal } from '#modals/modalsSlice';
+import { solicitarListaDePresupuestos } from '#presupuesto';
 import { useDispatch } from '#redux';
 
 type BudgetNameProps = {
@@ -82,7 +83,10 @@ function EditableBudgetName() {
       {
         name: 'close',
         text: t('Switch file'),
-        onClick: () => void dispatch(closeBudget()),
+        onClick: () => {
+          solicitarListaDePresupuestos();
+          void dispatch(closeBudget());
+        },
       },
     ],
   });

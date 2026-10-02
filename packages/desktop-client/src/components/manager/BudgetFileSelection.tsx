@@ -54,6 +54,7 @@ import { useInitialMount } from '#hooks/useInitialMount';
 import { useMetadataPref } from '#hooks/useMetadataPref';
 import { useSyncServerStatus } from '#hooks/useSyncServerStatus';
 import { pushModal } from '#modals/modalsSlice';
+import { SOLO_UN_PRESUPUESTO } from '#presupuesto';
 import { useDispatch, useSelector } from '#redux';
 import { getUserData } from '#users/usersSlice';
 
@@ -365,7 +366,12 @@ function BudgetFileListItem({
           {!quickSwitchMode && (
             <BudgetFileMenuButton
               onDelete={() => onDelete(file)}
-              onDuplicate={'id' in file ? () => onDuplicate(file) : undefined}
+              onDuplicate={
+                // Presupuesto: sin «Duplicar» en modo un solo presupuesto
+                'id' in file && !SOLO_UN_PRESUPUESTO
+                  ? () => onDuplicate(file)
+                  : undefined
+              }
             />
           )}
         </View>
@@ -571,6 +577,8 @@ export function BudgetFileSelection({
     : allFiles;
 
   const [creating, setCreating] = useState(false);
+  // Presupuesto: con un archivo ya creado no se ofrece crear ni duplicar otro
+  const puedeCrearOtro = !SOLO_UN_PRESUPUESTO || allFiles.length === 0;
   const { isNarrowWidth } = useResponsive();
   const narrowButtonStyle = isNarrowWidth
     ? {
@@ -690,18 +698,20 @@ export function BudgetFileSelection({
             <Trans>Import file</Trans>
           </Button>
 
-          <Button
-            variant="primary"
-            onPress={() => onCreate()}
-            style={{
-              ...narrowButtonStyle,
-              marginLeft: 10,
-            }}
-          >
-            <Trans>Create new file</Trans>
-          </Button>
+          {puedeCrearOtro && (
+            <Button
+              variant="primary"
+              onPress={() => onCreate()}
+              style={{
+                ...narrowButtonStyle,
+                marginLeft: 10,
+              }}
+            >
+              <Trans>Create new file</Trans>
+            </Button>
+          )}
 
-          {isNonProductionEnvironment() && (
+          {puedeCrearOtro && isNonProductionEnvironment() && (
             <Button
               variant="primary"
               onPress={() => onCreate({ testMode: true })}
