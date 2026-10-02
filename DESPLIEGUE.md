@@ -105,3 +105,62 @@ en `/data` y exponga el puerto 5006:
 
 Variables de entorno disponibles (`ACTUAL_PORT`, `ACTUAL_LOGIN_METHOD`, límites de subida…):
 `packages/docs/docs/config/index.md`.
+
+## 7. Vista previa sin servidor (GitHub Pages)
+
+Para probar la app en el móvil **sin servidor y sin pagar nada**, antes de decidir el alojamiento.
+El cliente web de Actual funciona en modo «sin servidor»: toda la base de datos vive en el
+navegador (IndexedDB) y la importación del JSON de YNAB se hace también en el cliente, así que
+basta con publicar los archivos estáticos.
+
+- Lo publica `.github/workflows/vista-previa.yml` en cada push a `master` (o a mano desde
+  Actions → «Vista previa (GitHub Pages)» → _Run workflow_).
+- Dirección: **https://vadykr.github.io/presupuesto/**
+- Se compila con `PUBLIC_URL=/presupuesto/`, que hace que todos los recursos (JS, CSS, worker,
+  `sql-wasm.wasm`, `data/`) y el router cuelguen de esa subruta. La imagen Docker sigue
+  compilándose con la raíz `/` (sin variable), como siempre.
+
+### Limitaciones
+
+- **Sin sincronización bancaria** (Enable Banking necesita el servidor) y sin sincronización
+  entre dispositivos: es una prueba de la interfaz y del presupuesto, no el sitio definitivo.
+- **Los datos están solo en ese navegador de ese móvil.** Si borras los datos del sitio, cambias
+  de navegador o el sistema los purga, se pierden. Antes de limpiar nada: Ajustes → «Exportar
+  datos» (descarga un `.zip` que luego se puede importar como «Actual» en el servidor definitivo).
+- **Aviso de `SharedArrayBuffer`.** GitHub Pages no permite enviar las cabeceras COOP/COEP que el
+  navegador exige para `SharedArrayBuffer`, así que la primera vez la app muestra un aviso
+  («Actual requiere acceso a SharedArrayBuffer…»). Abajo hay un enlace para desplegar la
+  explicación, una casilla «entiendo» y un botón para continuar sin él; la app recuerda la
+  elección. Sin `SharedArrayBuffer` no conviene tenerla abierta en dos pestañas a la vez.
+- GitHub Pages solo publica sitios estáticos **públicos** en un plan gratuito: el código ya es
+  público, pero los datos nunca salen del móvil, no se sube ninguna base de datos.
+- Sin dominio propio la URL lleva la subruta `/presupuesto/`. Si algún día se quiere
+  `presupuesto.concurra.com`, se crea un CNAME en el DNS apuntando a `vadykr.github.io`, se pone
+  ese dominio en Settings → Pages → _Custom domain_ y se define la variable de repositorio
+  `PAGES_CNAME=presupuesto.concurra.com` (Settings → Secrets and variables → Actions →
+  Variables): el workflow escribe el archivo `CNAME` y compila con la raíz `/`.
+
+### Activarlo (una vez, en GitHub)
+
+1. Settings → Pages → _Build and deployment_ → **Source: GitHub Actions** (no «Deploy from a
+   branch»).
+2. Actions → «Vista previa (GitHub Pages)» → _Run workflow_ en `master` (o hacer un push). El
+   primer despliegue tarda unos minutos; la URL aparece en el resumen del job «Publicar».
+3. Si el repositorio es privado, Pages exige un plan de pago: dejarlo público o esperar al
+   servidor.
+
+### Importar el JSON de YNAB desde el móvil
+
+1. Ten el JSON de YNAB en el móvil (Archivos / Drive / adjunto de correo). Nunca lo subas al
+   repositorio.
+2. Abre https://vadykr.github.io/presupuesto/ en Chrome o Safari. Como no hay servidor
+   detrás, la app entra sola en modo sin servidor; si pregunta, pulsa «No usar servidor».
+3. Si sale el aviso de `SharedArrayBuffer`, despliega la explicación, marca la casilla y
+   continúa.
+4. En la pantalla de bienvenida pulsa **«Importar mi presupuesto»** → **nYNAB** → «Seleccionar
+   archivo…» y elige el JSON. Al terminar abre el presupuesto directamente.
+5. Para tenerla como app: menú del navegador → «Añadir a la pantalla de inicio» (Safari) o
+   «Instalar aplicación» (Chrome). Se abre a pantalla completa con el icono «Presupuesto».
+6. Cuando el servidor definitivo esté listo: Ajustes → «Exportar datos» en el móvil, y en el
+   servidor «Importar mi presupuesto» → «Actual» con ese `.zip`. O volver a importar el JSON de
+   YNAB fresco, que suele ser más limpio.
