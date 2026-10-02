@@ -24,6 +24,7 @@ import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { useGlobalPref } from '#hooks/useGlobalPref';
 import { useMetadataPref } from '#hooks/useMetadataPref';
 import { loadPrefs, saveSyncedPrefs } from '#prefs/prefsSlice';
+import { solicitarListaDePresupuestos } from '#presupuesto';
 import { useDispatch, useSelector } from '#redux';
 
 import { AuthSettings } from './AuthSettings';
@@ -195,6 +196,7 @@ export function Settings() {
   const isCurrencyExperimentalEnabled = useFeatureFlag('currency');
 
   const onCloseBudget = () => {
+    solicitarListaDePresupuestos();
     void dispatch(closeBudget());
   };
 

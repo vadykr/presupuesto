@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Icono de «Presupuesto»: carpeta de presupuesto con símbolo € sobre fondo verde oscuro.
+     Fuente de los PNG/ICO de esta carpeta (ver docs-vadym/simplificacion.md). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#1f6f4a"/>
+  <!-- Carpeta: pestaña + cuerpo, trazo blanco redondeado -->
+  <path d="M72 128 h120 l36 36 h212 v248 h-368 z"
+        fill="none" stroke="#ffffff" stroke-width="30"
+        stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Símbolo € centrado en el cuerpo -->
+  <text x="256" y="372" text-anchor="middle" font-family="DejaVu Sans, Arial, Helvetica, sans-serif"
+        font-weight="bold" font-size="236" fill="#ffffff">€</text>
+</svg>

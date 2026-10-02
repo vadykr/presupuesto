@@ -1,6 +1,10 @@
 import i18n from 'i18next';
 
-import { availableLanguages, setI18NextLanguage } from './i18n';
+import {
+  availableLanguages,
+  DEFAULT_LANGUAGE,
+  setI18NextLanguage,
+} from './i18n';
 
 vi.mock('i18next', () => {
   const i18nMock = {
@@ -31,12 +35,15 @@ describe('setI18NextLanguage', () => {
 
   afterEach(vi.unstubAllGlobals);
 
-  test('should default to Spanish when no language is provided', () => {
+  test('should default to DEFAULT_LANGUAGE when no language is provided', () => {
+    // En modo test DEFAULT_LANGUAGE es 'en'; en la app real es 'es'.
     vi.stubGlobal('navigator', { language: 'uk' });
 
     setI18NextLanguage('');
 
-    expect(vi.mocked(i18n).changeLanguage).toHaveBeenCalledWith('es');
+    expect(vi.mocked(i18n).changeLanguage).toHaveBeenCalledWith(
+      DEFAULT_LANGUAGE,
+    );
   });
 
   test('should set the provided language if it is available', () => {
