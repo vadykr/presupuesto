@@ -361,6 +361,7 @@ export type Modal =
         onCloseAccount: (accountId: AccountEntity['id']) => void;
         onReopenAccount: (accountId: AccountEntity['id']) => void;
         onEditNotes: (id: NoteEntity['id']) => void;
+        onEditPrestamo?: () => void;
         onClose?: () => void;
         onReconcile?: () => void;
         onToggleRunningBalance?: () => void;

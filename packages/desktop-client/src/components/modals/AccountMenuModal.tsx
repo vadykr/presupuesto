@@ -14,6 +14,7 @@ import { Popover } from '@actual-app/components/popover';
 import { styles } from '@actual-app/components/styles';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
+import { leerDatosPrestamo } from '@actual-app/core/shared/prestamos';
 import type { AccountEntity } from '@actual-app/core/types/models';
 
 import {
@@ -41,6 +42,7 @@ export function AccountMenuModal({
   onCloseAccount,
   onReopenAccount,
   onEditNotes,
+  onEditPrestamo,
   onClose,
   onReconcile,
   onToggleRunningBalance,
@@ -93,6 +95,7 @@ export function AccountMenuModal({
   };
 
   const canReconcile = !!onReconcile;
+  const isLoan = !!leerDatosPrestamo(originalNotes);
 
   const buttonStyle: CSSProperties = {
     ...styles.mediumText,
@@ -191,6 +194,19 @@ export function AccountMenuModal({
                 />
                 <Trans>Edit notes</Trans>
               </Button>
+              {onEditPrestamo && (
+                <Button
+                  style={{ ...buttonStyle, flexBasis: '100%' }}
+                  onPress={() => onEditPrestamo()}
+                  data-testid="account-menu-prestamo"
+                >
+                  {isLoan ? (
+                    <Trans>Edit loan details</Trans>
+                  ) : (
+                    <Trans>Mark as loan</Trans>
+                  )}
+                </Button>
+              )}
               {canReconcile && (
                 <Button style={buttonStyle} onPress={() => onReconcile?.()}>
                   <SvgLockClosed
