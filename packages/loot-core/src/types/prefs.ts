@@ -76,7 +76,9 @@ export type SyncedPrefs = Partial<
     // Presupuesto · Inicio: widgets en orden (JSON [{ id, tamano }])
     | 'inicio-widgets'
     // Presupuesto · Inicio: categorías de la cuenta común (JSON array de ids)
-    | 'cuenta-comun-categorias',
+    | 'cuenta-comun-categorias'
+    // Presupuesto · Análisis: consejos descartados (JSON array de «id@mes»)
+    | 'analisis-descartados',
     string
   >
 >;

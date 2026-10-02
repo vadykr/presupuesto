@@ -5,6 +5,7 @@ import { Route, Routes, useLocation } from 'react-router';
 import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 
 import { FeatureErrorFallback } from '#components/FeatureErrorFallback';
+import { AnalisisPage } from '#components/mobile/analisis/AnalisisPage';
 import { CategoriaPage } from '#components/mobile/informes/CategoriaPage';
 import { EdadDineroPage } from '#components/mobile/informes/EdadDineroPage';
 import { GastoMesPage } from '#components/mobile/informes/GastoMesPage';
@@ -67,6 +68,7 @@ const RUTAS_INFORMES: Array<[string, () => ReactNode]> = [
   ['/patrimonio', () => <PatrimonioPage />],
   ['/edad-dinero', () => <EdadDineroPage />],
   ['/nominas', () => <NominasPage />],
+  ['/analisis', () => <AnalisisPage />],
 ];
 
 export function ReportRouter() {
