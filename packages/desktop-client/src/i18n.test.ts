@@ -3,6 +3,7 @@ import i18n from 'i18next';
 import {
   availableLanguages,
   DEFAULT_LANGUAGE,
+  loadLanguage,
   setI18NextLanguage,
 } from './i18n';
 
@@ -20,9 +21,20 @@ vi.mock('i18next', () => {
 vi.mock('./languages', () => ({
   languages: {
     '/locale/en.json': vi.fn(),
-    '/locale/es.json': vi.fn(),
-    '/locale/uk.json': vi.fn(),
+    '/locale/es.json': vi.fn().mockResolvedValue({
+      default: {
+        'To Budget': 'Para presupuestar',
+        Budgeted: 'Presupuestado',
+      },
+    }),
+    '/locale/uk.json': vi.fn().mockResolvedValue({ Account: 'Рахунок' }),
     '/locale/pt-BR.json': vi.fn(),
+  },
+  languageOverrides: {
+    '/src/locale-overrides/es.json': {
+      'To Budget': 'Listo para asignar',
+      'Pin to home': 'Fijar en inicio',
+    },
   },
 }));
 
@@ -93,5 +105,28 @@ describe('setI18NextLanguage', () => {
       'Unknown locale EN, falling back to en',
     );
     expect(vi.mocked(i18n).changeLanguage).toHaveBeenCalledWith('en');
+  });
+});
+
+describe('loadLanguage (traducciones propias)', () => {
+  test('superpone locale-overrides/es.json sobre la traducción de upstream', async () => {
+    const translations = await loadLanguage('es');
+
+    // Corregida por el override
+    expect(translations['To Budget']).toBe('Listo para asignar');
+    // Nueva, solo en el override
+    expect(translations['Pin to home']).toBe('Fijar en inicio');
+    // Intacta, solo en upstream
+    expect(translations['Budgeted']).toBe('Presupuestado');
+  });
+
+  test('devuelve la traducción de upstream tal cual si no hay override', async () => {
+    const translations = await loadLanguage('uk');
+
+    expect(translations).toEqual({ Account: 'Рахунок' });
+  });
+
+  test('falla con un idioma desconocido', async () => {
+    await expect(loadLanguage('zz')).rejects.toThrow('Unknown locale zz');
   });
 });

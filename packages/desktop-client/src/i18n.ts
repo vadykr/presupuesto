@@ -4,7 +4,7 @@ import * as Platform from '@actual-app/core/shared/platform';
 import i18n from 'i18next';
 import resourcesToBackend from 'i18next-resources-to-backend';
 
-import { languages } from './languages';
+import { languageOverrides, languages } from './languages';
 
 export const availableLanguages = Platform.isPlaywright
   ? []
@@ -20,11 +20,27 @@ export const DEFAULT_LANGUAGE =
 const isLanguageAvailable = (language: string) =>
   Object.hasOwn(languages, `/locale/${language}.json`);
 
-const loadLanguage = (language: string) => {
+type Translations = Record<string, string>;
+
+/**
+ * Carga la traducción de upstream y, si existe, le superpone la traducción
+ * propia de `src/locale-overrides/<idioma>.json` (misma clave, texto nuevo).
+ * Así se corrigen o añaden cadenas sin tocar los archivos de upstream.
+ */
+export const loadLanguage = async (language: string): Promise<Translations> => {
   if (!isLanguageAvailable(language)) {
     throw new Error(`Unknown locale ${language}`);
   }
-  return languages[`/locale/${language}.json`]();
+  // Los JSON cargados con import.meta.glob llegan como módulo ({ default }).
+  const loaded = (await languages[`/locale/${language}.json`]()) as {
+    default?: Translations;
+  };
+  const base: Translations = loaded.default ?? (loaded as Translations);
+  const overrides = languageOverrides[`/src/locale-overrides/${language}.json`];
+  if (!overrides) {
+    return base;
+  }
+  return { ...base, ...overrides };
 };
 
 void i18n
