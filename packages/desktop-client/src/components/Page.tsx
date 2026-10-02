@@ -7,8 +7,14 @@ import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
+import { keyframes } from '@emotion/css';
 
 const HEADER_HEIGHT = 50;
+
+const entrarPagina = keyframes({
+  from: { opacity: 0, transform: 'translateY(8px)' },
+  to: { opacity: 1, transform: 'none' },
+});
 
 type PageHeaderProps = {
   title: ReactNode;
@@ -183,6 +189,12 @@ export function Page({ header, style, padding, children, footer }: PageProps) {
         flex: 1,
         overflowY: isNarrowWidth ? 'auto' : undefined,
         padding: `0 ${childrenPadding}px`,
+        // Presupuesto: al cambiar de pestaña la página entra con un muelle
+        // suave (concepto A); quieta con «reducir movimiento».
+        ...(isNarrowWidth && {
+          animation: `${entrarPagina} 320ms cubic-bezier(.2, .9, .3, 1.15) both`,
+          '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+        }),
       }}
     >
       {children}
