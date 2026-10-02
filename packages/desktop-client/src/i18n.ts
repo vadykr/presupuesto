@@ -12,7 +12,10 @@ export const availableLanguages = Platform.isPlaywright
 
 // Idioma por defecto cuando el usuario no ha elegido ninguno
 // (las pruebas de Playwright siguen esperando la interfaz en inglés).
-export const DEFAULT_LANGUAGE = Platform.isPlaywright ? 'en' : 'es';
+// En pruebas (vitest/Playwright) la interfaz se queda en inglés: los tests
+// upstream buscan textos en inglés. En la app real, castellano.
+export const DEFAULT_LANGUAGE =
+  Platform.isPlaywright || import.meta.env?.MODE === 'test' ? 'en' : 'es';
 
 const isLanguageAvailable = (language: string) =>
   Object.hasOwn(languages, `/locale/${language}.json`);
