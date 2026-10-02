@@ -12,29 +12,53 @@ import { Navigate, useLocation } from 'react-router';
 
 import { Button } from '@actual-app/components/button';
 import {
-  SvgAdd,
   SvgCheveronDown,
   SvgCheveronRight,
-  SvgPiggyBank,
 } from '@actual-app/components/icons/v1';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
-import type { AccountEntity } from '@actual-app/core/types/models';
+import type { DatosPrestamo } from '@actual-app/core/shared/prestamos';
+import { leerDatosPrestamo } from '@actual-app/core/shared/prestamos';
+import { q } from '@actual-app/core/shared/query';
+import type { AccountEntity, NoteEntity } from '@actual-app/core/types/models';
 import { css } from '@emotion/css';
 
 import { useMoveAccountMutation, useSyncAndDownloadMutation } from '#accounts';
 import { isAccountFailedSync } from '#accounts/syncStatus';
 import { makeAmountFullStyle } from '#components/budget/util';
+import { useDeuda } from '#components/mobile/deudas/useDeuda';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { PullToRefresh } from '#components/mobile/PullToRefresh';
-import { MobilePageHeader, Page } from '#components/Page';
+import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
+import { Boton } from '#components/mobile/ui/Boton';
+import {
+  BotonRedondo,
+  Cabecera,
+  TituloSeccion,
+} from '#components/mobile/ui/Cabecera';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { Icono } from '#components/mobile/ui/Icono';
+import { IconoCaja } from '#components/mobile/ui/IconoCaja';
+import { Importe } from '#components/mobile/ui/Importe';
+import { Tarjeta } from '#components/mobile/ui/Tarjeta';
+import {
+  color,
+  espacio,
+  movimiento,
+  num,
+  radio,
+  sombra,
+} from '#components/mobile/ui/tokens';
+import { Page } from '#components/Page';
 import { CellValue, CellValueText } from '#components/spreadsheet/CellValue';
 import { useAccounts } from '#hooks/useAccounts';
+import { useFormat } from '#hooks/useFormat';
 import { useLocalPref } from '#hooks/useLocalPref';
 import { useNavigate } from '#hooks/useNavigate';
+import { useQuery } from '#hooks/useQuery';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { replaceModal } from '#modals/modalsSlice';
 import { useDispatch, useSelector } from '#redux';
@@ -74,10 +98,11 @@ function AccountHeader<SheetFieldName extends SheetFields<'account'>>({
       aria-label={t('View {{name}} transactions', { name })}
       onPress={onPress ? onPress : () => navigate(`/accounts/${id}`)}
       style={{
-        height: ROW_HEIGHT,
+        minHeight: 52,
         width: '100%',
-        padding: '0 18px',
-        color: theme.pageTextLight,
+        padding: '0 14px',
+        borderRadius: 0,
+        color: color.fg2,
         ...style,
       }}
       // to match the feel of the other account buttons
@@ -92,10 +117,7 @@ function AccountHeader<SheetFieldName extends SheetFields<'account'>>({
     >
       <View style={{ flex: 1, alignItems: 'center', flexDirection: 'row' }}>
         <Text
-          style={{
-            ...styles.text,
-            fontSize: 17,
-          }}
+          style={{ fontSize: 14.5, fontWeight: 700, color: color.fg }}
           data-testid="name"
         >
           {name}
@@ -114,7 +136,7 @@ function AccountHeader<SheetFieldName extends SheetFields<'account'>>({
         {props => (
           <CellValueText<'account', SheetFieldName>
             {...props}
-            style={{ ...styles.text }}
+            style={{ ...num, fontSize: 14.5, fontWeight: 800 }}
           />
         )}
       </CellValue>
@@ -154,7 +176,7 @@ function AccountListItem({
     <ListBoxItem
       textValue={account.name}
       className={css({
-        borderBottom: `1px solid ${theme.tableBorder}`,
+        borderBottom: `1px solid ${color.line}`,
         '&:last-child': {
           borderBottom: 'none',
         },
@@ -167,10 +189,10 @@ function AccountListItem({
           style={{
             height: ROW_HEIGHT,
             width: '100%',
-            backgroundColor: theme.tableBackground,
+            backgroundColor: 'transparent',
             border: 'none',
             borderRadius: 0,
-            paddingLeft: 8,
+            padding: '0 14px',
           }}
           data-testid="account-list-item"
           onPress={() => onSelect(account)}
@@ -199,10 +221,9 @@ function AccountListItem({
             />
             <TextOneLine
               style={{
-                ...styles.text,
-                fontSize: 17,
-                fontWeight: 600,
-                color: isUpdated ? theme.mobileAccountText : theme.pillText,
+                fontSize: 15,
+                fontWeight: isUpdated ? 800 : 700,
+                color: color.fg,
               }}
               data-testid="account-name"
             >
@@ -233,55 +254,23 @@ function AccountListItem({
 
 function EmptyMessage({ onAddAccount }: { onAddAccount: () => void }) {
   return (
-    <View
-      style={{
-        minHeight: `calc(100vh - ${MOBILE_NAV_HEIGHT}px - 140px)`,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 30,
-        gap: 15,
-      }}
-    >
-      <SvgPiggyBank
-        width={70}
-        height={70}
-        style={{ color: theme.pageTextSubdued }}
+    <View style={{ padding: espacio.margen }}>
+      <EstadoVacio
+        ilustracion="barquito"
+        titulo={<Trans>Add your first account</Trans>}
+        texto={
+          <Trans>
+            Accounts hold your transactions, like everyday spending, savings,
+            credit cards, or cash. Add one to start tracking your money.
+          </Trans>
+        }
+        accion={
+          <Boton onPress={onAddAccount}>
+            <Icono nombre="plus" size={18} />
+            <Trans>Add account</Trans>
+          </Boton>
+        }
       />
-      <Text
-        style={{
-          ...styles.largeText,
-          fontWeight: 600,
-          textAlign: 'center',
-        }}
-      >
-        <Trans>Add your first account</Trans>
-      </Text>
-      <Text
-        style={{
-          ...styles.text,
-          textAlign: 'center',
-          color: theme.pageTextLight,
-          lineHeight: 1.5,
-          maxWidth: 340,
-        }}
-      >
-        <Trans>
-          Accounts hold your transactions, like everyday spending, savings,
-          credit cards, or cash. Add one to start tracking your money.
-        </Trans>
-      </Text>
-      <Button
-        variant="primary"
-        style={{
-          padding: '12px 20px',
-          fontSize: 15,
-          minHeight: styles.mobileMinHeight,
-          marginTop: 10,
-        }}
-        onPress={onAddAccount}
-      >
-        <Trans>Add account</Trans>
-      </Button>
     </View>
   );
 }
@@ -319,6 +308,27 @@ function AllAccountList({
     account => account.offbudget === 1 && account.closed === 0,
   );
   const closedAccounts = accounts.filter(account => account.closed === 1);
+  const navigate = useNavigate();
+
+  // Préstamos: cuentas con la línea `#prestamo {...}` en su nota. Huchas:
+  // el resto de cuentas fuera del presupuesto (p. ej. la de Kiara).
+  const { data: notas } = useQuery<NoteEntity>(
+    () => q('notes').select('*'),
+    [],
+  );
+  const notaDe = (id: string) =>
+    notas?.find(n => n.id === `account-${id}`)?.note ?? null;
+  const conDatos = [...onBudgetAccounts, ...offBudgetAccounts].map(cuenta => ({
+    cuenta,
+    datos: leerDatosPrestamo(notaDe(cuenta.id)),
+  }));
+  const prestamos = conDatos.filter(c => c.datos != null);
+  const corrientes = onBudgetAccounts.filter(
+    c => !prestamos.some(p => p.cuenta.id === c.id),
+  );
+  const huchas = offBudgetAccounts.filter(
+    c => !prestamos.some(p => p.cuenta.id === c.id),
+  );
 
   const closedAccountsRef = useRef<HTMLDivElement | null>(null);
   const [showClosedAccounts, setShowClosedAccountsPref] = useLocalPref(
@@ -342,18 +352,26 @@ function AllAccountList({
   return (
     <Page
       header={
-        <MobilePageHeader
-          title={t('Accounts')}
-          rightContent={
-            <Button
-              variant="bare"
-              aria-label={t('Add account')}
-              style={{ margin: 10 }}
-              onPress={onAddAccount}
-            >
-              <SvgAdd width={20} height={20} />
-            </Button>
+        <Cabecera
+          titulo={t('Accounts')}
+          subtitulo={t('{{count}} accounts', {
+            count: onBudgetAccounts.length + offBudgetAccounts.length,
+          })}
+          derecha={
+            <>
+              <BotonRedondo
+                icono="more"
+                aria-label={t('More')}
+                onPress={() => void navigate('/mas')}
+              />
+              <BotonRedondo
+                icono="plus"
+                aria-label={t('Add account')}
+                onPress={onAddAccount}
+              />
+            </>
           }
+          style={{ paddingBottom: 10 }}
         />
       }
       padding={0}
@@ -364,49 +382,80 @@ function AllAccountList({
         <PullToRefresh onRefresh={onSync}>
           <View
             aria-label={t('Account list')}
-            style={{ paddingBottom: MOBILE_NAV_HEIGHT }}
+            style={{
+              gap: espacio.tarjetas,
+              padding: `4px ${espacio.margen}px`,
+              paddingBottom: MOBILE_NAV_HEIGHT + espacio.margen,
+            }}
           >
-            <AccountHeader
-              id={ALL_ACCOUNTS_ID}
-              name={t('All accounts')}
-              amount={getAllAccountsBalance()}
+            <TotalCuentas
+              etiqueta={t('In the budget')}
+              binding={getOnBudgetBalance()}
+              onPress={() => void navigate('/accounts/onbudget')}
             />
-            {onBudgetAccounts.length > 0 && (
-              <AccountHeader
-                id="onbudget"
-                name={t('On budget')}
-                amount={getOnBudgetBalance()}
-              />
-            )}
-            <AccountList
-              aria-label={t('On budget accounts')}
-              accounts={onBudgetAccounts}
+            <Cartera
+              cuentas={corrientes}
               getAccountBalance={getAccountBalance}
               onOpenAccount={onOpenAccount}
             />
-            {offBudgetAccounts.length > 0 && (
-              <AccountHeader
-                id="offbudget"
-                name={t('Off budget')}
-                amount={getOffBudgetBalance()}
-              />
+            {prestamos.length > 0 && (
+              <>
+                <TituloSeccion style={{ padding: '0 4px' }}>
+                  <Trans>Loans</Trans>
+                </TituloSeccion>
+                <Tarjeta relleno={0}>
+                  {prestamos.map(({ cuenta, datos }, i) => (
+                    <FilaPrestamo
+                      key={cuenta.id}
+                      cuenta={cuenta}
+                      datos={datos}
+                      primera={i === 0}
+                      onPress={() => onOpenAccount(cuenta)}
+                    />
+                  ))}
+                </Tarjeta>
+              </>
             )}
-            <AccountList
-              aria-label={t('Off budget accounts')}
-              accounts={offBudgetAccounts}
-              getAccountBalance={getAccountBalance}
-              onOpenAccount={onOpenAccount}
-            />
-            {closedAccounts.length > 0 && (
-              <AccountHeader
-                id="closed"
-                name={t('Closed')}
-                onPress={onToggleClosedAccounts}
-                amount={getClosedAccountsBalance()}
-                style={{ marginTop: 30 }}
-                showCheveronDown={showClosedAccounts}
-              />
+            {huchas.length > 0 && (
+              <>
+                <TituloSeccion style={{ padding: '0 4px' }}>
+                  <Trans>Off budget</Trans>
+                </TituloSeccion>
+                {huchas.map(cuenta => (
+                  <Hucha
+                    key={cuenta.id}
+                    cuenta={cuenta}
+                    binding={getAccountBalance(cuenta.id)}
+                    onPress={() => onOpenAccount(cuenta)}
+                  />
+                ))}
+              </>
             )}
+            <Tarjeta relleno={0} style={{ marginTop: 8 }}>
+              <AccountHeader
+                id={ALL_ACCOUNTS_ID}
+                name={t('All accounts')}
+                amount={getAllAccountsBalance()}
+              />
+              {offBudgetAccounts.length > 0 && (
+                <AccountHeader
+                  id="offbudget"
+                  name={t('Off budget')}
+                  amount={getOffBudgetBalance()}
+                  style={{ borderTop: `1px solid ${color.line}` }}
+                />
+              )}
+              {closedAccounts.length > 0 && (
+                <AccountHeader
+                  id="closed"
+                  name={t('Closed accounts')}
+                  onPress={onToggleClosedAccounts}
+                  amount={getClosedAccountsBalance()}
+                  style={{ borderTop: `1px solid ${color.line}` }}
+                  showCheveronDown={showClosedAccounts}
+                />
+              )}
+            </Tarjeta>
             {showClosedAccounts && (
               <AccountList
                 aria-label={t('Closed accounts')}
@@ -518,9 +567,9 @@ const AccountList = forwardRef<HTMLDivElement, AccountListProps>(
         style={{
           display: 'flex',
           flexDirection: 'column',
-          margin: '0 8px',
-          border: `1px solid ${theme.tableBorder}`,
-          borderRadius: 8,
+          backgroundColor: color.surface,
+          borderRadius: radio.tarjeta,
+          boxShadow: sombra.tarjeta,
           overflow: 'hidden',
         }}
       >
@@ -600,5 +649,345 @@ export function AccountsPage() {
         onSync={onSync}
       />
     </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Concepto A · Cartera: total, tarjetas apiladas, préstamos y huchas
+// ---------------------------------------------------------------------------
+
+const FONDOS_TARJETA = [
+  `linear-gradient(140deg, ${color.cardC}, ${color.cardD})`,
+  `linear-gradient(140deg, ${color.heroA}, ${color.heroB})`,
+  `linear-gradient(140deg, ${color.cardA}, ${color.cardB})`,
+  `linear-gradient(140deg, ${color.cardB}, ${color.cardC})`,
+];
+
+function TotalCuentas({
+  etiqueta,
+  binding,
+  onPress,
+}: {
+  etiqueta: string;
+  binding: Binding<'account', 'onbudget-accounts-balance'>;
+  onPress: () => void;
+}) {
+  return (
+    <Button
+      variant="bare"
+      onPress={onPress}
+      style={{
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        padding: '0 4px',
+        minHeight: 44,
+        color: color.fg,
+      }}
+    >
+      <Text style={{ fontSize: 13, fontWeight: 700, color: color.fg3 }}>
+        {etiqueta}
+      </Text>
+      <CellValue binding={binding} type="financial">
+        {props => (
+          <CellValueText<'account', 'onbudget-accounts-balance'>
+            {...props}
+            style={{
+              ...num,
+              fontSize: 30,
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.1,
+            }}
+            data-testid="total-presupuesto"
+          />
+        )}
+      </CellValue>
+    </Button>
+  );
+}
+
+/** Cuentas corrientes como tarjetas tipo Wallet, apiladas. */
+function Cartera({
+  cuentas,
+  getAccountBalance,
+  onOpenAccount,
+}: {
+  cuentas: AccountEntity[];
+  getAccountBalance: (id: AccountEntity['id']) => Binding<'account', 'balance'>;
+  onOpenAccount: (account: AccountEntity) => void;
+}) {
+  const { t } = useTranslation();
+  const syncingAccountIds = useSelector(state => state.account.accountsSyncing);
+  if (cuentas.length === 0) {
+    return null;
+  }
+  return (
+    <View data-testid="cartera" style={{ paddingBottom: 4 }}>
+      {cuentas.map((cuenta, i) => {
+        const pendiente = syncingAccountIds.includes(cuenta.id);
+        const fallo = isAccountFailedSync(cuenta);
+        return (
+          <Button
+            key={cuenta.id}
+            variant="bare"
+            data-testid="account-list-item"
+            aria-label={t('View {{name}} transactions', { name: cuenta.name })}
+            onPress={() => onOpenAccount(cuenta)}
+            style={({ isPressed }) => ({
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              justifyContent: 'space-between',
+              minHeight: 178,
+              marginTop: i === 0 ? 0 : -120,
+              padding: '16px 18px',
+              borderRadius: 22,
+              color: '#fff',
+              textAlign: 'left',
+              background: FONDOS_TARJETA[i % FONDOS_TARJETA.length],
+              boxShadow:
+                '0 -6px 18px rgba(0,0,0,.25), 0 10px 26px rgba(0,0,0,.3)',
+              overflow: 'hidden',
+              transform: isPressed ? 'translateY(-6px)' : undefined,
+              transition: `transform ${movimiento.tarjeta}ms ${movimiento.muelle}`,
+            })}
+          >
+            <View
+              aria-hidden
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'radial-gradient(120% 80% at 100% 0%, rgba(255,255,255,.14), transparent 55%)',
+                pointerEvents: 'none',
+              }}
+            />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <TextOneLine
+                style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}
+                data-testid="account-name"
+              >
+                {cuenta.name}
+              </TextOneLine>
+              <CellValue
+                binding={getAccountBalance(cuenta.id)}
+                type="financial"
+              >
+                {props => (
+                  <CellValueText<'account', 'balance'>
+                    {...props}
+                    style={{
+                      ...num,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      opacity: 0.8,
+                      color: '#fff',
+                    }}
+                  />
+                )}
+              </CellValue>
+            </View>
+            <CellValue binding={getAccountBalance(cuenta.id)} type="financial">
+              {props => (
+                <CellValueText<'account', 'balance'>
+                  {...props}
+                  style={{
+                    ...num,
+                    fontSize: 30,
+                    fontWeight: 800,
+                    letterSpacing: '-0.03em',
+                    color: '#fff',
+                  }}
+                  data-testid="account-balance"
+                />
+              )}
+            </CellValue>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                fontSize: 12,
+                fontWeight: 700,
+                opacity: 0.78,
+              }}
+            >
+              <Text>
+                {pendiente
+                  ? t('Syncing…')
+                  : fallo
+                    ? t('Sync failed')
+                    : cuenta.bank
+                      ? t('Linked to the bank')
+                      : t('Manual account')}
+              </Text>
+              <Text>
+                <Trans>On budget</Trans>
+              </Text>
+            </View>
+          </Button>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Fila de un préstamo: cuota, saldo pendiente y barra de % pagado. */
+function FilaPrestamo({
+  cuenta,
+  datos,
+  primera,
+  onPress,
+}: {
+  cuenta: AccountEntity;
+  datos: DatosPrestamo | null;
+  primera: boolean;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const format = useFormat();
+  const deuda = useDeuda(cuenta, datos);
+  const esCoche =
+    datos?.tipo === 'autoLoan' || /coche|cotxe|car\b|auto/i.test(cuenta.name);
+  const fin = deuda.amortizacion?.fechaFin;
+  return (
+    <Button
+      variant="bare"
+      onPress={onPress}
+      aria-label={t('View {{name}} transactions', { name: cuenta.name })}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 8,
+        padding: '12px 14px',
+        borderRadius: 0,
+        borderTop: primera ? undefined : `1px solid ${color.line}`,
+        color: color.fg,
+        textAlign: 'left',
+      }}
+    >
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
+          <IconoCaja icono={esCoche ? 'car' : 'bank'} size={40} />
+          <View style={{ minWidth: 0 }}>
+            <TextOneLine style={{ fontWeight: 800, fontSize: 15 }}>
+              {cuenta.name}
+            </TextOneLine>
+            {deuda.cuota != null && (
+              <Text
+                style={{
+                  ...num,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: color.fg3,
+                }}
+              >
+                {t('Payment {{amount}}', {
+                  amount: format(deuda.cuota, 'financial'),
+                })}
+              </Text>
+            )}
+          </View>
+        </View>
+        <Importe
+          valor={-deuda.saldo}
+          tono="auto"
+          style={{ fontWeight: 800, fontSize: 15 }}
+        />
+      </View>
+      <BarraProgreso valor={deuda.porcentajePagado} aria-label={t('Paid')} />
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          fontSize: 12,
+          fontWeight: 700,
+          color: color.fg3,
+        }}
+      >
+        <Text style={num}>
+          {t('{{percent}} % paid', {
+            percent: (deuda.porcentajePagado * 100).toLocaleString(undefined, {
+              maximumFractionDigits: 1,
+            }),
+          })}
+        </Text>
+        {fin && (
+          <Text>{t('Paid off in {{year}}', { year: fin.slice(0, 4) })}</Text>
+        )}
+      </View>
+    </Button>
+  );
+}
+
+/** Cuenta fuera del presupuesto sin préstamo: hucha (tarjeta punteada). */
+function Hucha({
+  cuenta,
+  binding,
+  onPress,
+}: {
+  cuenta: AccountEntity;
+  binding: Binding<'account', 'balance'>;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Tarjeta
+      variante="punteada"
+      onPress={onPress}
+      aria-label={t('View {{name}} transactions', { name: cuenta.name })}
+      relleno={0}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: '14px 16px',
+        boxShadow: 'none',
+      }}
+    >
+      <IconoCaja icono="piggy" tono="acento" redonda />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <TextOneLine
+          style={{ fontWeight: 800, fontSize: 15 }}
+          data-testid="account-name"
+        >
+          {cuenta.name}
+        </TextOneLine>
+        <Text style={{ fontSize: 12.5, fontWeight: 600, color: color.fg3 }}>
+          <Trans>Piggy bank · not part of To Budget</Trans>
+        </Text>
+      </View>
+      <CellValue binding={binding} type="financial">
+        {props => (
+          <CellValueText<'account', 'balance'>
+            {...props}
+            style={{ ...num, fontWeight: 800, whiteSpace: 'nowrap' }}
+            data-testid="account-balance"
+          />
+        )}
+      </CellValue>
+    </Tarjeta>
   );
 }
