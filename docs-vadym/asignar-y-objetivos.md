@@ -49,7 +49,7 @@ del teclado. Solo los tipos que usa Vadym:
 - Plantillas que esta pantalla no sabe editar (`#goal`, porcentajes, varias líneas…) se marcan como
   «Automatización avanzada»; guardar aquí las sustituye.
 
-## Ignorar este mes (`#ignorar-mes`, el *snooze* de YNAB)
+## Ignorar este mes (`#ignorar-mes`, el _snooze_ de YNAB)
 
 «Si algo ya está cubierto, pero no llega a lo planeado, que pueda ignorarlo este mes.»
 

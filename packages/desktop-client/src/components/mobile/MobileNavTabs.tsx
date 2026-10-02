@@ -107,9 +107,9 @@ export function MobileNavTabs() {
         </NavLink>
       ))}
       <style>
-        {
-          '@media (prefers-reduced-motion: reduce){nav[data-navbar-state]{transition:none!important}}'
-        }
+        {'@media (prefers-reduced-motion: reduce){nav[data-navbar-state]{transition:none!important}}' +
+          // Con el teclado de asignar abierto, la barra se retira del todo.
+          `body[data-teclado-abierto] nav[data-navbar-state]{transform:translateY(calc(100% + ${MARGEN * 2}px))!important;pointer-events:none}`}
       </style>
     </nav>
   );

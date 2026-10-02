@@ -108,6 +108,18 @@ export function AssignKeypad({
   const selectedId = keypad?.selectedCategory?.id;
   const panelHeight = keypad?.panelHeight ?? 0;
 
+  // Mientras el panel está abierto, la barra de pestañas flotante se oculta:
+  // si no, tapa la última fila del teclado (0, ⌫, ✕, Hecho) en 390×844.
+  useEffect(() => {
+    if (panelHeight === 0) {
+      return;
+    }
+    document.body.dataset.tecladoAbierto = '1';
+    return () => {
+      delete document.body.dataset.tecladoAbierto;
+    };
+  }, [panelHeight]);
+
   // Los avisos («Deshacer») se muestran encima del panel, no debajo.
   const dispatch = useDispatch();
   useEffect(() => {
