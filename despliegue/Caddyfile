@@ -1,0 +1,6 @@
+# Caddy: HTTPS automático para el dominio indicado en la variable DOMINIO (.env).
+# Todo el tráfico se reenvía al contenedor «presupuesto» por la red interna de Docker.
+{$DOMINIO} {
+	encode zstd gzip
+	reverse_proxy presupuesto:5006
+}

@@ -10,6 +10,10 @@ export const availableLanguages = Platform.isPlaywright
   ? []
   : Object.keys(languages).map(path => path.split('/')[2].split('.')[0]);
 
+// Idioma por defecto cuando el usuario no ha elegido ninguno
+// (las pruebas de Playwright siguen esperando la interfaz en inglés).
+export const DEFAULT_LANGUAGE = Platform.isPlaywright ? 'en' : 'es';
+
 const isLanguageAvailable = (language: string) =>
   Object.hasOwn(languages, `/locale/${language}.json`);
 
@@ -24,7 +28,7 @@ void i18n
   .use(initReactI18next)
   .use(resourcesToBackend(loadLanguage))
   .init({
-    lng: 'en',
+    lng: DEFAULT_LANGUAGE,
 
     // allow keys to be phrases having `:`, `.`
     nsSeparator: false,
@@ -63,10 +67,8 @@ const resolveLanguage = (language: string) => {
 };
 
 export const setI18NextLanguage = (language: string | null) => {
-  const defaultLanguages = Array.isArray(navigator.languages)
-    ? navigator.languages
-    : [navigator.language || 'en'];
-  const languagesToTry = language ? [language] : defaultLanguages;
+  // Sin idioma elegido se usa el castellano; si faltara, el inglés.
+  const languagesToTry = language ? [language] : [DEFAULT_LANGUAGE, 'en'];
 
   let resolved: string | undefined;
 
