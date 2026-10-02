@@ -1,6 +1,12 @@
 import type { DatosCategoriaMes } from '#components/mobile/budget/objetivos';
 
-import { avanceFijada, estadoDeCategoria, iconoDeNombre } from './avance';
+import {
+  avanceFijada,
+  estadoDeCategoria,
+  iconoDeNombre,
+  metaConFecha,
+  porcentajeAvance,
+} from './avance';
 
 const datos = (d: Partial<DatosCategoriaMes>): DatosCategoriaMes => ({
   goal: null,
@@ -105,5 +111,83 @@ describe('icono de la categoría', () => {
       nombre: 'capritxos',
       inicial: 'C',
     });
+  });
+});
+
+describe('porcentaje de las fijadas', () => {
+  it('asignado / objetivo, redondeado', () => {
+    expect(
+      porcentajeAvance(
+        avanceFijada(datos({ goal: 3000_00, budgeted: 923_08 })),
+      ),
+    ).toBe(31);
+  });
+  it('tope 100 % con el objetivo superado', () => {
+    expect(
+      porcentajeAvance(avanceFijada(datos({ goal: 100_00, budgeted: 250_00 }))),
+    ).toBe(100);
+  });
+  it('sin objetivo: gastado / asignado; sin nada, 0 %', () => {
+    expect(
+      porcentajeAvance(
+        avanceFijada(
+          datos({ budgeted: 200_00, balance: 150_00, spent: -50_00 }),
+        ),
+      ),
+    ).toBe(25);
+    expect(porcentajeAvance(avanceFijada(datos({})))).toBe(0);
+  });
+});
+
+describe('meta con fecha (plantilla by)', () => {
+  const by = [
+    { type: 'by', amount: 3000, month: '2027-07', directive: 'template' },
+  ] as never;
+
+  it('se mide el saldo contra el total: 923,08 de 3.000 = 31 %', () => {
+    const meta = metaConFecha(by, '#objetivo fecha 2027-07-18');
+    expect(meta).toEqual({ importe: 3000_00, fecha: '2027-07-18' });
+    const a = avanceFijada(
+      // El objetivo del mes (cuota) y lo asignado no cuentan.
+      datos({ goal: 300_00, budgeted: 300_00, balance: 923_08 }),
+      meta,
+    );
+    expect(a).toMatchObject({
+      modo: 'objetivo',
+      hecho: 923_08,
+      total: 3000_00,
+      falta: 2076_92,
+    });
+    expect(porcentajeAvance(a)).toBe(31);
+  });
+
+  it('con repetición anual también tiene meta; tope 100 %', () => {
+    const anual = [
+      {
+        type: 'by',
+        amount: 100,
+        month: '2027-07',
+        annual: true,
+        repeat: 1,
+        directive: 'template',
+      },
+    ] as never;
+    const meta = metaConFecha(anual, null);
+    expect(meta?.fecha).toBe('2027-07-01');
+    expect(
+      porcentajeAvance(avanceFijada(datos({ balance: 250_00 }), meta)),
+    ).toBe(100);
+  });
+
+  it('plantilla mensual: sin meta, vale asignado / objetivo del mes', () => {
+    const mensual = [
+      { type: 'simple', monthly: 100, directive: 'template' },
+    ] as never;
+    expect(metaConFecha(mensual, null)).toBeNull();
+    expect(
+      porcentajeAvance(
+        avanceFijada(datos({ goal: 100_00, budgeted: 25_00, balance: 900_00 })),
+      ),
+    ).toBe(25);
   });
 });

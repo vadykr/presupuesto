@@ -1,6 +1,10 @@
 import type { IntegerAmount } from '@actual-app/core/shared/util';
+import type { Template } from '@actual-app/core/types/models/templates';
 
-import { faltante } from '#components/mobile/budget/objetivos';
+import {
+  faltante,
+  objetivoDesdePlantillas,
+} from '#components/mobile/budget/objetivos';
 import type { DatosCategoriaMes } from '#components/mobile/budget/objetivos';
 
 /**
@@ -50,9 +54,50 @@ export function estadoDeCategoria(datos: DatosCategoriaMes): EstadoAvance {
   return 'neutro';
 }
 
-export function avanceFijada(datos: DatosCategoriaMes): Avance {
+/**
+ * Meta con fecha («Vacaciones 3.000 € para el 18/07/2027»): plantilla `by …`
+ * (con o sin `repeat every …`). Se mide sobre el saldo, no sobre lo asignado
+ * este mes. Las plantillas mensuales o semanales no tienen meta con fecha.
+ */
+export type MetaFecha = { importe: IntegerAmount; fecha: string };
+
+export function metaConFecha(
+  plantillas: readonly Template[],
+  nota: string | null | undefined,
+): MetaFecha | null {
+  if (plantillas.length === 0) {
+    return null;
+  }
+  const objetivo = objetivoDesdePlantillas(plantillas, nota);
+  if (
+    objetivo &&
+    objetivo !== 'otro' &&
+    'fecha' in objetivo &&
+    objetivo.importe > 0
+  ) {
+    return { importe: objetivo.importe, fecha: objetivo.fecha };
+  }
+  return null;
+}
+
+export function avanceFijada(
+  datos: DatosCategoriaMes,
+  meta?: MetaFecha | null,
+): Avance {
   const estado = estadoDeCategoria(datos);
   const falta = faltante(datos);
+
+  if (meta) {
+    const hecho = Math.max(0, datos.balance);
+    return {
+      modo: 'objetivo',
+      fraccion: recortar(hecho / meta.importe),
+      hecho,
+      total: meta.importe,
+      falta: Math.max(0, meta.importe - hecho),
+      estado,
+    };
+  }
 
   if (datos.goal != null && datos.goal > 0) {
     const hecho = Math.max(0, datos.longGoal ? datos.balance : datos.budgeted);
@@ -87,6 +132,11 @@ export function avanceFijada(datos: DatosCategoriaMes): Avance {
     falta,
     estado,
   };
+}
+
+/** Porcentaje entero 0..100 del avance (tope 100 %; 0 sin datos). */
+export function porcentajeAvance(avance: Avance): number {
+  return Math.round(recortar(avance.fraccion) * 100);
 }
 
 /**
