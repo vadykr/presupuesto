@@ -95,13 +95,30 @@ export const sombra = {
   hoja: v('shadow-sheet', '0 -8px 24px rgba(0, 0, 0, 0.2)'),
 } as const;
 
-/** Tamaños tipográficos (Manrope, pesos altos). */
+/** Interlineado general del texto corrido. */
+export const INTERLINEADO = 1.25;
+
+/**
+ * Tamaños tipográficos (Manrope, pesos altos). Escala contenida (pulido,
+ * oct-2026): cabecera 28, héroe 32, títulos 15-16, cuerpo 14-15, secundario 13.
+ */
 export const texto = {
-  display: { fontSize: 34, fontWeight: 800, letterSpacing: '-0.03em' },
-  cifra: { fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em' },
-  titulo: { fontSize: 18, fontWeight: 800 },
+  display: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em' },
+  /** Número héroe (Asignar, detalle de informe). */
+  heroe: {
+    fontSize: 32,
+    fontWeight: 800,
+    letterSpacing: '-0.03em',
+    lineHeight: 1.05,
+  },
+  cifra: { fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em' },
+  titulo: { fontSize: 16, fontWeight: 800 },
+  /** Título de sección sobre un grupo de tarjetas. */
+  seccion: { fontSize: 15, fontWeight: 800 },
   fila: { fontSize: 15, fontWeight: 700 },
-  cuerpo: { fontSize: 14, fontWeight: 500 },
+  cuerpo: { fontSize: 14, fontWeight: 500, lineHeight: INTERLINEADO },
+  /** Texto secundario (frases bajo un número, detalles). */
+  secundario: { fontSize: 13, fontWeight: 500, lineHeight: INTERLINEADO },
   pequeno: { fontSize: 12.5, fontWeight: 700 },
   etiqueta: {
     fontSize: 11,

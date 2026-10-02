@@ -446,10 +446,7 @@ function Cabecera({
           <Text
             style={{
               ...num,
-              fontSize: 40,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.05,
+              ...texto.heroe,
               color: 'inherit',
               whiteSpace: 'nowrap',
             }}

@@ -20,6 +20,7 @@ import {
   num,
   radio,
   sombra,
+  texto,
 } from '#components/mobile/ui/tokens';
 import { MobilePageHeader, Page } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -146,10 +147,8 @@ export function Hero({
         <Text
           style={{
             ...num,
-            fontSize: tamano === 'grande' ? 42 : 28,
-            lineHeight: 1.05,
-            fontWeight: 800,
-            letterSpacing: '-0.035em',
+            ...texto.heroe,
+            fontSize: tamano === 'grande' ? texto.heroe.fontSize : 24,
             color: colorDeTono(tono),
           }}
           data-testid="hero-valor"
@@ -159,11 +158,15 @@ export function Hero({
       </PrivacyFilter>
       <Text
         style={{
-          fontSize: 14.5,
-          fontWeight: 500,
+          ...texto.cuerpo,
           color: color.fg2,
-          lineHeight: 1.45,
           marginTop: 4,
+          // Máximo dos líneas: la frase explica el número, no lo sustituye.
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          textWrap: 'pretty',
         }}
         data-testid="hero-frase"
       >
