@@ -11,6 +11,7 @@ import type { RecurConfig, RecurPattern, RuleEntity } from '#types/models';
 
 import { runImportSteps } from './progress';
 import type { ImportTick } from './progress';
+import { calcularAjusteDeSaldo, notaDeCuenta } from './ynab5-prestamos';
 import type {
   Budget,
   Payee,
@@ -285,6 +286,12 @@ function importAccounts(
           },
         });
         entityIdMap.set(account.id, id);
+        // Nota de YNAB y, en los préstamos, la línea `#prestamo {...}` con
+        // interés, cuota y fecha (la lee la fase 4).
+        const note = notaDeCuenta(account);
+        if (note) {
+          await send('notes-save', { id, note });
+        }
         tick();
       }
     }),
@@ -867,6 +874,63 @@ export async function importTransactions(
       );
     }),
   );
+
+  await importBalanceAdjustments(data, entityIdMap, transactionsGrouped);
+}
+
+/**
+ * En YNAB las cuentas de préstamo acumulan intereses que no son movimientos,
+ * así que `account.balance` no coincide con la suma de sus transacciones (y
+ * una cuenta cerrada a 0 puede sumar distinto de 0). Para cada cuenta que no
+ * cuadre se añade un movimiento de ajuste con el beneficiario «Intereses del
+ * préstamo» (deudas) o «Ajuste de saldo» (resto), sin categoría.
+ */
+async function importBalanceAdjustments(
+  data: Budget,
+  entityIdMap: Map<string, string>,
+  transactionsGrouped: Map<string, Transaction[]>,
+) {
+  const payeeIds = new Map<string, string>();
+  async function getPayeeId(name: string): Promise<string> {
+    let id = payeeIds.get(name);
+    if (!id) {
+      id = await send('api/payee-create', { payee: { name } });
+      payeeIds.set(name, id);
+    }
+    return id;
+  }
+
+  for (const account of data.accounts ?? []) {
+    const accountId = entityIdMap.get(account.id);
+    if (account.deleted || !accountId) {
+      continue;
+    }
+
+    const ajuste = calcularAjusteDeSaldo(
+      account,
+      transactionsGrouped.get(account.id) ?? [],
+      data.last_month,
+    );
+    if (!ajuste) {
+      continue;
+    }
+
+    await send('api/transactions-add', {
+      accountId,
+      transactions: [
+        {
+          date: ajuste.date,
+          amount: ajuste.amount,
+          payee: await getPayeeId(ajuste.payeeName),
+          category: null,
+          notes: ajuste.notes,
+          cleared: true,
+        },
+      ],
+      learnCategories: false,
+      runTransfers: false,
+    });
+  }
 }
 
 export async function importScheduledTransactions(

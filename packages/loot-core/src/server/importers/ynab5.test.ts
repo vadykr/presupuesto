@@ -9,7 +9,14 @@ import {
   importTransactions,
   parseFile,
 } from './ynab5';
-import type { Payee, Transaction } from './ynab5-types';
+import {
+  calcularAjusteDeSaldo,
+  leerDatosPrestamo,
+  notaDeCuenta,
+  PAYEE_AJUSTE,
+  PAYEE_INTERESES,
+} from './ynab5-prestamos';
+import type { Account, Payee, Transaction } from './ynab5-types';
 
 vi.mock('#server/main-app', () => ({
   send: vi.fn(),
@@ -277,5 +284,146 @@ describe('ynab5 parseFile', () => {
     const data = parseFile(toBuffer({ name: 'Bare', accounts: [] }));
 
     expect(data.name).toBe('Bare');
+  });
+});
+
+describe('saldos de préstamo (ajuste al saldo de YNAB)', () => {
+  function makeAccount(overrides: Partial<Account> = {}): Account {
+    return {
+      id: 'ynab-account-1',
+      name: 'Cuenta',
+      type: 'checking',
+      on_budget: true,
+      closed: false,
+      balance: 0,
+      cleared_balance: 0,
+      uncleared_balance: 0,
+      transfer_payee_id: null,
+      deleted: false,
+      ...overrides,
+    };
+  }
+
+  it('no crea ajuste cuando la cuenta cuadra', () => {
+    const ajuste = calcularAjusteDeSaldo(
+      makeAccount({ balance: -10000 }),
+      [makeTransaction({ amount: -10000 })],
+      '2026-11-01',
+    );
+    expect(ajuste).toBeNull();
+  });
+
+  it('crea el ajuste de intereses en la fecha del último movimiento', () => {
+    const ajuste = calcularAjusteDeSaldo(
+      makeAccount({ type: 'autoLoan', balance: -13700000 }),
+      [
+        makeTransaction({ date: '2026-08-02', amount: -13500000 }),
+        makeTransaction({ date: '2026-09-02', amount: -173280 }),
+        makeTransaction({ date: '2026-09-30', amount: -1, deleted: true }),
+      ],
+      '2026-11-01',
+    );
+    expect(ajuste).toEqual({
+      amount: -2672,
+      date: '2026-09-02',
+      payeeName: PAYEE_INTERESES,
+      notes: 'Intereses acumulados en YNAB hasta la importación',
+    });
+  });
+
+  it('deja a 0 una cuenta cerrada cuyos movimientos no suman 0', () => {
+    const ajuste = calcularAjusteDeSaldo(
+      makeAccount({ type: 'autoLoan', closed: true, balance: 0 }),
+      [makeTransaction({ date: '2025-10-16', amount: 123450 })],
+      '2026-11-01',
+    );
+    expect(ajuste?.amount).toBe(-12345);
+    expect(ajuste?.payeeName).toBe(PAYEE_INTERESES);
+  });
+
+  it('usa «Ajuste de saldo» y el último mes del presupuesto si no es deuda ni hay movimientos', () => {
+    const ajuste = calcularAjusteDeSaldo(
+      makeAccount({ type: 'savings', balance: 5000 }),
+      [],
+      '2026-11-01',
+    );
+    expect(ajuste).toEqual({
+      amount: 500,
+      date: '2026-11-01',
+      payeeName: PAYEE_AJUSTE,
+      notes: 'Ajuste para cuadrar con el saldo de YNAB',
+    });
+  });
+
+  it('guarda los datos de deuda en la nota de la cuenta y se pueden releer', () => {
+    const note = notaDeCuenta(
+      makeAccount({
+        type: 'autoLoan',
+        note: 'Nota de YNAB',
+        debt_interest_rates: { '2026-01-01': 5000, '2026-07-01': 8720 },
+        debt_minimum_payments: { '2026-07-01': 246720 },
+        debt_escrow_amounts: {},
+      }),
+    );
+    expect(note).toBe(
+      'Nota de YNAB\n#prestamo {"tipo":"autoLoan","interes_anual":8.72,"cuota_minima":246.72,"desde":"2026-07-01"}',
+    );
+    expect(leerDatosPrestamo(note)).toEqual({
+      tipo: 'autoLoan',
+      interes_anual: 8.72,
+      cuota_minima: 246.72,
+      desde: '2026-07-01',
+    });
+    expect(notaDeCuenta(makeAccount())).toBeNull();
+  });
+
+  it('importTransactions añade el movimiento de ajuste con su beneficiario', async () => {
+    const entityIdMap = new Map<string, string>([
+      ['ynab-account-1', 'actual-account-1'],
+    ]);
+    vi.mocked(send).mockImplementation(async (name: string) => {
+      if (name === 'api/payees-get') return [];
+      if (name === 'api/categories-get') return [];
+      if (name === 'api/transactions-add') return null;
+      if (name === 'api/payee-create') return 'payee-intereses';
+      throw new Error(`Unexpected send call: ${name}`);
+    });
+
+    await importTransactions(
+      {
+        accounts: [
+          makeAccount({
+            type: 'mortgage',
+            on_budget: false,
+            balance: -30000000,
+          }),
+        ],
+        last_month: '2026-11-01',
+        payees: [],
+        transactions: [
+          makeTransaction({ date: '2026-10-01', amount: -29000000 }),
+        ],
+        subtransactions: [],
+      } as unknown as Parameters<typeof importTransactions>[0],
+      entityIdMap,
+      new Set(),
+    );
+
+    expect(send).toHaveBeenCalledWith('api/payee-create', {
+      payee: { name: PAYEE_INTERESES },
+    });
+    const adds = vi
+      .mocked(send)
+      .mock.calls.filter(([name]) => name === 'api/transactions-add');
+    expect(adds).toHaveLength(2);
+    const ajuste = adds[1][1].transactions[0];
+    expect(adds[1][1].accountId).toBe('actual-account-1');
+    expect(ajuste).toMatchObject({
+      date: '2026-10-01',
+      amount: -100000,
+      payee: 'payee-intereses',
+      category: null,
+      notes: 'Intereses acumulados en YNAB hasta la importación',
+    });
   });
 });
