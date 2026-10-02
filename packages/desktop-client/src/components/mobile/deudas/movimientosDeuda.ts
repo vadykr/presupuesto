@@ -49,6 +49,15 @@ export function saldoInicial(
       (m.apertura || (m.payee && RE_SALDO_INICIAL.test(m.payee))),
   );
   if (apertura) {
+    // El saldo inicial es el de cierre del día de apertura: así un ajuste
+    // del mismo día (p. ej. un «Starting Balance» mal tecleado en YNAB y su
+    // «Balance Adjustment») no infla la deuda inicial.
+    const mismoDia = orden
+      .filter(m => m.date === apertura.date)
+      .reduce((suma, m) => suma + m.amount, 0);
+    if (mismoDia < 0) {
+      return -mismoDia;
+    }
     return -apertura.amount;
   }
   let acumulado = 0;

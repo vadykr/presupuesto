@@ -100,3 +100,31 @@ describe('interesDelMesARegistrar', () => {
     expect(interesDelMesARegistrar(0, 8.72)).toBe(0);
   });
 });
+
+test('saldo inicial: un ajuste del mismo día corrige la apertura mal tecleada', async () => {
+  const { saldoInicial } = await import('./movimientosDeuda');
+  const movs = [
+    {
+      id: 'a',
+      date: '2025-01-26',
+      amount: -329765500,
+      payee: 'Starting Balance',
+      apertura: true,
+    },
+    {
+      id: 'b',
+      date: '2025-01-26',
+      amount: 326467845,
+      payee: 'Manual Balance Adjustment',
+      apertura: false,
+    },
+    {
+      id: 'c',
+      date: '2025-02-01',
+      amount: 29282,
+      payee: 'Transfer',
+      apertura: false,
+    },
+  ];
+  expect(saldoInicial(movs, null)).toBe(3297655);
+});
