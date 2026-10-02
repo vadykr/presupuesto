@@ -3,6 +3,7 @@ import * as sheet from '#server/sheet';
 import { resolveName } from '#server/spreadsheet/util';
 // @ts-strict-ignore
 import * as monthUtils from '#shared/months';
+import { RTA_COMO_YNAB } from '#shared/presupuesto';
 import { safeNumber } from '#shared/util';
 
 import { createCategory as createCategoryFromBase } from './base';
@@ -25,6 +26,7 @@ export function createBlankCategory(cat, months) {
 function createBlankMonth(categories, sheetName, months) {
   sheet.get().createStatic(sheetName, 'is-blank', true);
   sheet.get().createStatic(sheetName, 'to-budget', 0);
+  sheet.get().createStatic(sheetName, 'to-budget-local', 0);
   sheet.get().createStatic(sheetName, 'buffered', 0);
 
   categories.forEach(cat => createBlankCategory(cat, months));
@@ -99,13 +101,19 @@ export function createSummary(groups, categories, prevSheetName, sheetName) {
   const incomeGroup = groups.filter(group => group.is_income)[0];
   const expenseCategories = categories.filter(cat => !cat.is_income);
   const incomeCategories = categories.filter(cat => cat.is_income);
+  // `budget202610` → `2026-10` → hoja del mes siguiente.
+  const month = `${sheetName.slice(6, 10)}-${sheetName.slice(10, 12)}`;
+  const nextSheetName = monthUtils.sheetForMonth(monthUtils.nextMonth(month));
 
   sheet.get().createStatic(sheetName, 'buffered', 0);
 
+  // Presupuesto: lo que pasa al mes siguiente es el «to budget» de este mes
+  // sin descontar lo asignado en meses futuros (`to-budget-local`); si no,
+  // se descontaría dos veces.
   sheet.get().createDynamic(sheetName, 'from-last-month', {
     initialValue: 0,
     dependencies: [
-      `${prevSheetName}!to-budget`,
+      `${prevSheetName}!to-budget-local`,
       `${prevSheetName}!buffered-selected`,
     ],
     run: (toBudget, buffered) =>
@@ -190,7 +198,8 @@ export function createSummary(groups, categories, prevSheetName, sheetName) {
     },
   });
 
-  sheet.get().createDynamic(sheetName, 'to-budget', {
+  // El cálculo original de Actual: solo cuenta lo asignado hasta este mes.
+  sheet.get().createDynamic(sheetName, 'to-budget-local', {
     initialValue: 0,
     dependencies: [
       'available-funds',
@@ -206,6 +215,30 @@ export function createSummary(groups, categories, prevSheetName, sheetName) {
           number(buffered),
       );
     },
+  });
+
+  // Presupuesto: suma de lo asignado en todos los meses posteriores (con el
+  // signo ya negado de `total-budgeted`). Se encadena mes a mes; en el último
+  // mes cargado el siguiente no existe y vale 0.
+  sheet.get().createDynamic(sheetName, 'future-budgeted', {
+    initialValue: 0,
+    dependencies: [
+      `${nextSheetName}!total-budgeted`,
+      `${nextSheetName}!future-budgeted`,
+    ],
+    run: (nextBudgeted, nextFuture) =>
+      safeNumber(number(nextBudgeted) + number(nextFuture)),
+  });
+
+  // «Listo para asignar»: como en YNAB descuenta lo asignado en meses futuros
+  // (`RTA_COMO_YNAB`, ver shared/presupuesto.ts).
+  sheet.get().createDynamic(sheetName, 'to-budget', {
+    initialValue: 0,
+    dependencies: ['to-budget-local', 'future-budgeted'],
+    run: (local, future) =>
+      RTA_COMO_YNAB
+        ? safeNumber(number(local) + number(future))
+        : safeNumber(number(local)),
   });
 
   sheet.get().createDynamic(sheetName, 'total-spent', {
