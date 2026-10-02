@@ -33,6 +33,8 @@ export function ThemeSelector({ style }: ThemeSelectorProps) {
     dark: SvgMoonStars,
     auto: SvgSystem,
     midnight: SvgMoonStars,
+    'presupuesto-light': SvgSun,
+    'presupuesto-dark': SvgMoonStars,
   } as const;
 
   type ThemeIconKey = keyof typeof themeIcons;
