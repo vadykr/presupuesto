@@ -7,6 +7,7 @@ import { Button } from '@actual-app/components/button';
 import {
   SvgChartPie,
   SvgDotsHorizontalTriple,
+  SvgPin,
   SvgTrash,
 } from '@actual-app/components/icons/v1';
 import {
@@ -30,6 +31,7 @@ import { Notes } from '#components/Notes';
 import { useCategory } from '#hooks/useCategory';
 import { useCategoryGroup } from '#hooks/useCategoryGroup';
 import { useNotes } from '#hooks/useNotes';
+import { usePinnedCategories } from '#hooks/usePinnedCategories';
 import type { Modal as ModalType } from '#modals/modalsSlice';
 
 type CategoryMenuModalProps = Extract<
@@ -50,6 +52,8 @@ export function CategoryMenuModal({
   const { data: category } = useCategory(categoryId);
   const { data: categoryGroup } = useCategoryGroup(category?.group);
   const originalNotes = useNotes(category.id);
+  const { isPinned, togglePinned } = usePinnedCategories();
+  const pinned = isPinned(categoryId);
 
   const onRename = newName => {
     if (newName && newName !== category.name) {
@@ -158,6 +162,27 @@ export function CategoryMenuModal({
                 />
                 <Trans>Edit notes</Trans>
               </Button>
+              {!category.is_income && (
+                <Button
+                  style={buttonStyle}
+                  onPress={() => togglePinned(categoryId)}
+                  data-testid="pin-category"
+                >
+                  <SvgPin
+                    width={20}
+                    height={20}
+                    style={{
+                      paddingRight: 5,
+                      ...(pinned && { color: theme.noticeText }),
+                    }}
+                  />
+                  {pinned ? (
+                    <Trans>Unpin from home</Trans>
+                  ) : (
+                    <Trans>Pin to home</Trans>
+                  )}
+                </Button>
+              )}
               {onEditAutomations && (
                 <Button style={buttonStyle} onPress={_onEditAutomations}>
                   <SvgChartPie

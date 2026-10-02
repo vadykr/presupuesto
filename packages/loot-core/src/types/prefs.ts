@@ -66,7 +66,9 @@ export type SyncedPrefs = Partial<
     | `flip-amount-${string}-${'csv' | 'qif'}`
     | `flags.${FeatureFlag}`
     | `learn-categories`
-    | `show-hidden-tags`,
+    | `show-hidden-tags`
+    // Presupuesto: ids de categorías fijadas en la pantalla de inicio (JSON array)
+    | 'pinned-categories',
     string
   >
 >;
