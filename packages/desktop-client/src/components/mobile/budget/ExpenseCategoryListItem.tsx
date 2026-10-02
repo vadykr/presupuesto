@@ -361,6 +361,62 @@ export function ExpenseCategoryListItem({
     format,
   ]);
 
+  // «Añadir desde…»: traer dinero de otra categoría (o de «Listo para
+  // asignar») a esta, sea cual sea su saldo. Reutiliza el modal `cover` con
+  // la acción `transfer-category` (origen → esta categoría).
+  const onAddFrom = useCallback(() => {
+    if (!category) {
+      return;
+    }
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'cover',
+          options: {
+            title: t('Add money from…'),
+            amountLabel: t('Add this amount:'),
+            month,
+            amount: 0,
+            categoryId: category.id,
+            showToBeBudgeted: true,
+            onSubmit: (amount, fromCategoryId) => {
+              onBudgetAction(month, 'transfer-category', {
+                amount,
+                from: fromCategoryId,
+                to: category.id,
+                currencyCode: format.currency.code,
+              });
+              dispatch(collapseModals({ rootModalName: balanceMenuModalName }));
+              showUndoNotification({
+                message: t(
+                  'Added {{amount}} to {{toCategoryName}} from {{fromCategoryName}}.',
+                  {
+                    amount: format(amount, 'financial'),
+                    toCategoryName: category.name,
+                    fromCategoryName:
+                      fromCategoryId === 'to-budget'
+                        ? t('To Budget')
+                        : categoriesById[fromCategoryId].name,
+                  },
+                ),
+              });
+            },
+          },
+        },
+      }),
+    );
+  }, [
+    category,
+    dispatch,
+    month,
+    onBudgetAction,
+    balanceMenuModalName,
+    showUndoNotification,
+    t,
+    categoriesById,
+    format,
+  ]);
+
   const onOpenBalanceMenu = useCallback(() => {
     if (!category) {
       return;
@@ -376,6 +432,7 @@ export function ExpenseCategoryListItem({
               onCarryover,
               onTransfer,
               onCover,
+              onAddFrom,
             },
           },
         }),
@@ -402,6 +459,7 @@ export function ExpenseCategoryListItem({
     onCarryover,
     onTransfer,
     onCover,
+    onAddFrom,
   ]);
 
   const navigate = useNavigate();

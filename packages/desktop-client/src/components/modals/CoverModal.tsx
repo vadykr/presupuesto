@@ -26,6 +26,7 @@ type CoverModalProps = Extract<ModalType, { name: 'cover' }>['options'];
 export function CoverModal({
   title,
   amount: initialAmount,
+  amountLabel,
   categoryId,
   month,
   showToBeBudgeted = true,
@@ -97,7 +98,7 @@ export function CoverModal({
             rightContent={<ModalCloseButton onPress={() => state.close()} />}
           />
           <View>
-            <FieldLabel title={t('Cover this amount:')} />
+            <FieldLabel title={amountLabel ?? t('Cover this amount:')} />
             <InitialFocus>
               <AmountInput
                 value={amount}

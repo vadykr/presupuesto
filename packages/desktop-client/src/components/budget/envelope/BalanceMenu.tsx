@@ -16,6 +16,8 @@ type BalanceMenuProps = Omit<
   onTransfer?: () => void;
   onCarryover?: (carryOver: boolean) => void;
   onCover?: () => void;
+  /** Si se pasa, aparece siempre «Añadir desde…» (traer dinero a esta categoría). */
+  onAddFrom?: () => void;
 };
 
 export function BalanceMenu({
@@ -23,6 +25,7 @@ export function BalanceMenu({
   onTransfer,
   onCarryover,
   onCover,
+  onAddFrom,
   ...props
 }: BalanceMenuProps) {
   const { t } = useTranslation();
@@ -47,11 +50,22 @@ export function BalanceMenu({
           case 'cover':
             onCover?.();
             break;
+          case 'add-from':
+            onAddFrom?.();
+            break;
           default:
             throw new Error(`Unrecognized menu option: ${name}`);
         }
       }}
       items={[
+        ...(onAddFrom
+          ? [
+              {
+                name: 'add-from',
+                text: t('Add from…'),
+              },
+            ]
+          : []),
         ...(balance > 0
           ? [
               {

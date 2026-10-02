@@ -478,6 +478,8 @@ export type Modal =
         onCarryover?: (carryover: boolean) => void;
         onTransfer?: () => void;
         onCover?: () => void;
+        /** «Añadir desde…»: traer dinero de otra categoría a esta. */
+        onAddFrom?: () => void;
       };
     }
   | {
@@ -527,6 +529,8 @@ export type Modal =
       options: {
         title: string;
         amount?: IntegerAmount | null;
+        /** Etiqueta del campo de importe (por defecto «Cover this amount:»). */
+        amountLabel?: string;
         categoryId?: CategoryEntity['id'];
         month: string;
         showToBeBudgeted?: boolean;
