@@ -18,6 +18,7 @@ import { collapseModals, pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
+import { useAssignKeypad } from './AssignKeypadContext';
 import { BalanceCell } from './BalanceCell';
 import { BudgetCell } from './BudgetCell';
 import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
@@ -235,6 +236,10 @@ export function IncomeCategoryListItem({
     onCarryover,
   ]);
 
+  // Fila resaltada mientras el teclado de asignación está abierto para ella.
+  const keypad = useAssignKeypad();
+  const isSelected = !!category && keypad?.selectedCategory?.id === category.id;
+
   if (!category) {
     return null;
   }
@@ -246,6 +251,8 @@ export function IncomeCategoryListItem({
       {...props}
     >
       <View
+        data-category-id={category.id}
+        data-selected={isSelected || undefined}
         style={{
           height: ROW_HEIGHT,
           borderColor: theme.tableBorder,
@@ -256,9 +263,14 @@ export function IncomeCategoryListItem({
           paddingRight: 5,
           borderBottomWidth: 1,
           opacity: category.hidden ? 0.5 : undefined,
-          backgroundColor: monthUtils.isCurrentMonth(month)
-            ? theme.budgetCurrentMonth
-            : theme.budgetOtherMonth,
+          backgroundColor: isSelected
+            ? theme.tableRowBackgroundHighlight
+            : monthUtils.isCurrentMonth(month)
+              ? theme.budgetCurrentMonth
+              : theme.budgetOtherMonth,
+          ...(isSelected && {
+            boxShadow: `inset 4px 0 0 ${theme.pillBorderSelected}`,
+          }),
         }}
       >
         <IncomeCategoryName category={category} onEdit={onEdit} />

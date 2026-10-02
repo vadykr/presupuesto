@@ -151,8 +151,14 @@ export class MobileBudgetPage {
   }
 
   async #getButtonForCategoryGroup(categoryGroupName: string | RegExp) {
+    // Tocar el nombre del grupo lo pliega; el menú del grupo se abre con el
+    // icono ⋮ («Open menu for … group») o manteniendo pulsado el nombre.
+    const name =
+      typeof categoryGroupName === 'string'
+        ? `Open menu for ${categoryGroupName} group`
+        : new RegExp(`Open menu for ${categoryGroupName.source} group`);
     return this.categoryGroupRows.getByRole('button', {
-      name: categoryGroupName,
+      name,
       exact: true,
     });
   }
@@ -234,11 +240,9 @@ export class MobileBudgetPage {
     const budgetedButton = await this.getButtonForBudgeted(categoryName);
     await budgetedButton.click();
 
-    return new BudgetMenuModal(
-      this.page.getByRole('dialog', {
-        name: 'Modal dialog',
-      }),
-    );
+    // En el móvil la celda abre el teclado de asignación inline (panel
+    // inferior), no un modal.
+    return new BudgetMenuModal(this.page.getByTestId('assign-keypad'));
   }
 
   async openSpentPage(categoryName: string) {

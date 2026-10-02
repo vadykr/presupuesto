@@ -1,10 +1,8 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
 import { Card } from '@actual-app/components/card';
 import { SvgExpandArrow } from '@actual-app/components/icons/v0';
-import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { Label } from '@actual-app/components/label';
 import { styles } from '@actual-app/components/styles';
 import type { CSSProperties } from '@actual-app/components/styles';
@@ -13,7 +11,6 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryGroupEntity } from '@actual-app/core/types/models';
-import { css } from '@emotion/css';
 import { AutoTextSize } from 'auto-text-size';
 
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -24,6 +21,7 @@ import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
 import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
 import { IncomeCategoryList } from './IncomeCategoryList';
+import { RowName } from './RowName';
 
 type IncomeGroupProps = {
   categoryGroup: CategoryGroupEntity;
@@ -163,74 +161,36 @@ function IncomeGroupName({
   isCollapsed,
   onToggleCollapse,
 }: IncomeGroupNameProps) {
+  const { t } = useTranslation();
   const sidebarColumnWidth = getColumnWidth({
     isSidebar: true,
     offset: -13.5,
   });
   return (
-    <View
-      style={{
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'flex-start',
-        width: sidebarColumnWidth,
-      }}
-    >
-      <Button
-        variant="bare"
-        className={css({
-          flexShrink: 0,
-          color: theme.pageTextSubdued,
-          '&[data-pressed]': {
-            backgroundColor: 'transparent',
-          },
-          marginLeft: -5,
-        })}
-        onPress={() => onToggleCollapse(group.id)}
-      >
+    <RowName
+      name={group.name}
+      width={sidebarColumnWidth}
+      data-testid="category-group-name"
+      onPress={() => onToggleCollapse(group.id)}
+      onHold={() => onEdit(group.id)}
+      onOpenMenu={() => onEdit(group.id)}
+      menuLabel={t('Open menu for {{groupName}} group', {
+        groupName: group.name,
+      })}
+      leading={
         <SvgExpandArrow
           width={8}
           height={8}
           style={{
             flexShrink: 0,
+            marginRight: 6,
+            color: theme.pageTextSubdued,
             transition: 'transform .1s',
             transform: isCollapsed(group.id) ? 'rotate(-90deg)' : '',
           }}
         />
-      </Button>
-      <Button
-        variant="bare"
-        style={{
-          maxWidth: sidebarColumnWidth,
-        }}
-        onPress={() => onEdit(group.id)}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-          }}
-        >
-          <Text
-            style={{
-              ...styles.lineClamp(2),
-              width: sidebarColumnWidth,
-              textAlign: 'left',
-              ...styles.smallText,
-            }}
-            data-testid="category-group-name"
-          >
-            {group.name}
-          </Text>
-          <SvgCheveronRight
-            style={{ flexShrink: 0, color: theme.tableTextSubdued }}
-            width={14}
-            height={14}
-          />
-        </View>
-      </Button>
-    </View>
+      }
+    />
   );
 }
 

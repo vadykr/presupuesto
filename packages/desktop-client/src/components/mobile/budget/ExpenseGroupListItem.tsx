@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import type { ComponentPropsWithoutRef } from 'react';
 import { GridListItem } from 'react-aria-components';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { Card } from '@actual-app/components/card';
 import { SvgExpandArrow } from '@actual-app/components/icons/v0';
-import { SvgCheveronRight } from '@actual-app/components/icons/v1';
 import { styles } from '@actual-app/components/styles';
 import type { CSSProperties } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
@@ -16,7 +16,6 @@ import type {
   CategoryEntity,
   CategoryGroupEntity,
 } from '@actual-app/core/types/models';
-import { css } from '@emotion/css';
 import { AutoTextSize } from 'auto-text-size';
 
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -27,6 +26,7 @@ import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
 import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
 import { ExpenseCategoryList } from './ExpenseCategoryList';
+import { RowName } from './RowName';
 
 type ExpenseGroupListItemProps = ComponentPropsWithoutRef<
   typeof GridListItem<CategoryGroupEntity>
@@ -184,20 +184,14 @@ function ExpenseGroupName({
   onToggleCollapse,
   show3Columns,
 }: ExpenseGroupNameProps) {
+  const { t } = useTranslation();
   const sidebarColumnWidth = getColumnWidth({
     show3Columns,
     isSidebar: true,
     offset: -3.5,
   });
   return (
-    <View
-      style={{
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'flex-start',
-        width: sidebarColumnWidth,
-      }}
-    >
+    <>
       {/* Hidden drag button */}
       <Button
         slot="drag"
@@ -209,62 +203,34 @@ function ExpenseGroupName({
           overflow: 'hidden',
         }}
       />
-      <Button
-        variant="bare"
-        className={css({
-          flexShrink: 0,
-          color: theme.pageTextSubdued,
-          '&[data-pressed]': {
-            backgroundColor: 'transparent',
-          },
-          marginLeft: -5,
-        })}
+      {/* Tocar el nombre pliega o despliega el grupo; mantener pulsado o
+          el icono ⋮ abren el menú del grupo (notas, nueva categoría…). */}
+      <RowName
+        name={group.name}
+        width={sidebarColumnWidth}
+        textStyle={{ fontWeight: '500' }}
+        data-testid="category-group-name"
         onPress={() => onToggleCollapse(group.id)}
-      >
-        <SvgExpandArrow
-          width={8}
-          height={8}
-          style={{
-            flexShrink: 0,
-            transition: 'transform .1s',
-            transform: isCollapsed(group.id) ? 'rotate(-90deg)' : '',
-          }}
-        />
-      </Button>
-      <Button
-        variant="bare"
-        style={{
-          maxWidth: sidebarColumnWidth,
-        }}
-        onPress={() => onEditCategoryGroup(group.id)}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-          }}
-        >
-          <Text
+        onHold={() => onEditCategoryGroup(group.id)}
+        onOpenMenu={() => onEditCategoryGroup(group.id)}
+        menuLabel={t('Open menu for {{groupName}} group', {
+          groupName: group.name,
+        })}
+        leading={
+          <SvgExpandArrow
+            width={8}
+            height={8}
             style={{
-              ...styles.lineClamp(2),
-              width: sidebarColumnWidth,
-              textAlign: 'left',
-              ...styles.smallText,
-              fontWeight: '500',
+              flexShrink: 0,
+              marginRight: 6,
+              color: theme.pageTextSubdued,
+              transition: 'transform .1s',
+              transform: isCollapsed(group.id) ? 'rotate(-90deg)' : '',
             }}
-            data-testid="category-group-name"
-          >
-            {group.name}
-          </Text>
-          <SvgCheveronRight
-            style={{ flexShrink: 0, color: theme.tableTextSubdued }}
-            width={14}
-            height={14}
           />
-        </View>
-      </Button>
-    </View>
+        }
+      />
+    </>
   );
 }
 
