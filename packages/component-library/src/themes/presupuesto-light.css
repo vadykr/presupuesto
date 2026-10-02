@@ -47,14 +47,18 @@
   --p-shadow-sheet: 0 -8px 24px rgba(20, 30, 60, 0.1);
 
   /* 8 colores de categoría (huecos 0..7 de useColoresCategorias) */
-  --p-k0: #3f6fd6;
-  --p-k1: #7a5ad8;
-  --p-k2: #d06f22;
-  --p-k3: #d84a6e;
-  --p-k4: #a8901a;
-  --p-k5: #1f9bb0;
-  --p-k6: #b347b6;
-  --p-k7: #6f9a1f;
+  --p-k0: #0061be; /* azul */
+  --p-k1: #e36927; /* naranja */
+  --p-k2: #12a7a7; /* turquesa */
+  --p-k3: #af2843; /* granate */
+  --p-k4: #00a1cb; /* azul petróleo */
+  --p-k5: #865901; /* ámbar */
+  --p-k6: #b96dd8; /* orquídea */
+  --p-k7: #15ac7d; /* verde agua */
+  --p-k8: #8a7ff4; /* lavanda */
+  --p-k9: #3b7402; /* verde hoja */
+  --p-k10: #d861aa; /* rosa */
+  --p-k11: #a09600; /* oliva */
 
   /* Colores de Actual remapeados al sistema A */
   --color-pageBackground: var(--p-bg);

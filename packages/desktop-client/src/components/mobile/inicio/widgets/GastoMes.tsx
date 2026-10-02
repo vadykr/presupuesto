@@ -34,8 +34,10 @@ export function GastoMes({ tamano, month }: PropsWidget) {
     hasta: month,
     categoriasExcluidas: excluidas,
   });
-  const { colorDe } = useColoresCategorias();
   const desglose = gastoPorCategoria(movimientos, meses, categorias);
+  const { colorDe } = useColoresCategorias(
+    desglose.filas.map(f => f.categoria),
+  );
   const nombreDe = (id: string | null) =>
     id == null
       ? t('Uncategorized')

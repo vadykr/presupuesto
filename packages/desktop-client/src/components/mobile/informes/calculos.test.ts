@@ -10,9 +10,11 @@ import {
 } from './calculos';
 import type { CategoriaInfo, Movimiento } from './calculos';
 import {
+  asignarColoresVista,
   colorDeCategoria,
   huecoDeCategoria,
   huecoPorDefecto,
+  NUM_HUECOS,
   parseAsignacionColores,
 } from './coloresCategorias';
 
@@ -255,7 +257,7 @@ describe('coloresCategorias', () => {
     const a = huecoPorDefecto('abc-123');
     expect(a).toBe(huecoPorDefecto('abc-123'));
     expect(a).toBeGreaterThanOrEqual(0);
-    expect(a).toBeLessThan(8);
+    expect(a).toBeLessThan(NUM_HUECOS);
     const huecos = new Set(
       Array.from({ length: 40 }, (_, i) => huecoPorDefecto(`cat-${i}`)),
     );
@@ -275,5 +277,28 @@ describe('coloresCategorias', () => {
 
   it('sin categoría usa el color neutro', () => {
     expect(colorDeCategoria(null)).toBe('var(--color-pageTextSubdued)');
+  });
+
+  it('en una vista, hasta 12 categorías no repiten color', () => {
+    const ids = Array.from({ length: 12 }, (_, i) => `cat-${i}`);
+    const vista = asignarColoresVista(ids);
+    expect(new Set(vista.values()).size).toBe(12);
+    expect(vista.get('cat-0')).toBe(0);
+    expect(vista.get('cat-1')).toBe(1);
+  });
+
+  it('en una vista, la preferencia manda y su hueco se salta', () => {
+    const vista = asignarColoresVista(['a', 'b', 'c', null, 'a'], { b: 0 });
+    expect(vista.get('b')).toBe(0);
+    expect(vista.get('a')).toBe(1);
+    expect(vista.get('c')).toBe(2);
+    expect(vista.size).toBe(3);
+  });
+
+  it('en una vista con más de 12 categorías se vuelve a empezar', () => {
+    const ids = Array.from({ length: 14 }, (_, i) => `cat-${i}`);
+    const vista = asignarColoresVista(ids);
+    expect(vista.get('cat-12')).toBe(0);
+    expect(vista.get('cat-13')).toBe(1);
   });
 });

@@ -42,13 +42,19 @@ export const color = {
   cardD: v('card-d', 'var(--color-tableHeaderBackground)'),
 } as const;
 
-/** Los 8 colores de categoría (los mismos huecos que `useColoresCategorias`). */
-export const COLORES_CATEGORIA = [0, 1, 2, 3, 4, 5, 6, 7].map(
-  i => `var(--p-k${i}, var(--informes-c${i}, var(--color-chartQual${i + 1})))`,
+/** Huecos de la paleta categórica (`--p-k0..k11`). */
+export const NUM_COLORES_CATEGORIA = 12;
+
+/** Los 12 colores de categoría (los mismos huecos que `useColoresCategorias`). */
+export const COLORES_CATEGORIA = Array.from(
+  { length: NUM_COLORES_CATEGORIA },
+  (_, i) =>
+    `var(--p-k${i}, var(--informes-c${i}, var(--color-chartQual${(i % 8) + 1})))`,
 );
 
 export function colorCategoria(hueco: number): string {
-  return COLORES_CATEGORIA[((hueco % 8) + 8) % 8];
+  const n = NUM_COLORES_CATEGORIA;
+  return COLORES_CATEGORIA[((hueco % n) + n) % n];
 }
 
 /** Mezcla un color con transparente (fondo suave de píldoras y cajitas). */

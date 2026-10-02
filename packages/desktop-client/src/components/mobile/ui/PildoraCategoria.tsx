@@ -37,7 +37,12 @@ export function PildoraCategoria({
         padding: pequena ? '0 8px 0 6px' : '0 12px 0 8px',
         borderRadius: radio.pildora,
         backgroundColor: suave(tinta),
-        color: tinta,
+        // Texto: el color de la categoría acercado a la tinta del tema para
+        // que se lea igual en claro y en oscuro.
+        color:
+          hueco == null
+            ? tinta
+            : `color-mix(in oklab, ${tinta} 62%, var(--p-fg, var(--color-pageText)))`,
         fontWeight: 800,
         fontSize: pequena ? 11.5 : 13.5,
         whiteSpace: 'nowrap',

@@ -81,7 +81,6 @@ export function InformesPage() {
   const fmt = (v: number) => format(v, 'financial');
 
   const { excluidas } = useCategoriasExcluidas();
-  const { colorDe } = useColoresCategorias();
   const { movimientos, categorias, meses, isLoading } = useTotalesMensuales({
     meses: 13,
     categoriasExcluidas: excluidas,
@@ -136,6 +135,13 @@ export function InformesPage() {
       .slice(0, 2),
     ...ranking.filter(f => f.tipo === 'baja').slice(-2),
   ].slice(0, 4);
+  // Una sola vista: la misma categoría lleva el mismo color en todas las
+  // tarjetas y no se repiten colores entre las que se ven.
+  const { colorDe } = useColoresCategorias([
+    ...desglose.filas.map(f => f.categoria),
+    catEvolucion,
+    ...destacadas.map(f => f.categoria),
+  ]);
 
   // e. Patrimonio
   const { data: cuentas = [] } = useAccounts();

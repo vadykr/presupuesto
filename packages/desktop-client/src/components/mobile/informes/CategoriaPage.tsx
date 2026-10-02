@@ -119,7 +119,6 @@ export function CategoriaPage() {
     meses: n,
     incluirOcultas: true,
   });
-  const { colorDe } = useColoresCategorias();
   const mesActual = meses[meses.length - 1];
   const { presupuestado } = usePresupuestado(mesActual ? [mesActual] : []);
 
@@ -132,6 +131,8 @@ export function CategoriaPage() {
   const categoriaId =
     id ?? desgloseMes.filas.find(f => f.categoria)?.categoria ?? null;
   const info = categoriaId ? categorias.get(categoriaId) : undefined;
+  // Una sola categoría en pantalla: toma el primer color de la vista.
+  const { colorDe } = useColoresCategorias([categoriaId]);
 
   const valores = evolucionCategoria(
     movimientos,
