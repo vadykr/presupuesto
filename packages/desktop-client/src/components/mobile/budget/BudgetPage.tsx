@@ -34,7 +34,7 @@ import { prewarmMonth } from '#components/budget/util';
 import { FinancialText } from '#components/FinancialText';
 import { BotonRedondo } from '#components/mobile/ui/Cabecera';
 import { Cargando } from '#components/mobile/ui/Cargando';
-import { NavegadorMes } from '#components/mobile/ui/NavegadorMes';
+import { SelectorMes } from '#components/mobile/ui/SelectorMes';
 import { color, espacio, radio } from '#components/mobile/ui/tokens';
 import { Page } from '#components/Page';
 import { SyncRefresh } from '#components/SyncRefresh';
@@ -266,25 +266,14 @@ export function BudgetPage() {
     [categories, dispatch, onSaveCategory],
   );
 
-  const onPrevMonth = useCallback(async () => {
-    const month = monthUtils.subMonths(startMonth, 1);
-    await prewarmMonth(budgetType, spreadsheet, month);
-    setStartMonthPref(month);
-    setInitialized(true);
-  }, [budgetType, setStartMonthPref, spreadsheet, startMonth]);
-
-  const onNextMonth = useCallback(async () => {
-    const month = monthUtils.addMonths(startMonth, 1);
-    await prewarmMonth(budgetType, spreadsheet, month);
-    setStartMonthPref(month);
-    setInitialized(true);
-  }, [budgetType, setStartMonthPref, spreadsheet, startMonth]);
-
-  const onCurrentMonth = useCallback(async () => {
-    await prewarmMonth(budgetType, spreadsheet, currMonth);
-    setStartMonthPref(currMonth);
-    setInitialized(true);
-  }, [budgetType, setStartMonthPref, spreadsheet, currMonth]);
+  const onChangeMonth = useCallback(
+    async (month: string) => {
+      await prewarmMonth(budgetType, spreadsheet, month);
+      setStartMonthPref(month);
+      setInitialized(true);
+    },
+    [budgetType, setStartMonthPref, spreadsheet],
+  );
 
   // const onOpenMonthActionMenu = () => {
   //   const options = [
@@ -530,29 +519,41 @@ export function BudgetPage() {
     <Page
       padding={0}
       header={
-        <NavegadorMes
-          month={startMonth}
-          prevEnabled={startMonth > monthBounds.start}
-          nextEnabled={startMonth < monthUtils.subMonths(monthBounds.end, 1)}
-          onPrev={onPrevMonth}
-          onNext={onNextMonth}
-          onPressMonth={() => onOpenBudgetMonthMenu(startMonth)}
-          onToday={onCurrentMonth}
-          izquierda={
-            <BotonRedondo
-              icono="more"
-              aria-label={t('Budget page menu')}
-              onPress={onOpenBudgetPageMenu}
+        <View
+          data-testid="navegador-mes"
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: espacio.fila,
+            padding: `6px ${espacio.margen}px`,
+            minHeight: 56,
+          }}
+        >
+          <BotonRedondo
+            icono="more"
+            aria-label={t('Budget page menu')}
+            onPress={onOpenBudgetPageMenu}
+          />
+          <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
+            <SelectorMes
+              variante="titulo"
+              logPose
+              mes={startMonth}
+              minimo={monthBounds.start}
+              maximo={monthUtils.subMonths(monthBounds.end, 1)}
+              onChange={m => void onChangeMonth(m)}
+              accion={{
+                texto: t('Month options…'),
+                onPress: () => onOpenBudgetMonthMenu(startMonth),
+              }}
             />
-          }
-          derecha={
-            <BotonRedondo
-              icono="cal"
-              aria-label={t('Annual')}
-              onPress={() => void navigate('/anual')}
-            />
-          }
-        />
+          </View>
+          <BotonRedondo
+            icono="cal"
+            aria-label={t('Annual')}
+            onPress={() => void navigate('/anual')}
+          />
+        </View>
       }
     >
       <SheetNameProvider name={monthUtils.sheetForMonth(startMonth)}>

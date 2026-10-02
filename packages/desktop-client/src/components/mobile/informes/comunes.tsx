@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { styles } from '@actual-app/components/styles';
@@ -11,7 +10,7 @@ import * as monthUtils from '@actual-app/core/shared/months';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
-import { BotonRedondo, Cabecera } from '#components/mobile/ui/Cabecera';
+import { Cabecera } from '#components/mobile/ui/Cabecera';
 import { Cargando as CargandoBarquito } from '#components/mobile/ui/Cargando';
 import { Icono } from '#components/mobile/ui/Icono';
 import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
@@ -652,54 +651,6 @@ export function Pildoras<T extends string>({
           </Button>
         );
       })}
-    </View>
-  );
-}
-
-/** «← septiembre 2026 →» */
-export function SelectorMes({
-  mes,
-  onChange,
-  maximo = monthUtils.currentMonth(),
-}: {
-  mes: string;
-  onChange: (mes: string) => void;
-  maximo?: string;
-}) {
-  const { t } = useTranslation();
-  const locale = useLocale();
-  const puedeAvanzar = mes < maximo;
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingLeft: GUTTER,
-        paddingRight: GUTTER,
-      }}
-    >
-      <BotonRedondo
-        icono="cl"
-        aria-label={t('Previous month')}
-        onPress={() => onChange(monthUtils.prevMonth(mes))}
-      />
-      <Text
-        style={{
-          fontSize: 18,
-          fontWeight: 800,
-          textTransform: 'capitalize',
-        }}
-        data-testid="selector-mes"
-      >
-        {monthUtils.format(mes, 'MMMM yyyy', locale)}
-      </Text>
-      <BotonRedondo
-        icono="cr"
-        aria-label={t('Next month')}
-        isDisabled={!puedeAvanzar}
-        onPress={() => onChange(monthUtils.nextMonth(mes))}
-      />
     </View>
   );
 }

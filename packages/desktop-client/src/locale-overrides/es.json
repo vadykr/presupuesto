@@ -582,5 +582,21 @@
   "{{count}} categories_one": "{{count}} categoría",
   "{{count}} categories_other": "{{count}} categorías",
   "Annual · on track ({{count}})_one": "Anual · al día ({{count}})",
-  "Annual · on track ({{count}})_other": "Anual · al día ({{count}})"
+  "Annual · on track ({{count}})_other": "Anual · al día ({{count}})",
+  "Today": "Hoy",
+  "Previous year": "Año anterior",
+  "Next year": "Año siguiente",
+  "Choose month": "Elegir mes",
+  "Choose month: {{month}}": "Elegir mes: {{month}}",
+  "Month options…": "Opciones del mes…",
+  "Month…": "Mes…",
+  "Year to date": "Año en curso",
+  "Last year": "Año pasado",
+  "All time": "Todo",
+  "Period: {{period}}": "Periodo: {{period}}",
+  "Last {{count}} months_one": "Último mes",
+  "Last {{count}} months_other": "Últimos {{count}} meses",
+  "Nothing spent in this period.": "Nada gastado en este periodo.",
+  "{{count}} categories, mostly {{category}} ({{pct}})_one": "{{count}} categoría: {{category}} ({{pct}})",
+  "{{count}} categories, mostly {{category}} ({{pct}})_other": "{{count}} categorías, sobre todo {{category}} ({{pct}})"
 }

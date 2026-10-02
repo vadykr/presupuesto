@@ -11,6 +11,7 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
+import { SelectorMes } from '#components/mobile/ui/SelectorMes';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
 import { useNavigate } from '#hooks/useNavigate';
@@ -26,7 +27,6 @@ import {
   Hero,
   PaginaInforme,
   Seccion,
-  SelectorMes,
   Vacio,
 } from './comunes';
 import { useCategoriasExcluidas } from './useCategoriasExcluidas';
@@ -117,13 +117,21 @@ export function SubeBajaPage() {
     hasta: mes,
     categoriasExcluidas: excluidas,
   });
-  const { colorDe } = useColoresCategorias();
   const mesActual = meses[meses.length - 1];
   const ranking = rankingSubeBaja(
     movimientos,
     mesActual,
     meses.slice(0, -1),
     categorias,
+  );
+  // Colores distintos dentro de la pantalla, por gasto del mes.
+  const { colorDe } = useColoresCategorias(
+    [...ranking]
+      .sort(
+        (a, b) =>
+          Math.max(b.actual, b.referencia) - Math.max(a.actual, a.referencia),
+      )
+      .map(f => f.categoria),
   );
   const nombreDe = (id: string) => categorias.get(id)?.nombre ?? t('Unknown');
   const resumen = fraseSubeBaja(t, ranking, nombreDe, v =>
@@ -167,7 +175,12 @@ export function SubeBajaPage() {
       }
     >
       <View style={{ paddingTop: 6 }}>
-        <SelectorMes mes={mes} onChange={setMes} />
+        <SelectorMes
+          mes={mes}
+          maximo={monthUtils.currentMonth()}
+          onChange={setMes}
+          style={{ marginLeft: GUTTER - 6 }}
+        />
       </View>
       <View style={{ padding: GUTTER, paddingTop: 4, gap: 14 }}>
         {isLoading ? (

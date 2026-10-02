@@ -5,10 +5,8 @@ import { useSearchParams } from 'react-router';
 import { Button } from '@actual-app/components/button';
 import { SvgFilter2 } from '@actual-app/components/icons/v2';
 import { View } from '@actual-app/components/view';
-import * as monthUtils from '@actual-app/core/shared/months';
 
 import { useFormat } from '#hooks/useFormat';
-import { useLocale } from '#hooks/useLocale';
 import { useNavigate } from '#hooks/useNavigate';
 
 import { gastoPorCategoria } from './calculos';
@@ -21,84 +19,51 @@ import {
   GUTTER,
   Hero,
   PaginaInforme,
-  Pildoras,
   Seccion,
-  SelectorMes,
   Vacio,
 } from './comunes';
+import { SelectorPeriodo, usePeriodoInformes } from './SelectorPeriodo';
 import { useCategoriasExcluidas } from './useCategoriasExcluidas';
 import { useColoresCategorias } from './useColoresCategorias';
 import { useTotalesMensuales } from './useTotalesMensuales';
 
-type Modo = 'mes' | '3' | '6' | '12' | 'ano';
-
-function rangoDeModo(
-  modo: Modo,
-  mes: string,
-): { meses: number; hasta: string } {
-  const actual = monthUtils.currentMonth();
-  switch (modo) {
-    case 'mes':
-      return { meses: 1, hasta: mes };
-    case 'ano':
-      return {
-        meses: Number(actual.slice(5, 7)),
-        hasta: actual,
-      };
-    default:
-      return { meses: Number(modo), hasta: actual };
-  }
-}
-
 /** Detalle «Este mes»: dónde se va el dinero, por categoría. */
 export function GastoMesPage() {
   const { t } = useTranslation();
-  const locale = useLocale();
   const format = useFormat();
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
-  const [modo, setModo] = useState<Modo>('mes');
-  const [mes, setMes] = useState(
-    params.get('mes') ?? monthUtils.currentMonth(),
-  );
+  const { periodo, setPeriodo, rango } = usePeriodoInformes(params.get('mes'));
   const [filtroAbierto, setFiltroAbierto] = useState(false);
 
   const { excluidas } = useCategoriasExcluidas();
-  const rango = rangoDeModo(modo, mes);
   const { movimientos, categorias, meses, isLoading } = useTotalesMensuales({
     ...rango,
     categoriasExcluidas: excluidas,
   });
-  const { colorDe } = useColoresCategorias();
-
   const desglose = gastoPorCategoria(movimientos, meses, categorias);
+  // Barra apilada y lista comparten colores; sin repetir con ≤ 12 categorías.
+  const { colorDe } = useColoresCategorias([
+    ...desglose.filas.map(f => f.categoria),
+    ...desglose.ingresosPositivos.map(f => f.categoria),
+  ]);
   const nombreDe = (id: string | null) =>
     id == null
       ? t('Uncategorized')
       : (categorias.get(id)?.nombre ?? t('Unknown'));
 
   const mayor = desglose.filas[0];
-  const etiquetaPeriodo =
-    modo === 'mes'
-      ? monthUtils.format(mes, 'MMMM yyyy', locale)
-      : modo === 'ano'
-        ? t('this year')
-        : t('the last {{count}} months', { count: Number(modo) });
-
+  // El periodo ya se lee en el botón: la frase va al grano y cabe en una línea.
   const frase =
     desglose.total === 0
-      ? t('Nothing spent in {{period}}', { period: etiquetaPeriodo })
+      ? t('Nothing spent in this period.')
       : mayor
-        ? t(
-            'Spent in {{period}} across {{count}} categories. The biggest: {{category}} ({{pct}}).',
-            {
-              period: etiquetaPeriodo,
-              count: desglose.filas.length,
-              category: nombreDe(mayor.categoria),
-              pct: formatPorcentaje(mayor.importe / desglose.total, false),
-            },
-          )
+        ? t('{{count}} categories, mostly {{category}} ({{pct}})', {
+            count: desglose.filas.length,
+            category: nombreDe(mayor.categoria),
+            pct: formatPorcentaje(mayor.importe / desglose.total, false),
+          })
         : '';
 
   return (
@@ -116,20 +81,8 @@ export function GastoMesPage() {
         </Button>
       }
     >
-      <View style={{ gap: 10, paddingTop: 10 }}>
-        <Pildoras<Modo>
-          aria-label={t('Period')}
-          valor={modo}
-          onChange={setModo}
-          opciones={[
-            { valor: 'mes', etiqueta: t('Month') },
-            { valor: '3', etiqueta: t('3 mo.') },
-            { valor: '6', etiqueta: t('6 mo.') },
-            { valor: '12', etiqueta: t('12 mo.') },
-            { valor: 'ano', etiqueta: t('Year') },
-          ]}
-        />
-        {modo === 'mes' && <SelectorMes mes={mes} onChange={setMes} />}
+      <View style={{ paddingTop: 10 }}>
+        <SelectorPeriodo periodo={periodo} onChange={setPeriodo} />
       </View>
 
       <View style={{ padding: GUTTER, paddingTop: 6, gap: 14 }}>
