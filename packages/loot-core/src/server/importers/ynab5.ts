@@ -11,6 +11,7 @@ import type { RecurConfig, RecurPattern, RuleEntity } from '#types/models';
 
 import { runImportSteps } from './progress';
 import type { ImportTick } from './progress';
+import { notaDeCategoria, plantillasDeObjetivo } from './ynab5-objetivos';
 import { calcularAjusteDeSaldo, notaDeCuenta } from './ynab5-prestamos';
 import type {
   Budget,
@@ -448,10 +449,13 @@ async function importCategories(
               });
               entityIdMap.set(cat.id, createdCategory.id);
               tick();
-              if (cat.note) {
+              // Nota de YNAB más el objetivo traducido a plantilla de Actual
+              // («#template …» / «#goal …»), ver ynab5-objetivos.ts.
+              const note = notaDeCategoria(cat, monthUtils.currentMonth());
+              if (note) {
                 void send('notes-save', {
                   id: createdCategory.id,
-                  note: cat.note,
+                  note,
                 });
               }
             }
@@ -1318,6 +1322,36 @@ export async function doImport(data: Budget) {
       run: tick => importBudgets(data, entityIdMap, tick),
     },
   ]);
+
+  await importGoals(data);
+}
+
+/**
+ * Los objetivos ya están en las notas de las categorías; aquí se guardan en
+ * `categories.goal_def` (lo mismo que hace Actual al aplicar plantillas), se
+ * calcula el objetivo del mes actual para que se vea el indicador de
+ * infrafinanciado y se activa la opción de plantillas, que en Actual es
+ * experimental y está apagada por defecto.
+ */
+async function importGoals(data: Budget) {
+  const hoy = monthUtils.currentMonth();
+  const hayObjetivos = data.categories.some(
+    cat => !cat.deleted && plantillasDeObjetivo(cat, hoy).length > 0,
+  );
+  if (!hayObjetivos) {
+    return;
+  }
+
+  try {
+    await send('budget/store-note-templates');
+    await send('budget/refresh-goals', { month: hoy });
+  } catch (e) {
+    logger.error('No se pudieron calcular los objetivos importados', e);
+  }
+  await send('preferences/save', {
+    id: 'flags.goalTemplatesEnabled',
+    value: 'true',
+  });
 }
 
 function countLive(entities: { deleted?: boolean }[]) {

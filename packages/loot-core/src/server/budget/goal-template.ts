@@ -138,6 +138,39 @@ export function runCheckTemplates() {
   return checkTemplateNotes();
 }
 
+/**
+ * Recalcula solo los objetivos (`goal` / `long_goal`) de un mes a partir de
+ * las plantillas, sin tocar lo presupuestado. Sirve para que el indicador de
+ * objetivo aparezca sin haber aplicado las plantillas (p. ej. tras importar
+ * un presupuesto de YNAB).
+ */
+export async function refreshGoals({
+  month,
+}: {
+  month: string;
+}): Promise<void> {
+  const categoryTemplates = await getTemplates();
+  const { contexts, orphanGoals } = await computeTemplates(
+    month,
+    true,
+    categoryTemplates,
+    [],
+    true,
+  );
+  const goalList: TemplateGoal[] = [...orphanGoals];
+  contexts.forEach(context => {
+    const values = context.getValues();
+    goalList.push({
+      category: context.category.id,
+      goal: values.goal,
+      longGoal: values.longGoal ? 1 : null,
+    });
+  });
+  if (goalList.length > 0) {
+    await setGoals(month, goalList);
+  }
+}
+
 async function getCategories(): Promise<CategoryEntity[]> {
   const { data: categoryGroups }: { data: CategoryGroupEntity[] } =
     await aqlQuery(q('category_groups').filter({ hidden: false }).select('*'));

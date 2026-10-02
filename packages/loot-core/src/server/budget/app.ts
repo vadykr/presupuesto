@@ -32,6 +32,7 @@ export type BudgetHandlers = {
   'budget/set-n-month-avg': typeof actions.setNMonthAvg;
   'budget/check-templates': typeof goalActions.runCheckTemplates;
   'budget/apply-goal-template': typeof goalActions.applyTemplate;
+  'budget/refresh-goals': typeof goalActions.refreshGoals;
   'budget/apply-multiple-templates': typeof goalActions.applyMultipleCategoryTemplates;
   'budget/overwrite-goal-template': typeof goalActions.overwriteTemplate;
   'budget/apply-single-template': typeof goalActions.applySingleCategoryTemplate;
@@ -93,6 +94,7 @@ app.method(
   'budget/apply-goal-template',
   mutator(undoable(goalActions.applyTemplate)),
 );
+app.method('budget/refresh-goals', mutator(goalActions.refreshGoals));
 app.method(
   'budget/apply-multiple-templates',
   mutator(undoable(goalActions.applyMultipleCategoryTemplates)),
