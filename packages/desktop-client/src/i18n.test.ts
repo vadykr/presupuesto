@@ -16,6 +16,7 @@ vi.mock('i18next', () => {
 vi.mock('./languages', () => ({
   languages: {
     '/locale/en.json': vi.fn(),
+    '/locale/es.json': vi.fn(),
     '/locale/uk.json': vi.fn(),
     '/locale/pt-BR.json': vi.fn(),
   },
@@ -30,12 +31,12 @@ describe('setI18NextLanguage', () => {
 
   afterEach(vi.unstubAllGlobals);
 
-  test('should set system default language when no language is provided', () => {
+  test('should default to Spanish when no language is provided', () => {
     vi.stubGlobal('navigator', { language: 'uk' });
 
     setI18NextLanguage('');
 
-    expect(vi.mocked(i18n).changeLanguage).toHaveBeenCalledWith('uk');
+    expect(vi.mocked(i18n).changeLanguage).toHaveBeenCalledWith('es');
   });
 
   test('should set the provided language if it is available', () => {

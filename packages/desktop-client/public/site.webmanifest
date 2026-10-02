@@ -1,7 +1,7 @@
 {
-  "name": "Actual",
-  "short_name": "Actual",
-  "description": "A local-first personal finance tool",
+  "name": "Presupuesto",
+  "short_name": "Presupuesto",
+  "description": "Presupuesto personal, con los datos en tu dispositivo",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -30,9 +30,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Add Transaction",
-      "short_name": "Add Transaction",
-      "description": "Add a new transaction",
+      "name": "Añadir movimiento",
+      "short_name": "Añadir movimiento",
+      "description": "Añadir un movimiento nuevo",
       "url": "/transactions/new",
       "icons": [
         {
@@ -42,9 +42,9 @@
       ]
     },
     {
-      "name": "Accounts",
-      "short_name": "Accounts",
-      "description": "View all accounts",
+      "name": "Cuentas",
+      "short_name": "Cuentas",
+      "description": "Ver todas las cuentas",
       "url": "/accounts",
       "icons": [
         {
@@ -54,9 +54,9 @@
       ]
     },
     {
-      "name": "Reports",
-      "short_name": "Reports",
-      "description": "View reports",
+      "name": "Informes",
+      "short_name": "Informes",
+      "description": "Ver informes",
       "url": "/reports",
       "icons": [
         {
@@ -70,20 +70,21 @@
     {
       "src": "/screenshot_wide.png",
       "form_factor": "wide",
-      "label": "Actual Budget Homepage",
+      "label": "Pantalla principal de Presupuesto",
       "type": "image/png",
       "sizes": "1280x720"
     },
     {
       "src": "/screenshot_narrow.png",
       "form_factor": "narrow",
-      "label": "Actual Budget Mobile Homepage",
+      "label": "Pantalla principal de Presupuesto en el móvil",
       "type": "image/png",
       "sizes": "350x600"
     }
   ],
   "theme_color": "#5c3dbb",
   "background_color": "#5c3dbb",
+  "lang": "es",
   "display": "standalone",
   "start_url": "./"
 }
