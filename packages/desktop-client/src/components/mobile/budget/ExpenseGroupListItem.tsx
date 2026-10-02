@@ -11,11 +11,9 @@ import type {
   CategoryEntity,
   CategoryGroupEntity,
 } from '@actual-app/core/types/models';
-import { AutoTextSize } from 'auto-text-size';
 
 import { Icono } from '#components/mobile/ui/Icono';
-import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
-import { color, espacio, movimiento, num } from '#components/mobile/ui/tokens';
+import { color, densidad, movimiento } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { CellValue } from '#components/spreadsheet/CellValue';
 import { useFormat } from '#hooks/useFormat';
@@ -79,13 +77,9 @@ export function ExpenseGroupListItem({
 
   return (
     <GridListItem textValue={categoryGroup.name} {...props}>
-      <View
-        style={{
-          ...estiloTarjeta('normal', 0),
-          overflow: 'hidden',
-          margin: `0 ${espacio.margen}px ${espacio.tarjetas}px`,
-        }}
-      >
+      {/* Sin tarjeta: el grupo es una franja (surface2) y sus categorías
+          van debajo sobre `surface`, separadas por una línea fina. */}
+      <View style={{ borderBottom: `1px solid ${color.line}` }}>
         <ExpenseGroupHeader
           categoryGroup={categoryGroup}
           month={month}
@@ -140,13 +134,14 @@ export function ExpenseGroupHeader({
       data-month={month}
       style={{
         cursor: 'pointer',
-        minHeight: 48,
+        height: densidad.altoGrupo,
+        flexShrink: 0,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        padding: '2px 14px',
+        padding: `0 ${densidad.margen}px`,
         opacity: isHidden ? 0.5 : undefined,
-        backgroundColor: color.surface,
+        backgroundColor: color.surface2,
       }}
     >
       <ExpenseGroupName
@@ -204,7 +199,10 @@ function ExpenseGroupName({
       <RowName
         name={group.name}
         width={sidebarColumnWidth}
-        textStyle={{ fontWeight: 800, fontSize: 15, color: color.fg }}
+        lineas={2}
+        menuIconSize={18}
+        minHeight={densidad.altoGrupo - 2}
+        textStyle={{ ...densidad.grupo, lineHeight: '18px', color: color.fg }}
         data-testid="category-group-name"
         onPress={() => onToggleCollapse(group.id)}
         onHold={() => onEditCategoryGroup(group.id)}
@@ -215,9 +213,10 @@ function ExpenseGroupName({
         leading={
           <Icono
             nombre="cd"
-            size={18}
+            size={14}
             style={{
-              marginRight: 6,
+              flexShrink: 0,
+              marginRight: 8,
               color: color.fg3,
               transition: `transform ${movimiento.pildora}ms ${movimiento.muelle}`,
               transform: isCollapsed(group.id) ? 'rotate(-90deg)' : '',
@@ -244,14 +243,14 @@ function ExpenseGroupCells({
   const format = useFormat();
 
   const columnWidth = getColumnWidth({ show3Columns });
+  const anchoDisponible = getColumnWidth({ show3Columns, disponible: true });
 
   const amountStyle: CSSProperties = {
-    ...num,
+    ...densidad.grupoCifra,
     width: columnWidth,
-    fontSize: 13,
-    fontWeight: 800,
-    color: color.fg2,
+    color: color.fg3,
     textAlign: 'right',
+    whiteSpace: 'nowrap',
   };
 
   const budgeted =
@@ -275,7 +274,7 @@ function ExpenseGroupCells({
         flexDirection: 'row',
         justifyContent: 'flex-end',
         alignItems: 'center',
-        gap: 8,
+        flexShrink: 0,
       }}
     >
       <View
@@ -290,16 +289,14 @@ function ExpenseGroupCells({
           {({ type, value }) => (
             <View>
               <PrivacyFilter>
-                <AutoTextSize
-                  key={value}
-                  as={Text}
-                  minFontSizePx={6}
-                  maxFontSizePx={12}
-                  mode="oneline"
-                  style={amountStyle}
+                <Text
+                  data-testid="group-amount"
+                  // Sin ancho fijo: acaba donde acaba la columna Asignado y
+                  // deja al nombre del grupo el hueco libre de la izquierda.
+                  style={{ ...amountStyle, width: 'auto', paddingLeft: 8 }}
                 >
                   {format(value, type)}
-                </AutoTextSize>
+                </Text>
               </PrivacyFilter>
             </View>
           )}
@@ -317,16 +314,9 @@ function ExpenseGroupCells({
           {({ type, value }) => (
             <View>
               <PrivacyFilter>
-                <AutoTextSize
-                  key={value}
-                  as={Text}
-                  minFontSizePx={6}
-                  maxFontSizePx={12}
-                  mode="oneline"
-                  style={amountStyle}
-                >
+                <Text data-testid="group-amount" style={amountStyle}>
                   {format(value, type)}
-                </AutoTextSize>
+                </Text>
               </PrivacyFilter>
             </View>
           )}
@@ -339,16 +329,12 @@ function ExpenseGroupCells({
         {({ type, value }) => (
           <View>
             <PrivacyFilter>
-              <AutoTextSize
-                key={value}
-                as={Text}
-                minFontSizePx={6}
-                maxFontSizePx={12}
-                mode="oneline"
-                style={amountStyle}
+              <Text
+                data-testid="group-amount"
+                style={{ ...amountStyle, width: anchoDisponible }}
               >
                 {format(value, type)}
-              </AutoTextSize>
+              </Text>
             </PrivacyFilter>
           </View>
         )}

@@ -608,5 +608,7 @@
   "Nothing spent in this period.": "Nada gastado en este periodo.",
   "{{count}} categories, mostly {{category}} ({{pct}})_one": "{{count}} categoría: {{category}} ({{pct}})",
   "{{count}} categories, mostly {{category}} ({{pct}})_other": "{{count}} categorías, sobre todo {{category}} ({{pct}})",
-  "{{month}}: {{amount}}, mostly {{category}} ({{pct}})": "{{month}}: {{amount}}, sobre todo {{category}} ({{pct}})"
+  "{{month}}: {{amount}}, mostly {{category}} ({{pct}})": "{{month}}: {{amount}}, sobre todo {{category}} ({{pct}})",
+  "Assign {{amount}} for the target": "Asignar {{amount}} para el objetivo",
+  "No notes": "Sin notas"
 }

@@ -339,8 +339,9 @@ export function SelectorMes({
         {variante === 'titulo' ? (
           <View style={{ alignItems: 'flex-start', minWidth: 0 }}>
             <Text
+              data-testid="selector-mes-nombre"
               style={{
-                fontSize: 19,
+                fontSize: 22,
                 fontWeight: 800,
                 letterSpacing: '-0.02em',
                 lineHeight: 1.1,
@@ -350,7 +351,15 @@ export function SelectorMes({
             >
               {nombre}
             </Text>
-            <Text style={{ fontSize: 12, fontWeight: 700, color: color.fg3 }}>
+            <Text
+              data-testid="selector-mes-anio"
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                lineHeight: '14px',
+                color: color.fg3,
+              }}
+            >
               {anio}
             </Text>
           </View>

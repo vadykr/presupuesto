@@ -93,7 +93,7 @@ export function MobileNavTabs() {
             gap: 2,
             textDecoration: 'none',
             userSelect: 'none',
-            fontSize: 10.5,
+            fontSize: 11,
             fontWeight: 700,
             whiteSpace: 'nowrap',
             overflow: 'hidden',

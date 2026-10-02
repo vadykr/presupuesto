@@ -76,6 +76,12 @@ type RowNameProps = {
   textStyle?: CSSProperties;
   /** Elemento opcional delante del nombre (p. ej. la flecha de plegar). */
   leading?: ReactNode;
+  /** Líneas como máximo antes de la elipsis (2 por defecto). */
+  lineas?: number;
+  /** Tamaño del icono ⋮ (16 por defecto). */
+  menuIconSize?: number;
+  /** Alto mínimo de la zona táctil (44 por defecto). */
+  minHeight?: number;
   'data-testid'?: string;
 };
 
@@ -93,6 +99,9 @@ export function RowName({
   menuLabel,
   textStyle,
   leading,
+  lineas = 2,
+  menuIconSize = 16,
+  minHeight = styles.mobileMinHeight,
   'data-testid': testId,
 }: RowNameProps) {
   const pressProps = useTapAndHold({ onTap: onPress, onHold });
@@ -105,7 +114,8 @@ export function RowName({
         alignItems: 'center',
         justifyContent: 'flex-start',
         width,
-        minHeight: styles.mobileMinHeight,
+        minWidth: 0,
+        minHeight,
       }}
     >
       {leading}
@@ -131,7 +141,7 @@ export function RowName({
       >
         <Text
           style={{
-            ...styles.lineClamp(2),
+            ...styles.lineClamp(lineas),
             textAlign: 'left',
             ...styles.smallText,
             ...textStyle,
@@ -146,16 +156,19 @@ export function RowName({
           variant="bare"
           aria-label={menuLabel}
           onPress={onOpenMenu}
+          data-testid="menu-grupo"
           style={{
             flexShrink: 0,
             minWidth: styles.mobileMinHeight,
-            minHeight: styles.mobileMinHeight,
+            minHeight,
+            // Ocupa 38 px de ancho pero conserva la zona táctil de 44.
+            marginRight: -6,
             justifyContent: 'center',
             alignItems: 'center',
             color: theme.tableTextSubdued,
           }}
         >
-          <SvgDotsHorizontalTriple width={16} height={16} />
+          <SvgDotsHorizontalTriple width={menuIconSize} height={menuIconSize} />
         </Button>
       )}
     </View>

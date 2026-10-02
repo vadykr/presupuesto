@@ -12,7 +12,12 @@ import type { BudgetType } from '@actual-app/core/server/prefs';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
 import { separarEmoji } from '#components/mobile/ui/emoji';
-import { color, movimiento, radio } from '#components/mobile/ui/tokens';
+import {
+  color,
+  densidad,
+  movimiento,
+  TACTIL,
+} from '#components/mobile/ui/tokens';
 import { useCategoriesById } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
 import { useNavigate } from '#hooks/useNavigate';
@@ -27,21 +32,29 @@ import { useAssignKeypad } from './AssignKeypadContext';
 import { BalanceCell } from './BalanceCell';
 import { BudgetCell } from './BudgetCell';
 import { getColumnWidth } from './BudgetTable';
-import { EstadoObjetivoCorto } from './EstadoObjetivoCorto';
+import { useTapAndHold } from './RowName';
 import { useIgnorarMes } from './useIgnorarMes';
 
 type ExpenseCategoryNameProps = {
   category: CategoryEntity;
-  onEditCategory: (id: CategoryEntity['id']) => void;
-  show3Columns: boolean;
+  /** Tocar: abre el teclado de asignar (o la ficha si no hay teclado). */
+  onPress: () => void;
+  /** Mantener pulsado: abre la ficha de la categoría. */
+  onHold: () => void;
 };
 
-/** Nombre de la categoría con su emoji en una cajita de 24 px (concepto A). */
+/**
+ * Nombre de la categoría con su emoji delante, del mismo tamaño (15 px).
+ * Ocupa todo el ancho libre (`flex: 1`); con nombres muy largos pasa a dos
+ * líneas y solo entonces corta con elipsis.
+ */
 function ExpenseCategoryName({
   category,
-  onEditCategory,
+  onPress,
+  onHold,
 }: ExpenseCategoryNameProps) {
   const { emoji, resto } = separarEmoji(category.name);
+  const pressProps = useTapAndHold({ onTap: onPress, onHold });
 
   return (
     <View
@@ -63,54 +76,51 @@ function ExpenseCategoryName({
           overflow: 'hidden',
         }}
       />
-      <Button
-        variant="bare"
+      <View
+        {...pressProps}
+        role="button"
+        tabIndex={0}
+        aria-label={category.name}
+        onContextMenu={e => e.preventDefault()}
         style={{
+          flexDirection: 'row',
+          alignItems: 'center',
           justifyContent: 'flex-start',
-          minHeight: 44,
-          padding: '0 2px',
-          borderRadius: radio.sm,
+          gap: 6,
+          minWidth: 0,
+          // Zona táctil de 44 px sin engordar la fila (contenido de 32 px).
+          minHeight: TACTIL,
+          margin: `${-(TACTIL - 32) / 2}px 0`,
+          cursor: 'pointer',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none',
         }}
-        onPress={() => onEditCategory?.(category.id)}
       >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            gap: 6,
-            minWidth: 0,
-          }}
-        >
-          {emoji && (
-            <Text
-              aria-hidden
-              style={{
-                fontSize: 16,
-                lineHeight: 1,
-                width: 24,
-                textAlign: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {emoji}
-            </Text>
-          )}
+        {emoji && (
           <Text
+            aria-hidden
+            data-testid="category-emoji"
             style={{
-              ...styles.lineClamp(2),
-              textAlign: 'left',
-              fontSize: 14,
-              fontWeight: 700,
-              lineHeight: 1.2,
-              color: color.fg,
+              ...densidad.emoji,
+              flexShrink: 0,
             }}
-            data-testid="category-name"
           >
-            {emoji ? resto : category.name}
+            {emoji}
           </Text>
-        </View>
-      </Button>
+        )}
+        <Text
+          style={{
+            ...styles.lineClamp(2),
+            ...densidad.nombre,
+            textAlign: 'left',
+            color: color.fg,
+          }}
+          data-testid="category-name"
+        >
+          {emoji ? resto : category.name}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -133,6 +143,7 @@ function ExpenseCategoryCells({
 }: ExpenseCategoryCellsProps) {
   const { t } = useTranslation();
   const columnWidth = getColumnWidth();
+  const anchoDisponible = getColumnWidth({ disponible: true });
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
 
   const budgeted =
@@ -156,7 +167,7 @@ function ExpenseCategoryCells({
         justifyContent: 'flex-end',
         alignItems: 'center',
         flexDirection: 'row',
-        gap: 8,
+        flexShrink: 0,
       }}
     >
       <View
@@ -177,7 +188,7 @@ function ExpenseCategoryCells({
       </View>
       <View
         style={{
-          width: columnWidth,
+          width: anchoDisponible,
           justifyContent: 'center',
           alignItems: 'flex-end',
         }}
@@ -484,13 +495,13 @@ export function ExpenseCategoryListItem({
         data-category-id={category.id}
         data-selected={isSelected || undefined}
         style={{
-          minHeight: 56,
+          minHeight: densidad.altoFila,
           justifyContent: 'center',
-          gap: 2,
-          padding: '6px 14px',
-          borderTop: `1px solid ${color.line}`,
+          padding: `${densidad.vertical}px ${densidad.margen}px ${densidad.vertical}px ${densidad.margen + densidad.sangria}px`,
+          // Línea fina sin sumar alto a la fila.
+          boxShadow: `inset 0 1px 0 ${color.line}`,
           opacity: isHidden ? 0.5 : ignorada ? 0.62 : undefined,
-          backgroundColor: isSelected ? color.accentSoft : 'transparent',
+          backgroundColor: isSelected ? color.accentSoft : color.surface,
           transition: `background-color ${movimiento.pildora}ms`,
         }}
       >
@@ -504,8 +515,10 @@ export function ExpenseCategoryListItem({
         >
           <ExpenseCategoryName
             category={category}
-            onEditCategory={onEditCategory}
-            show3Columns={show3Columns}
+            onPress={() =>
+              keypad ? keypad.select(category) : onEditCategory(category.id)
+            }
+            onHold={() => onEditCategory(category.id)}
           />
           <ExpenseCategoryCells
             key={`${category.id}-${show3Columns}-${showBudgetedColumn}`}
@@ -518,7 +531,6 @@ export function ExpenseCategoryListItem({
             onShowActivity={onShowActivity}
           />
         </View>
-        <EstadoObjetivoCorto category={category} month={month} />
       </View>
     </GridListItem>
   );

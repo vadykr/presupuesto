@@ -619,22 +619,23 @@ function Banner({ type = 'info', children }) {
         : color.ok;
   return (
     <View
+      data-testid="banner"
       style={{
-        minHeight: 56,
-        margin: `4px ${espacio.margen}px 8px`,
-        padding: '8px 8px 8px 14px',
-        borderRadius: radio.tarjeta,
+        minHeight: 48,
+        margin: `2px ${espacio.margen}px 8px`,
+        padding: '6px 6px 6px 14px',
+        borderRadius: radio.boton,
         justifyContent: 'center',
         backgroundColor: fondo,
         color: tinta,
-        fontWeight: 700,
-        fontSize: 13.5,
+        fontWeight: 600,
+        fontSize: 13,
         '& button': {
-          minHeight: 40,
-          borderRadius: radio.boton,
-          padding: '0 14px',
-          fontWeight: 800,
-          fontSize: 13.5,
+          minHeight: 36,
+          borderRadius: radio.sm,
+          padding: '0 12px',
+          fontWeight: 700,
+          fontSize: 13,
           backgroundColor: tinta,
           color: color.bg,
         },

@@ -12,7 +12,13 @@ import { css } from '@emotion/css';
 import { BalanceWithCarryover } from '#components/budget/BalanceWithCarryover';
 import { coloresPildora } from '#components/mobile/ui/Pildora';
 import type { EstadoPildora } from '#components/mobile/ui/Pildora';
-import { movimiento, num, radio } from '#components/mobile/ui/tokens';
+import {
+  densidad,
+  movimiento,
+  num,
+  radio,
+  TACTIL,
+} from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { useFormat } from '#hooks/useFormat';
@@ -49,6 +55,7 @@ export function BalanceCell({
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
   const columnWidth = getColumnWidth({
     show3Columns,
+    disponible: true,
   });
 
   const goal =
@@ -118,7 +125,9 @@ export function BalanceCell({
           <Button
             variant="bare"
             style={({ isPressed }) => ({
-              minHeight: 44,
+              // Zona táctil de 44 px sin engordar la fila (contenido de 32).
+              minHeight: TACTIL,
+              margin: `${-(TACTIL - 32) / 2}px 0`,
               maxWidth: columnWidth,
               padding: 0,
               backgroundColor: 'transparent',
@@ -135,14 +144,17 @@ export function BalanceCell({
                   ...num,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  minHeight: 28,
-                  padding: '0 10px',
+                  height: 26,
+                  padding: '0 9px',
                   borderRadius: radio.pildora,
                   backgroundColor: fondo,
                   color: tinta,
-                  fontWeight: 800,
-                  // Se encoge con cifras largas para no salirse de la columna.
-                  fontSize: textoImporte.length > 9 ? 11.5 : 13,
+                  ...densidad.pildora,
+                  // Cifras de 7 dígitos: un punto menos para caber en 96 px.
+                  ...(textoImporte.length > 10 && {
+                    fontSize: 12,
+                    padding: '0 7px',
+                  }),
                   whiteSpace: 'nowrap',
                   transition: `background-color ${movimiento.pildora}ms, color ${movimiento.pildora}ms`,
                 })}

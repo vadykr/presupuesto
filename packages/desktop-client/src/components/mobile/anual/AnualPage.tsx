@@ -19,11 +19,10 @@ import { Cargando } from '#components/mobile/ui/Cargando';
 import { separarEmoji } from '#components/mobile/ui/emoji';
 import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
 import { Importe } from '#components/mobile/ui/Importe';
-import { Pildora } from '#components/mobile/ui/Pildora';
-import type { EstadoPildora } from '#components/mobile/ui/Pildora';
 import { Tarjeta } from '#components/mobile/ui/Tarjeta';
 import {
   color,
+  densidad,
   espacio,
   num,
   radio,
@@ -39,14 +38,6 @@ import { useNavigate } from '#hooks/useNavigate';
 import { agruparPorMes } from './anual';
 import type { EstadoAnual, FilaAnual } from './anual';
 import { useAnual, useGruposAnuales, useOcultarEnPlan } from './useAnual';
-
-const PILDORA: Record<EstadoAnual, EstadoPildora> = {
-  'al-dia': 'ok',
-  faltan: 'aviso',
-  atrasada: 'rojo',
-  cubierta: 'neutro',
-  'sin-objetivo': 'neutro',
-};
 
 const COLOR_BARRA: Record<EstadoAnual, string> = {
   'al-dia': color.ok,
@@ -353,12 +344,25 @@ function FilaCategoria({
   const textoEstado = useTextoEstadoAnual();
   const { emoji, resto } = separarEmoji(fila.nombre);
 
+  // Segunda línea: estado en su color y, en gris, cuándo vence, lo ahorrado
+  // y la cuota (o el grupo si aún no tiene objetivo anual).
   const detalle =
-    fila.importe != null && fila.vence != null
-      ? t('{{amount}} on {{date}}', {
-          amount: format(fila.importe, 'financial'),
-          date: monthUtils.format(fila.vence, 'd MMM', locale),
-        })
+    fila.importe != null
+      ? [
+          fila.vence != null
+            ? monthUtils.format(fila.vence, 'd MMM', locale)
+            : null,
+          t('Saved {{amount}}', {
+            amount: format(fila.ahorrado, 'financial'),
+          }),
+          fila.estado !== 'cubierta' && fila.cuota > 0
+            ? t('{{amount}} a month', {
+                amount: format(fila.cuota, 'financial'),
+              })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
       : t('{{group}} · set a yearly target', { group: fila.grupoNombre });
 
   return (
@@ -378,12 +382,14 @@ function FilaCategoria({
         display: 'flex',
         flexShrink: 0,
         width: '100%',
+        minHeight: densidad.altoFilaBarra,
         flexDirection: 'column',
         alignItems: 'stretch',
-        gap: 8,
-        padding: '12px 14px',
+        justifyContent: 'center',
+        gap: 4,
+        padding: `8px ${densidad.margen}px`,
         borderRadius: 0,
-        borderTop: primera ? undefined : `1px solid ${color.line}`,
+        boxShadow: primera ? undefined : `inset 0 1px 0 ${color.line}`,
         textAlign: 'left',
         color: color.fg,
         backgroundColor: 'transparent',
@@ -403,79 +409,69 @@ function FilaCategoria({
             minWidth: 0,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 8,
+            gap: 6,
           }}
         >
           {emoji && (
-            <Text
-              aria-hidden
-              style={{ fontSize: 18, width: 24, textAlign: 'center' }}
-            >
+            <Text aria-hidden style={{ ...densidad.emoji, flexShrink: 0 }}>
               {emoji}
             </Text>
           )}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              style={{
-                ...styles.lineClamp(2),
-                fontSize: 14.5,
-                fontWeight: 700,
-                color: color.fg,
-              }}
-            >
-              {emoji ? resto : fila.nombre}
-            </Text>
-            <Text
-              style={{
-                ...num,
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: color.fg3,
-              }}
-            >
-              {detalle}
-            </Text>
-          </View>
+          <Text
+            data-testid="anual-nombre"
+            style={{
+              ...styles.lineClamp(2),
+              ...densidad.nombre,
+              flex: 1,
+              color: color.fg,
+            }}
+          >
+            {emoji ? resto : fila.nombre}
+          </Text>
         </View>
-        <Pildora estado={PILDORA[fila.estado]} data-testid="anual-estado">
-          {textoEstado(fila)}
-        </Pildora>
+        {fila.importe != null && (
+          <Text
+            data-testid="anual-importe"
+            style={{ ...densidad.cifra, color: color.fg, flexShrink: 0 }}
+          >
+            {format(fila.importe, 'financial')}
+          </Text>
+        )}
       </View>
-      {fila.importe != null && (
-        <>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Text
+          style={{
+            ...densidad.pequeno,
+            ...num,
+            flex: 1,
+            minWidth: 0,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            color: color.fg3,
+          }}
+        >
+          <Text
+            data-testid="anual-estado"
+            style={{ ...densidad.pequeno, color: COLOR_BARRA[fila.estado] }}
+          >
+            {textoEstado(fila)}
+          </Text>
+          {' · '}
+          {detalle}
+        </Text>
+        {fila.importe != null && (
           <BarraProgreso
             valor={fila.progreso}
             color={COLOR_BARRA[fila.estado]}
+            alto={5}
+            style={{ width: densidad.colAsignado - 20 }}
             aria-label={t('Saved for {{categoryName}}', {
               categoryName: fila.nombre,
             })}
           />
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              gap: 8,
-              ...num,
-              fontSize: 12.5,
-              fontWeight: 700,
-              color: color.fg2,
-            }}
-          >
-            <Text>
-              {t('Saved {{amount}}', {
-                amount: format(fila.ahorrado, 'financial'),
-              })}
-            </Text>
-            {fila.estado !== 'cubierta' && fila.cuota > 0 && (
-              <Text>
-                {t('{{amount}} a month', {
-                  amount: format(fila.cuota, 'financial'),
-                })}
-              </Text>
-            )}
-          </View>
-        </>
-      )}
+        )}
+      </View>
     </Button>
   );
 }
