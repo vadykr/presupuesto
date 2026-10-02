@@ -7,6 +7,7 @@ import { View } from '@actual-app/components/view';
 
 import { gastoPorCategoria } from '#components/mobile/informes/calculos';
 import { BarraApilada } from '#components/mobile/informes/comunes';
+import { PaletaInformes } from '#components/mobile/informes/paleta';
 import { useCategoriasExcluidas } from '#components/mobile/informes/useCategoriasExcluidas';
 import { useColoresCategorias } from '#components/mobile/informes/useColoresCategorias';
 import { useTotalesMensuales } from '#components/mobile/informes/useTotalesMensuales';
@@ -54,6 +55,8 @@ export function GastoMes({ tamano, month }: PropsWidget) {
         </Button>
       }
     >
+      {/* Variables de color de categoría (las mismas que en Informes). */}
+      <PaletaInformes />
       {!isLoading && desglose.total === 0 ? (
         <EstadoVacio texto={t('No spending yet this month.')} />
       ) : (

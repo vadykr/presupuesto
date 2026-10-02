@@ -15,7 +15,10 @@ import {
   Tarjeta,
 } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
-import { colores, estilos } from '#components/mobile/inicio/inicio.estilos';
+import {
+  coloresEstado,
+  estilos,
+} from '#components/mobile/inicio/inicio.estilos';
 import { useCuentasEspeciales } from '#components/mobile/inicio/widgets/useCuentasEspeciales';
 import type { Prestamo } from '#components/mobile/inicio/widgets/useCuentasEspeciales';
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -117,7 +120,10 @@ function FilaDeuda({
           <>
             <BarraProgreso
               partes={[
-                { fraccion: deuda.porcentajePagado, color: colores.acento },
+                {
+                  fraccion: deuda.porcentajePagado,
+                  color: coloresEstado.bien.color,
+                },
               ]}
             />
             <Text style={estilos.filaSub}>

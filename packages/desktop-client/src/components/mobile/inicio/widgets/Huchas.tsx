@@ -90,6 +90,11 @@ function FilaHucha({
   );
   const ultimo = ultimos?.[0];
 
+  // Saldo negativo: es una deuda sin marcar como préstamo, no una hucha.
+  if (saldo < 0) {
+    return null;
+  }
+
   return (
     <Button
       variant="bare"

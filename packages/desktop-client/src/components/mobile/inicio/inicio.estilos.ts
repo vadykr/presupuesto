@@ -64,7 +64,8 @@ export const colores = {
   pista: theme.tableBorder,
   linea: theme.tableBorder,
   borde: theme.cardBorder,
-  sombra: theme.cardShadow,
+  /** Sombra suave de tarjetas y controles (valor `box-shadow`). */
+  sombra: `0 1px 2px ${theme.cardShadow}`,
 } as const;
 
 /** Color de texto/trazo y fondo suave por estado (píldoras, anillos, iconos). */
@@ -111,6 +112,8 @@ export const estilos = {
     paddingRight: 10,
   },
   tarjeta: {
+    // La lista vive en un contenedor con scroll: las tarjetas no se encogen.
+    flexShrink: 0,
     borderRadius: medidas.radioTarjeta,
     padding: 0,
     margin: 0,
@@ -212,6 +215,7 @@ export const estilos = {
     minWidth: 0,
   },
   fijadaNombre: {
+    width: '100%',
     fontSize: 13,
     fontWeight: 700,
     color: colores.textoClaro,
@@ -219,6 +223,7 @@ export const estilos = {
     textAlign: 'center',
   },
   vacio: {
+    flexShrink: 0,
     alignItems: 'center',
     gap: 8,
     padding: '18px 12px',
@@ -227,13 +232,16 @@ export const estilos = {
   vacioTexto: { ...tipos.texto, color: colores.textoSuave },
   // --- modo «Editar inicio» ---
   editarItem: {
+    flexShrink: 0,
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     padding: '10px 10px',
     borderRadius: 16,
     backgroundColor: colores.superficie,
-    border: `1px solid ${colores.borde}`,
+    border: `1px solid ${colores.linea}`,
+    boxShadow: colores.sombra,
     marginBottom: 8,
   },
   editarNombre: { ...tipos.fila, color: colores.texto, flex: 1, minWidth: 0 },

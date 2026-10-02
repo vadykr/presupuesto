@@ -163,7 +163,11 @@ function Cabecera({
       <Button
         variant={editando ? 'primary' : 'bare'}
         onPress={onEditar}
-        style={estilos.botonCabecera}
+        style={
+          editando
+            ? { ...estilos.botonCabecera, color: undefined }
+            : estilos.botonCabecera
+        }
         aria-label={editando ? t('Done editing home') : t('Edit home')}
       >
         {editando ? <Trans>Done</Trans> : <Trans>Edit</Trans>}
