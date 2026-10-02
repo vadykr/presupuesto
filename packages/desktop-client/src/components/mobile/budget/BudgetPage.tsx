@@ -545,6 +545,13 @@ export function BudgetPage() {
               onPress={onOpenBudgetPageMenu}
             />
           }
+          derecha={
+            <BotonRedondo
+              icono="cal"
+              aria-label={t('Annual')}
+              onPress={() => void navigate('/anual')}
+            />
+          }
         />
       }
     >

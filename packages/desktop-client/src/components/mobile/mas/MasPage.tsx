@@ -27,6 +27,7 @@ export function ListaMas({ sinAjustes = false }: { sinAjustes?: boolean }) {
   const conServidor = syncServerStatus !== 'no-server' || isTestEnv;
 
   const entradas: Entrada[] = [
+    { nombre: t('Annual spending'), ruta: '/anual', icono: 'cal' },
     { nombre: t('Schedules'), ruta: '/schedules', icono: 'cal' },
     { nombre: t('Payees'), ruta: '/payees', icono: 'store' },
     { nombre: t('Rules'), ruta: '/rules', icono: 'sliders' },

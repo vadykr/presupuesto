@@ -29,6 +29,7 @@ import { ContextMenu } from './ContextMenu';
 import { EnableBankingCallback } from './EnableBankingCallback';
 import { FeatureErrorFallback } from './FeatureErrorFallback';
 import { GlobalKeys } from './GlobalKeys';
+import { AnualPage } from './mobile/anual/AnualPage';
 import { MobileBankSyncAccountEditPage } from './mobile/banksync/MobileBankSyncAccountEditPage';
 import { AsignarMesPage } from './mobile/budget/AsignarMesPage';
 import { ObjetivoPage } from './mobile/budget/ObjetivoPage';
@@ -291,6 +292,20 @@ export function FinancesApp() {
                         >
                           <WideNotSupported>
                             <AsignarMesPage />
+                          </WideNotSupported>
+                        </ErrorBoundary>
+                      }
+                    />
+
+                    <Route
+                      path="/anual"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <WideNotSupported>
+                            <AnualPage />
                           </WideNotSupported>
                         </ErrorBoundary>
                       }

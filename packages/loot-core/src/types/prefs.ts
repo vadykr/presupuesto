@@ -78,7 +78,11 @@ export type SyncedPrefs = Partial<
     // Presupuesto · Inicio: categorías de la cuenta común (JSON array de ids)
     | 'cuenta-comun-categorias'
     // Presupuesto · Análisis: consejos descartados (JSON array de «id@mes»)
-    | 'analisis-descartados',
+    | 'analisis-descartados'
+    // Presupuesto · Gasto anual: ids de grupos marcados (JSON array)
+    | 'anual-grupos'
+    // Presupuesto · Gasto anual: plegar en el Plan lo que está al día ('true'/'false')
+    | 'anual-ocultar-en-plan',
     string
   >
 >;

@@ -13,6 +13,10 @@ import type {
   CategoryGroupEntity,
 } from '@actual-app/core/types/models';
 
+import { esPlegable } from '#components/mobile/anual/anual';
+import type { FilaAnual } from '#components/mobile/anual/anual';
+import { AnualPlegado } from '#components/mobile/anual/AnualPlegado';
+import { useAnual, useOcultarEnPlan } from '#components/mobile/anual/useAnual';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { PullToRefresh } from '#components/mobile/PullToRefresh';
 import { Icono } from '#components/mobile/ui/Icono';
@@ -197,6 +201,8 @@ type BudgetGroupsProps = {
   showBudgetedColumn: boolean;
   show3Columns: boolean;
   showHiddenCategories: boolean;
+  /** Categorías anuales «al día» que el Plan pliega en un bloque resumen. */
+  anualPlegadas: readonly FilaAnual[];
 };
 
 function BudgetGroups({
@@ -208,16 +214,26 @@ function BudgetGroups({
   showBudgetedColumn,
   show3Columns,
   showHiddenCategories,
+  anualPlegadas,
 }: BudgetGroupsProps) {
   const { incomeGroup, expenseGroups } = useMemo(() => {
-    const categoryGroupsToDisplay = categoryGroups.filter(
-      group => !group.hidden || showHiddenCategories,
-    );
+    const plegadas = new Set(anualPlegadas.map(f => f.id));
+    const categoryGroupsToDisplay = categoryGroups
+      .filter(group => !group.hidden || showHiddenCategories)
+      .flatMap(group => {
+        // Se filtran por id las categorías plegadas; un grupo que se queda
+        // sin categorías por eso desaparece (están en el bloque resumen).
+        if (!group.categories?.some(c => plegadas.has(c.id))) {
+          return [group];
+        }
+        const categories = group.categories.filter(c => !plegadas.has(c.id));
+        return categories.length > 0 ? [{ ...group, categories }] : [];
+      });
     return {
       incomeGroup: categoryGroupsToDisplay.find(group => group.is_income),
       expenseGroups: categoryGroupsToDisplay.filter(group => !group.is_income),
     };
-  }, [categoryGroups, showHiddenCategories]);
+  }, [categoryGroups, showHiddenCategories, anualPlegadas]);
 
   const [collapsedGroupIds = [], setCollapsedGroupIdsPref] =
     useLocalPref('budget.collapsed');
@@ -270,6 +286,8 @@ function BudgetGroups({
           onToggleCollapse={onToggleCollapse}
         />
       )}
+
+      <AnualPlegado filas={anualPlegadas} />
     </View>
   );
 }
@@ -305,6 +323,16 @@ export function BudgetTable({
 
   const schedulesQuery = useMemo(() => q('schedules').select('*'), []);
 
+  // «Gasto anual»: con la preferencia activada, lo anual que está al día o
+  // cubierto se pliega en un bloque al final (las atrasadas siguen en su sitio).
+  const { ocultar: ocultarAnual } = useOcultarEnPlan();
+  const anual = useAnual(ocultarAnual);
+  const anualPlegadas = useMemo(
+    () =>
+      ocultarAnual && !anual.cargando ? anual.filas.filter(esPlegable) : [],
+    [ocultarAnual, anual.cargando, anual.filas],
+  );
+
   return (
     <AssignKeypadProvider month={month} onBudgetAction={onBudgetAction}>
       <BudgetTableHeader
@@ -320,6 +348,7 @@ export function BudgetTable({
               showBudgetedColumn
               show3Columns={show3Columns}
               showHiddenCategories={showHiddenCategories}
+              anualPlegadas={anualPlegadas}
               month={month}
               onEditCategoryGroup={onEditCategoryGroup}
               onEditCategory={onEditCategory}
