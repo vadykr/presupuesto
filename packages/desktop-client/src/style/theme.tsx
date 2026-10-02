@@ -59,15 +59,28 @@ export const darkThemeOptions = Object.entries({
   midnight: themes.midnight,
 }).map(([key, { name }]) => [key, name] as [DarkTheme, string]);
 
+// Presupuesto: las preferencias guardadas con los temas de Actual («dark»,
+// «midnight», «light») se leen como los temas propios, para que un archivo
+// importado antes del pase visual no se quede con el morado de Actual.
+function temaPropio<T extends string>(theme: T): T {
+  if (theme === 'dark' || theme === 'midnight') {
+    return 'presupuesto-dark' as T;
+  }
+  if (theme === 'light') {
+    return 'presupuesto-light' as T;
+  }
+  return theme;
+}
+
 export function useTheme() {
   const [theme = 'auto', setThemePref] = useGlobalPref('theme');
-  return [theme, setThemePref] as const;
+  return [temaPropio(theme), setThemePref] as const;
 }
 
 export function usePreferredDarkTheme() {
   const [darkTheme = 'presupuesto-dark', setDarkTheme] =
     useGlobalPref('preferredDarkTheme');
-  return [darkTheme, setDarkTheme] as const;
+  return [temaPropio(darkTheme), setDarkTheme] as const;
 }
 
 /**
