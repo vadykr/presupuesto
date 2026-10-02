@@ -2,7 +2,17 @@ import type { ReactNode } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Route, Routes, useLocation } from 'react-router';
 
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
+
 import { FeatureErrorFallback } from '#components/FeatureErrorFallback';
+import { CategoriaPage } from '#components/mobile/informes/CategoriaPage';
+import { EdadDineroPage } from '#components/mobile/informes/EdadDineroPage';
+import { GastoMesPage } from '#components/mobile/informes/GastoMesPage';
+import { InformesPage } from '#components/mobile/informes/InformesPage';
+import { IngresosGastosPage } from '#components/mobile/informes/IngresosGastosPage';
+import { NominasPage } from '#components/mobile/informes/NominasPage';
+import { PatrimonioPage } from '#components/mobile/informes/PatrimonioPage';
+import { SubeBajaPage } from '#components/mobile/informes/SubeBajaPage';
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
 
 import { AgeOfMoney } from './reports/AgeOfMoney';
@@ -32,6 +42,33 @@ function ReportBoundary({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Presupuesto: en el móvil la pestaña Informes es la página de tarjetas
+ * (`InformesPage`); en escritorio se mantiene el panel de Actual.
+ */
+function PortadaInformes() {
+  const { isNarrowWidth } = useResponsive();
+  if (isNarrowWidth) {
+    return (
+      <ReportBoundary>
+        <InformesPage />
+      </ReportBoundary>
+    );
+  }
+  return <ReportsDashboardRouter />;
+}
+
+const RUTAS_INFORMES: Array<[string, () => ReactNode]> = [
+  ['/gasto', () => <GastoMesPage />],
+  ['/ingresos-gastos', () => <IngresosGastosPage />],
+  ['/categoria', () => <CategoriaPage />],
+  ['/categoria/:id', () => <CategoriaPage />],
+  ['/sube-baja', () => <SubeBajaPage />],
+  ['/patrimonio', () => <PatrimonioPage />],
+  ['/edad-dinero', () => <EdadDineroPage />],
+  ['/nominas', () => <NominasPage />],
+];
+
 export function ReportRouter() {
   const balanceForecastReportEnabled = useFeatureFlag('balanceForecastReport');
   const budgetAnalysisReportEnabled = useFeatureFlag('budgetAnalysisReport');
@@ -40,8 +77,15 @@ export function ReportRouter() {
 
   return (
     <Routes>
-      <Route path="/" element={<ReportsDashboardRouter />} />
-      <Route path="/:dashboardId" element={<ReportsDashboardRouter />} />
+      <Route path="/" element={<PortadaInformes />} />
+      <Route path="/:dashboardId" element={<PortadaInformes />} />
+      {RUTAS_INFORMES.map(([ruta, render]) => (
+        <Route
+          key={ruta}
+          path={ruta}
+          element={<ReportBoundary>{render()}</ReportBoundary>}
+        />
+      ))}
       <Route
         path="/net-worth"
         element={

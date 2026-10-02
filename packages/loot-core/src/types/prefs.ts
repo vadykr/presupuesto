@@ -68,7 +68,11 @@ export type SyncedPrefs = Partial<
     | `learn-categories`
     | `show-hidden-tags`
     // Presupuesto: ids de categorías fijadas en la pantalla de inicio (JSON array)
-    | 'pinned-categories',
+    | 'pinned-categories'
+    // Presupuesto · Informes: hueco de color por categoría (JSON { id: 0..7 })
+    | 'category-colors'
+    // Presupuesto · Informes: ids de categorías que no cuentan (JSON array)
+    | 'informes-excluidas',
     string
   >
 >;
