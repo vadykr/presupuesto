@@ -4,6 +4,8 @@ import darkThemeCss from '@actual-app/components/themes/dark.css?inline';
 import lightThemeCss from '@actual-app/components/themes/light.css?inline';
 import midnightThemeCss from '@actual-app/components/themes/midnight.css?inline';
 import paletteCss from '@actual-app/components/themes/palette.css?inline';
+import presupuestoDarkCss from '@actual-app/components/themes/presupuesto-dark.css?inline';
+import presupuestoLightCss from '@actual-app/components/themes/presupuesto-light.css?inline';
 import sidebarRedesignLightCss from '@actual-app/components/themes/sidebar-redesign-light.css?inline';
 import type { DarkTheme, Theme } from '@actual-app/core/types/prefs';
 
@@ -17,18 +19,42 @@ import {
   validateThemeCssSafely,
 } from './customThemes';
 
+// Temas propios del fork (concepto A · Cartera): capa encima de light/dark.
+// Son los temas por defecto: «auto» elige entre ellos según el sistema.
 const themes = {
+  'presupuesto-dark': {
+    name: 'Presupuesto oscuro',
+    colors: `${darkThemeCss}\n${presupuestoDarkCss}`,
+  },
+  'presupuesto-light': {
+    name: 'Presupuesto claro',
+    colors: `${lightThemeCss}\n${presupuestoLightCss}`,
+  },
   light: { name: 'Light', colors: lightThemeCss },
   dark: { name: 'Dark', colors: darkThemeCss },
   midnight: { name: 'Midnight', colors: midnightThemeCss },
   auto: { name: 'System default' },
 } as const;
 
+/** Tema claro que usa «auto» cuando el sistema está en modo claro. */
+const AUTO_LIGHT_THEME = 'presupuesto-light';
+
+/** ¿El tema elegido es oscuro? (para «auto» decide el sistema). */
+export function isDarkThemeName(theme: string | undefined): boolean {
+  if (theme === 'auto' || theme === undefined) {
+    return !!window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  }
+  return (
+    theme === 'dark' || theme === 'midnight' || theme === 'presupuesto-dark'
+  );
+}
+
 export const themeOptions = Object.entries(themes).map(
   ([key, { name }]) => [key, name] as [Theme, string],
 );
 
 export const darkThemeOptions = Object.entries({
+  'presupuesto-dark': themes['presupuesto-dark'],
   dark: themes.dark,
   midnight: themes.midnight,
 }).map(([key, { name }]) => [key, name] as [DarkTheme, string]);
@@ -39,7 +65,7 @@ export function useTheme() {
 }
 
 export function usePreferredDarkTheme() {
-  const [darkTheme = 'dark', setDarkTheme] =
+  const [darkTheme = 'presupuesto-dark', setDarkTheme] =
     useGlobalPref('preferredDarkTheme');
   return [darkTheme, setDarkTheme] as const;
 }
@@ -112,12 +138,13 @@ export function ThemeStyle() {
   const customLightTheme = parseInstalledTheme(installedCustomLightThemeJson);
   const themeColors =
     getBaseThemeColors(customLightTheme?.baseTheme) ??
-    getBaseThemeColors(activeTheme === 'auto' ? 'light' : activeTheme);
+    getBaseThemeColors(activeTheme === 'auto' ? AUTO_LIGHT_THEME : activeTheme);
 
   if (!themeColors) return null;
 
   const sidebarRedesignCss =
-    themeColors === themes.light.colors &&
+    (themeColors === themes.light.colors ||
+      themeColors === themes['presupuesto-light'].colors) &&
     usesRedesignSidebarPalette(
       [customLightTheme?.cssContent, customCssOverride]
         .map(css => validateThemeCssSafely(css))
@@ -142,7 +169,7 @@ export function ThemeStyle() {
       parseInstalledTheme(installedCustomDarkThemeJson)?.baseTheme,
     ) ??
     getBaseThemeColors(darkThemePreference) ??
-    themes.dark.colors;
+    themes['presupuesto-dark'].colors;
 
   return (
     <>

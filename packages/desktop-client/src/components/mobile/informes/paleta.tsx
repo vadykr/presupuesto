@@ -1,9 +1,13 @@
-import { useTheme } from '#style/theme';
+import { isDarkThemeName, useTheme } from '#style/theme';
 
 import { PALETA_CLARA, PALETA_OSCURA } from './coloresCategorias';
 
+// Con los temas «Presupuesto» los 8 huecos toman los colores de categoría del
+// sistema A (`--p-k0..7`); con los temas de Actual, la paleta dataviz.
 function declaraciones(paleta: readonly string[]) {
-  return paleta.map((hex, i) => `--informes-c${i}: ${hex};`).join(' ');
+  return paleta
+    .map((hex, i) => `--informes-c${i}: var(--p-k${i}, ${hex});`)
+    .join(' ');
 }
 
 const CLARO = `:root { ${declaraciones(PALETA_CLARA)} }`;
@@ -24,5 +28,5 @@ export function PaletaInformes() {
       </>
     );
   }
-  return <style>{tema === 'light' ? CLARO : OSCURO}</style>;
+  return <style>{isDarkThemeName(tema) ? OSCURO : CLARO}</style>;
 }

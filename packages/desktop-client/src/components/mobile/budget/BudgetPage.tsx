@@ -10,21 +10,8 @@ import { GridList, GridListItem } from 'react-aria-components';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { Card } from '@actual-app/components/card';
-import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
-import { SvgLogo } from '@actual-app/components/icons/logo';
-import {
-  SvgArrowThinLeft,
-  SvgArrowThinRight,
-  SvgCheveronRight,
-} from '@actual-app/components/icons/v1';
-import {
-  SvgArrowButtonDown1,
-  SvgCalendar,
-} from '@actual-app/components/icons/v2';
-import { styles } from '@actual-app/components/styles';
+import { SvgArrowButtonDown1 } from '@actual-app/components/icons/v2';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
@@ -45,7 +32,11 @@ import {
 import { closeBudget } from '#budgetfiles/budgetfilesSlice';
 import { prewarmMonth } from '#components/budget/util';
 import { FinancialText } from '#components/FinancialText';
-import { MobilePageHeader, Page } from '#components/Page';
+import { BotonRedondo } from '#components/mobile/ui/Cabecera';
+import { Cargando } from '#components/mobile/ui/Cargando';
+import { NavegadorMes } from '#components/mobile/ui/NavegadorMes';
+import { color, espacio, radio } from '#components/mobile/ui/tokens';
+import { Page } from '#components/Page';
 import { SyncRefresh } from '#components/SyncRefresh';
 import { useCategories } from '#hooks/useCategories';
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
@@ -65,7 +56,7 @@ import { uncategorizedTransactions } from '#queries';
 import { useDispatch } from '#redux';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
-import { BudgetTable, PILL_STYLE } from './BudgetTable';
+import { BudgetTable } from './BudgetTable';
 
 function isBudgetType(input?: string): input is 'envelope' | 'tracking' {
   return ['envelope', 'tracking'].includes(input);
@@ -532,65 +523,27 @@ export function BudgetPage() {
   ]);
 
   if (!categoryGroups || !initialized) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.mobilePageBackground,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 25,
-        }}
-      >
-        <AnimatedLoading width={25} height={25} />
-      </View>
-    );
+    return <Cargando pantalla />;
   }
 
   return (
     <Page
       padding={0}
       header={
-        <MobilePageHeader
-          title={
-            <MonthSelector
-              month={startMonth}
-              monthBounds={monthBounds}
-              onOpenMonthMenu={onOpenBudgetMonthMenu}
-              onPrevMonth={onPrevMonth}
-              onNextMonth={onNextMonth}
-            />
-          }
-          leftContent={
-            <Button
-              variant="bare"
-              style={{ margin: 10 }}
-              onPress={onOpenBudgetPageMenu}
+        <NavegadorMes
+          month={startMonth}
+          prevEnabled={startMonth > monthBounds.start}
+          nextEnabled={startMonth < monthUtils.subMonths(monthBounds.end, 1)}
+          onPrev={onPrevMonth}
+          onNext={onNextMonth}
+          onPressMonth={() => onOpenBudgetMonthMenu(startMonth)}
+          onToday={onCurrentMonth}
+          izquierda={
+            <BotonRedondo
+              icono="more"
               aria-label={t('Budget page menu')}
-            >
-              <SvgLogo
-                style={{ color: theme.mobileHeaderText }}
-                width="20"
-                height="20"
-              />
-              <SvgCheveronRight
-                style={{ flexShrink: 0, color: theme.mobileHeaderTextSubdued }}
-                width="14"
-                height="14"
-              />
-            </Button>
-          }
-          rightContent={
-            !monthUtils.isCurrentMonth(startMonth) && (
-              <Button
-                variant="bare"
-                onPress={onCurrentMonth}
-                aria-label={t('Today')}
-                style={{ margin: 10 }}
-              >
-                <SvgCalendar width={20} height={20} />
-              </Button>
-            )
+              onPress={onOpenBudgetPageMenu}
+            />
           }
         />
       }
@@ -629,10 +582,7 @@ function Banners({ month, onBudgetAction }) {
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
 
   return (
-    <GridList
-      aria-label={t('Banners')}
-      style={{ backgroundColor: theme.mobilePageBackground }}
-    >
+    <GridList aria-label={t('Banners')} style={{ backgroundColor: color.bg }}>
       <UncategorizedTransactionsBanner />
       <OverspendingBanner
         month={month}
@@ -647,24 +597,43 @@ function Banners({ month, onBudgetAction }) {
 }
 
 function Banner({ type = 'info', children }) {
+  const fondo =
+    type === 'critical'
+      ? color.badSoft
+      : type === 'warning'
+        ? color.warnSoft
+        : color.okSoft;
+  const tinta =
+    type === 'critical'
+      ? color.bad
+      : type === 'warning'
+        ? color.warn
+        : color.ok;
   return (
-    <Card
+    <View
       style={{
-        height: 50,
-        marginTop: 10,
-        marginBottom: 10,
-        padding: 10,
+        minHeight: 56,
+        margin: `4px ${espacio.margen}px 8px`,
+        padding: '8px 8px 8px 14px',
+        borderRadius: radio.tarjeta,
         justifyContent: 'center',
-        backgroundColor:
-          type === 'critical'
-            ? theme.errorBackground
-            : type === 'warning'
-              ? theme.warningBackground
-              : theme.noticeBackground,
+        backgroundColor: fondo,
+        color: tinta,
+        fontWeight: 700,
+        fontSize: 13.5,
+        '& button': {
+          minHeight: 40,
+          borderRadius: radio.boton,
+          padding: '0 14px',
+          fontWeight: 800,
+          fontSize: 13.5,
+          backgroundColor: tinta,
+          color: color.bg,
+        },
       }}
     >
       {children}
-    </Card>
+    </View>
   );
 }
 
@@ -718,10 +687,7 @@ function UncategorizedTransactionsBanner(props) {
               )
             </Trans>
           </Text>
-          <Button
-            onPress={() => navigate('/categories/uncategorized')}
-            style={PILL_STYLE}
-          >
+          <Button onPress={() => navigate('/categories/uncategorized')}>
             <Text>
               <Trans>Categorize</Trans>
             </Text>
@@ -809,7 +775,7 @@ function OverbudgetedBanner({ month, onBudgetAction, ...props }) {
               </Text>
             </View>
           </View>
-          <Button onPress={openCoverOverbudgetedModal} style={PILL_STYLE}>
+          <Button onPress={openCoverOverbudgetedModal}>
             <Trans>Cover</Trans>
           </Button>
         </View>
@@ -961,76 +927,12 @@ function OverspendingBanner({ month, onBudgetAction, budgetType, ...props }) {
               )
             </Trans>
           </Text>
-          <Button onPress={onOpenCategorySelectionModal} style={PILL_STYLE}>
+          <Button onPress={onOpenCategorySelectionModal}>
             {budgetType === 'envelope' && <Trans>Cover</Trans>}
             {budgetType === 'tracking' && <Trans>View</Trans>}
           </Button>
         </View>
       </Banner>
     </GridListItem>
-  );
-}
-
-function MonthSelector({
-  month,
-  monthBounds,
-  onOpenMonthMenu,
-  onPrevMonth,
-  onNextMonth,
-}) {
-  const locale = useLocale();
-  const { t } = useTranslation();
-  const prevEnabled = month > monthBounds.start;
-  const nextEnabled = month < monthUtils.subMonths(monthBounds.end, 1);
-
-  const arrowButtonStyle = {
-    padding: 10,
-    margin: 2,
-  };
-
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row',
-      }}
-    >
-      <Button
-        aria-label={t('Previous month')}
-        variant="bare"
-        isDisabled={!prevEnabled}
-        onPress={onPrevMonth}
-        style={{ ...arrowButtonStyle, opacity: prevEnabled ? 1 : 0.6 }}
-      >
-        <SvgArrowThinLeft width="15" height="15" />
-      </Button>
-      <Button
-        variant="bare"
-        style={{
-          textAlign: 'center',
-          fontSize: 16,
-          fontWeight: 500,
-        }}
-        onPress={() => {
-          onOpenMonthMenu?.(month);
-        }}
-        data-month={month}
-      >
-        <Text style={styles.underlinedText}>
-          {monthUtils.format(month, "MMMM ''yy", locale)}
-        </Text>
-      </Button>
-      <Button
-        aria-label={t('Next month')}
-        variant="bare"
-        isDisabled={!nextEnabled}
-        onPress={onNextMonth}
-        style={{ ...arrowButtonStyle, opacity: nextEnabled ? 1 : 0.6 }}
-      >
-        <SvgArrowThinRight width="15" height="15" />
-      </Button>
-    </View>
   );
 }

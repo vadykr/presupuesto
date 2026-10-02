@@ -4,14 +4,6 @@ import { Trans, useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 
 import { Button } from '@actual-app/components/button';
-import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
-import { SvgExpandArrow } from '@actual-app/components/icons/v0';
-import {
-  SvgArrowThinLeft,
-  SvgArrowThinRight,
-  SvgBolt,
-  SvgDotsHorizontalTriple,
-} from '@actual-app/components/icons/v1';
 import { Menu } from '@actual-app/components/menu';
 import { Popover } from '@actual-app/components/popover';
 import { styles } from '@actual-app/components/styles';
@@ -31,9 +23,26 @@ import type {
 import { useBudgetActions } from '#budget';
 import type { ApplyBudgetActionPayload } from '#budget';
 import { prewarmMonth } from '#components/budget/util';
-import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
-import { MobilePageHeader, Page } from '#components/Page';
+import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
+import { Boton } from '#components/mobile/ui/Boton';
+import { BotonRedondo } from '#components/mobile/ui/Cabecera';
+import { Cargando } from '#components/mobile/ui/Cargando';
+import { separarEmoji } from '#components/mobile/ui/emoji';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { Icono } from '#components/mobile/ui/Icono';
+import { IconoZz } from '#components/mobile/ui/IconoZz';
+import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
+import {
+  color,
+  espacio,
+  movimiento,
+  num,
+  radio,
+  sombra,
+  texto,
+} from '#components/mobile/ui/tokens';
+import { Page } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useCategories } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
@@ -54,11 +63,11 @@ import { envelopeBudget } from '#spreadsheet/bindings';
 import { describe as describeExpression } from './assignExpression';
 import {
   AssignKeypad,
+  BotonIgnorar,
   KEYPAD_Z_INDEX,
   useMoveMoneyModal,
 } from './AssignKeypad';
 import { AssignKeypadProvider, useAssignKeypad } from './AssignKeypadContext';
-import { IconoZz } from './IconoZz';
 import {
   asignarGastadoMesPasado,
   asignarInfrafinanciadas,
@@ -74,16 +83,6 @@ import { useFichaCategoria } from './useFichaCategoria';
 import { useIgnorarMes } from './useIgnorarMes';
 
 type OnBudgetAction = (month: string, type: string, args?: unknown) => void;
-
-const ALTO_BOTON = 44;
-
-const flechaMes: CSSProperties = {
-  minWidth: ALTO_BOTON,
-  minHeight: ALTO_BOTON,
-  justifyContent: 'center',
-  alignItems: 'center',
-  padding: 0,
-};
 
 /**
  * «Asignar el mes» (solo móvil), calcada de «Assign Money» de YNAB: cuánto
@@ -158,8 +157,9 @@ export function AsignarMesPage() {
   const prevEnabled = month > monthBounds.start;
   const nextEnabled = month < monthUtils.subMonths(monthBounds.end, 1);
 
-  const menuRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const onOpenSummary = useCallback(() => {
     setMenuOpen(false);
@@ -181,103 +181,92 @@ export function AsignarMesPage() {
     <Page
       padding={0}
       header={
-        <MobilePageHeader
-          title={
-            <View
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: espacio.fila,
+            padding: `6px ${espacio.margen}px`,
+            minHeight: 56,
+          }}
+        >
+          <BotonRedondo
+            icono="cl"
+            aria-label={t('Back')}
+            onPress={() => void navigate(-1)}
+          />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              role="heading"
+              aria-level={1}
+              style={{ ...texto.titulo, color: color.fg, whiteSpace: 'nowrap' }}
             >
-              <Button
-                variant="bare"
-                aria-label={t('Previous month')}
-                isDisabled={!prevEnabled}
-                onPress={() => setMonth(monthUtils.subMonths(month, 1))}
-                style={{ ...flechaMes, opacity: prevEnabled ? 1 : 0.5 }}
-              >
-                <SvgArrowThinLeft width={15} height={15} />
-              </Button>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: 500,
-                  textTransform: 'capitalize',
-                }}
-                data-month={month}
-              >
-                {monthUtils.format(month, "MMMM ''yy", locale)}
-              </Text>
-              <Button
-                variant="bare"
-                aria-label={t('Next month')}
-                isDisabled={!nextEnabled}
-                onPress={() => setMonth(monthUtils.addMonths(month, 1))}
-                style={{ ...flechaMes, opacity: nextEnabled ? 1 : 0.5 }}
-              >
-                <SvgArrowThinRight width={15} height={15} />
-              </Button>
-            </View>
-          }
-          leftContent={<MobileBackButton />}
-          rightContent={
-            <>
-              <Button
-                ref={menuRef}
-                variant="bare"
-                aria-label={t('More')}
-                onPress={() => setMenuOpen(true)}
-                style={{
-                  margin: 10,
-                  minWidth: ALTO_BOTON,
-                  minHeight: ALTO_BOTON,
-                }}
-              >
-                <SvgDotsHorizontalTriple width={18} height={18} />
-              </Button>
-              <Popover
-                triggerRef={menuRef}
-                isOpen={menuOpen}
-                placement="bottom end"
-                onOpenChange={() => setMenuOpen(false)}
-              >
-                <Menu
-                  getItemStyle={() => ({
-                    ...styles.mobileMenuItem,
-                    color: theme.menuItemText,
-                  })}
-                  items={[{ name: 'summary', text: t('Month summary') }]}
-                  onMenuSelect={name => {
-                    if (name === 'summary') {
-                      onOpenSummary();
-                    }
-                  }}
-                />
-              </Popover>
-            </>
-          }
-        />
+              <Trans>Assign the month</Trans>
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: color.fg3,
+                textTransform: 'capitalize',
+              }}
+              data-month={month}
+            >
+              {monthUtils.format(month, 'MMMM yyyy', locale)}
+            </Text>
+          </View>
+          <BotonRedondo
+            icono="more"
+            aria-label={t('More')}
+            onPress={() => setMenuOpen(true)}
+          />
+          <View
+            ref={menuRef}
+            style={{ position: 'absolute', right: 16, bottom: 6 }}
+          />
+          <Popover
+            triggerRef={menuRef}
+            isOpen={menuOpen}
+            placement="bottom end"
+            onOpenChange={() => setMenuOpen(false)}
+          >
+            <Menu
+              getItemStyle={() => ({
+                ...styles.mobileMenuItem,
+                color: theme.menuItemText,
+              })}
+              items={[{ name: 'summary', text: t('Month summary') }]}
+              onMenuSelect={name => {
+                if (name === 'summary') {
+                  onOpenSummary();
+                }
+              }}
+            />
+          </Popover>
+        </View>
       }
     >
       {initialized ? (
         <SheetNameProvider name={monthUtils.sheetForMonth(month)}>
           <AssignKeypadProvider month={month} onBudgetAction={onBudgetAction}>
-            <Contenido month={month} onBudgetAction={onBudgetAction} />
+            <Contenido
+              month={month}
+              onBudgetAction={onBudgetAction}
+              onPrev={
+                prevEnabled
+                  ? () => setMonth(monthUtils.subMonths(month, 1))
+                  : undefined
+              }
+              onNext={
+                nextEnabled
+                  ? () => setMonth(monthUtils.addMonths(month, 1))
+                  : undefined
+              }
+            />
           </AssignKeypadProvider>
         </SheetNameProvider>
       ) : (
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingTop: 40,
-          }}
-        >
-          <AnimatedLoading width={25} height={25} />
-        </View>
+        <Cargando pantalla />
       )}
     </Page>
   );
@@ -288,9 +277,11 @@ type GrupoVisible = CategoryGroupEntity & { categories: CategoryEntity[] };
 type ContenidoProps = {
   month: string;
   onBudgetAction: OnBudgetAction;
+  onPrev?: () => void;
+  onNext?: () => void;
 };
 
-function Contenido({ month, onBudgetAction }: ContenidoProps) {
+function Contenido({ month, onBudgetAction, onPrev, onNext }: ContenidoProps) {
   const keypad = useAssignKeypad();
   const {
     data: { grouped: categoryGroups } = {
@@ -356,10 +347,19 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
     <View
       style={{
         paddingBottom: Math.max(MOBILE_NAV_HEIGHT, panelHeight + 10),
+        gap: 0,
       }}
       data-testid="asignar-mes"
     >
-      <Cabecera toBudget={toBudget} infrafinanciado={infrafinanciado} />
+      <Cabecera
+        toBudget={toBudget}
+        infrafinanciado={infrafinanciado}
+        numInfrafinanciadas={
+          [...datos.values()].filter(d => faltante(d) > 0).length
+        }
+        onPrev={onPrev}
+        onNext={onNext}
+      />
       <AutoAsignar
         month={month}
         grupos={grupos}
@@ -377,7 +377,12 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
           <View
             key={grupo.id}
             data-testid="asignar-grupo"
-            style={{ flexShrink: 0 }}
+            style={{
+              ...estiloTarjeta('normal', 0),
+              flexShrink: 0,
+              overflow: 'hidden',
+              margin: `0 ${espacio.margen}px ${espacio.tarjetas}px`,
+            }}
           >
             <CabeceraGrupo
               grupo={grupo}
@@ -386,8 +391,9 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
               onToggle={() => onToggleCollapse(grupo.id)}
             />
             {!plegado &&
-              grupo.categories.map(category => (
+              grupo.categories.map((category, i) => (
                 <FilaCategoria
+                  primera={i === 0}
                   key={category.id}
                   category={category}
                   datos={datos.get(category.id)}
@@ -398,15 +404,10 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
         );
       })}
       {grupos.length === 0 && (
-        <Text
-          style={{
-            padding: 20,
-            textAlign: 'center',
-            color: theme.pageTextSubdued,
-          }}
-        >
-          <Trans>No categories to assign.</Trans>
-        </Text>
+        <EstadoVacio
+          style={{ margin: espacio.margen }}
+          titulo={<Trans>No categories to assign.</Trans>}
+        />
       )}
       <AssignKeypad
         onEditCategory={abrirFicha}
@@ -429,55 +430,115 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
 function Cabecera({
   toBudget,
   infrafinanciado,
+  numInfrafinanciadas,
+  onPrev,
+  onNext,
 }: {
   toBudget: IntegerAmount;
   infrafinanciado: IntegerAmount;
+  numInfrafinanciadas: number;
+  onPrev?: () => void;
+  onNext?: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
   const sobreasignado = toBudget < 0;
+  const flecha = (
+    icono: 'cl' | 'cr',
+    etiqueta: string,
+    onPress: (() => void) | undefined,
+  ) => (
+    <Button
+      variant="bare"
+      aria-label={etiqueta}
+      isDisabled={!onPress}
+      onPress={onPress}
+      style={{
+        width: 44,
+        height: 44,
+        padding: 0,
+        borderRadius: '50%',
+        color: 'inherit',
+        backgroundColor: 'rgba(0, 0, 0, 0.14)',
+        opacity: onPress ? 1 : 0.35,
+      }}
+    >
+      <Icono nombre={icono} size={20} />
+    </Button>
+  );
 
   return (
     <View
       data-testid="asignar-cabecera"
       style={{
         flexShrink: 0,
-        margin: 10,
-        marginBottom: 8,
-        padding: 16,
-        borderRadius: 16,
+        margin: `4px ${espacio.margen}px ${espacio.tarjetas}px`,
+        padding: '18px 12px 20px',
+        borderRadius: radio.heroe,
         alignItems: 'center',
-        gap: 2,
-        backgroundColor: sobreasignado
-          ? theme.errorBackground
-          : theme.noticeBackground,
-        color: sobreasignado ? theme.errorText : theme.noticeText,
+        gap: 4,
+        textAlign: 'center',
+        boxShadow: sombra.tarjeta,
+        background: sobreasignado
+          ? `linear-gradient(150deg, ${color.bad}, color-mix(in srgb, ${color.bad} 70%, black))`
+          : `linear-gradient(150deg, ${color.heroA}, ${color.heroB})`,
+        color: sobreasignado ? '#fff' : color.heroFg,
       }}
     >
-      <PrivacyFilter>
-        <Text
-          style={{
-            ...styles.veryLargeText,
-            ...styles.tnum,
-            fontWeight: 700,
-            color: 'inherit',
-          }}
-          data-testid="asignar-listo"
-        >
-          {format(Math.abs(toBudget), 'financial')}
-        </Text>
-      </PrivacyFilter>
-      <Text style={{ ...styles.mediumText, color: 'inherit' }}>
-        {sobreasignado ? t('Overbudgeted') : t('Ready to assign')}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          alignSelf: 'stretch',
+          gap: 8,
+        }}
+      >
+        {flecha('cl', t('Previous month'), onPrev)}
+        <PrivacyFilter>
+          <Text
+            style={{
+              ...num,
+              fontSize: 40,
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.05,
+              color: 'inherit',
+              whiteSpace: 'nowrap',
+            }}
+            data-testid="asignar-listo"
+          >
+            {format(Math.abs(toBudget), 'financial')}
+          </Text>
+        </PrivacyFilter>
+        {flecha('cr', t('Next month'), onNext)}
+      </View>
+      <Text style={{ fontWeight: 700, opacity: 0.92, color: 'inherit' }}>
+        {sobreasignado ? t('Overbudgeted') : t('ready to assign')}
       </Text>
       <PrivacyFilter>
         <Text
-          style={{ ...styles.smallText, ...styles.tnum, color: 'inherit' }}
+          style={{
+            ...num,
+            marginTop: 6,
+            fontSize: 13.5,
+            fontWeight: 600,
+            opacity: 0.9,
+            color: 'inherit',
+            backgroundColor: 'rgba(0, 0, 0, 0.18)',
+            borderRadius: radio.pildora,
+            padding: '6px 12px',
+          }}
           data-testid="asignar-infrafinanciado"
         >
-          {t('{{amount}} in underfunded categories', {
-            amount: format(infrafinanciado, 'financial'),
-          })}
+          {numInfrafinanciadas > 0
+            ? t('{{amount}} in {{count}} underfunded categories', {
+                amount: format(infrafinanciado, 'financial'),
+                count: numInfrafinanciadas,
+              })
+            : t('{{amount}} in underfunded categories', {
+                amount: format(infrafinanciado, 'financial'),
+              })}
         </Text>
       </PrivacyFilter>
     </View>
@@ -629,28 +690,20 @@ function AutoAsignar({
     <View
       style={{
         flexShrink: 0,
-        marginLeft: 10,
-        marginRight: 10,
-        marginBottom: 6,
+        margin: `0 ${espacio.margen}px ${espacio.tarjetas}px`,
       }}
     >
-      <Button
+      <Boton
         ref={triggerRef}
-        variant="primary"
+        variante="fantasma"
+        bloque
         onPress={() => setOpen(true)}
         data-testid="auto-asignar"
-        style={{
-          height: ALTO_BOTON,
-          minHeight: ALTO_BOTON,
-          borderRadius: ALTO_BOTON / 2,
-          fontSize: 15,
-          fontWeight: 600,
-          gap: 8,
-        }}
+        style={{ minHeight: 48 }}
       >
-        <SvgBolt width={14} height={14} />
+        <Icono nombre="zap" size={20} style={{ color: color.accent }} />
         <Trans>Auto-assign by…</Trans>
-      </Button>
+      </Boton>
       <Popover
         triggerRef={triggerRef}
         isOpen={open}
@@ -700,45 +753,37 @@ function CabeceraGrupo({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: 8,
         minHeight: 48,
-        paddingLeft: 12,
-        paddingRight: 12,
-        marginTop: 6,
-        backgroundColor: theme.tableHeaderBackground,
-        borderBottomWidth: 1,
-        borderColor: theme.tableBorder,
+        padding: '2px 14px',
       }}
     >
       <RowName
         name={grupo.name}
         width="55vw"
         onPress={onToggle}
-        textStyle={{ ...styles.mediumText, fontWeight: 600 }}
+        textStyle={{ fontSize: 15, fontWeight: 800, color: color.fg }}
         data-testid="asignar-grupo-nombre"
         leading={
-          <SvgExpandArrow
-            width={8}
-            height={8}
+          <Icono
+            nombre="cd"
+            size={18}
             style={{
-              flexShrink: 0,
               marginRight: 6,
-              color: theme.pageTextSubdued,
-              transition: 'transform .1s',
+              color: color.fg3,
+              transition: `transform ${movimiento.pildora}ms ${movimiento.muelle}`,
               transform: plegado ? 'rotate(-90deg)' : '',
             }}
           />
         }
       />
-      <View style={{ alignItems: 'flex-end' }}>
-        <Text style={{ ...styles.tinyText, color: theme.pageTextSubdued }}>
-          <Trans>Assigned</Trans>
+      <PrivacyFilter>
+        <Text
+          style={{ ...num, fontSize: 13, fontWeight: 800, color: color.fg2 }}
+        >
+          {format(asignado, 'financial')}
         </Text>
-        <PrivacyFilter>
-          <Text style={{ ...styles.tnum, fontWeight: 600 }}>
-            {format(asignado, 'financial')}
-          </Text>
-        </PrivacyFilter>
-      </View>
+      </PrivacyFilter>
     </View>
   );
 }
@@ -746,15 +791,15 @@ function CabeceraGrupo({
 function colorDeEstado(estado: EstadoFila): string {
   switch (estado.tipo) {
     case 'sobregastada':
-      return theme.errorText;
+      return color.bad;
     case 'faltan':
-      return theme.warningText;
+      return color.warn;
     case 'financiada':
-      return theme.noticeText;
+      return color.ok;
     case 'gastado-parcial':
-      return estado.financiada ? theme.noticeText : theme.pageTextSubdued;
+      return estado.financiada ? color.ok : color.fg3;
     default:
-      return theme.pageTextSubdued;
+      return color.fg3;
   }
 }
 
@@ -806,9 +851,15 @@ type FilaCategoriaProps = {
   category: CategoryEntity;
   datos: DatosCategoriaMes | undefined;
   dia: number | null;
+  primera?: boolean;
 };
 
-function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
+function FilaCategoria({
+  category,
+  datos,
+  dia,
+  primera = false,
+}: FilaCategoriaProps) {
   const { t } = useTranslation();
   const format = useFormat();
   const keypad = useAssignKeypad();
@@ -818,7 +869,8 @@ function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
   const estado = estadoFila(
     datos ?? { goal: null, longGoal: false, budgeted: 0, balance: 0, spent: 0 },
   );
-  const color = colorDeEstado(estado);
+  const colorEstado = colorDeEstado(estado);
+  const { emoji, resto } = separarEmoji(category.name);
 
   // Mientras se teclea, la celda enseña la expresión («246,72 € +13,00 €»).
   const display =
@@ -843,17 +895,15 @@ function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
         width: '100%',
         flexDirection: 'column',
         alignItems: 'stretch',
-        gap: 6,
-        padding: '10px 12px',
+        gap: 8,
+        padding: '12px 14px',
         borderRadius: 0,
-        borderBottom: `1px solid ${theme.tableBorder}`,
+        borderTop: primera ? undefined : `1px solid ${color.line}`,
         textAlign: 'left',
-        backgroundColor: isSelected
-          ? theme.tableRowBackgroundHighlight
-          : theme.tableBackground,
-        ...(isSelected && {
-          boxShadow: `inset 4px 0 0 ${theme.pillBorderSelected}`,
-        }),
+        color: color.fg,
+        opacity: estado.tipo === 'ignorada' ? 0.62 : 1,
+        backgroundColor: isSelected ? color.accentSoft : 'transparent',
+        transition: `background-color ${movimiento.pildora}ms`,
       }}
     >
       <View
@@ -861,31 +911,61 @@ function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: 10,
+          gap: 8,
         }}
       >
-        <Text
+        <View
           style={{
-            ...styles.lineClamp(2),
             flex: 1,
-            fontSize: 15,
-            color: theme.pageText,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
           }}
-          data-testid="asignar-nombre"
         >
-          {category.name}
-        </Text>
-        <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
+          {emoji && (
+            <Text
+              aria-hidden
+              style={{ fontSize: 18, width: 24, textAlign: 'center' }}
+            >
+              {emoji}
+            </Text>
+          )}
+          <Text
+            style={{
+              ...styles.lineClamp(2),
+              flex: 1,
+              fontSize: 14.5,
+              fontWeight: 700,
+              color: color.fg,
+            }}
+            data-testid="asignar-nombre"
+          >
+            {emoji ? resto : category.name}
+          </Text>
+        </View>
+        <View
+          style={{
+            alignItems: 'flex-end',
+            flexShrink: 0,
+            ...(isSelected && {
+              border: `2px solid ${color.accent}`,
+              borderRadius: radio.sm,
+              padding: '2px 7px',
+              backgroundColor: color.bg,
+            }),
+          }}
+        >
           <PrivacyFilter>
             <Text
               style={{
-                ...styles.tnum,
-                fontSize: 15,
-                fontWeight: 600,
+                ...num,
+                fontSize: 14.5,
+                fontWeight: 800,
                 color:
                   estado.tipo === 'sobregastada' && !display
-                    ? theme.errorText
-                    : theme.pageText,
+                    ? color.bad
+                    : color.fg,
               }}
               data-testid="asignar-asignado"
             >
@@ -896,9 +976,11 @@ function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
             <PrivacyFilter>
               <Text
                 style={{
-                  ...styles.tnum,
-                  ...styles.smallText,
-                  color: theme.pageTextPositive,
+                  ...num,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color:
+                    display.secondary.op === '-' ? color.bad : color.accent,
                 }}
               >
                 {display.secondary.op === '-' ? '−' : '+'}
@@ -908,13 +990,11 @@ function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
           )}
         </View>
       </View>
-      <Barra progreso={estado.progreso} color={color} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        {estado.tipo === 'ignorada' && (
-          <IconoZz width={13} height={13} style={{ color }} />
-        )}
+      <BarraProgreso valor={estado.progreso} color={colorEstado} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {estado.tipo === 'ignorada' && <IconoZz color={colorEstado} />}
         <Text
-          style={{ ...styles.smallText, color }}
+          style={{ fontSize: 12.5, fontWeight: 700, color: colorEstado }}
           data-testid="asignar-estado"
           data-ignorada={estado.tipo === 'ignorada' || undefined}
         >
@@ -922,30 +1002,6 @@ function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
         </Text>
       </View>
     </Button>
-  );
-}
-
-function Barra({ progreso, color }: { progreso: number; color: string }) {
-  return (
-    <View
-      aria-hidden
-      style={{
-        height: 6,
-        borderRadius: 3,
-        overflow: 'hidden',
-        backgroundColor: theme.tableBorder,
-      }}
-    >
-      <View
-        style={{
-          height: '100%',
-          width: `${Math.round(progreso * 100)}%`,
-          borderRadius: 3,
-          backgroundColor: color,
-          transition: 'width .15s',
-        }}
-      />
-    </View>
   );
 }
 
@@ -1029,57 +1085,62 @@ function AccionesInfrafinanciado({
   };
 
   const etiqueta: CSSProperties = {
-    ...styles.tinyText,
+    fontSize: 12,
+    fontWeight: 700,
     textAlign: 'center',
-    color: theme.pageTextSubdued,
-    marginTop: 2,
+    color: color.fg3,
+    marginTop: 4,
   };
+  const pildora = ({ isPressed }: { isPressed: boolean }): CSSProperties => ({
+    width: 72,
+    height: 48,
+    minHeight: 48,
+    borderRadius: radio.boton,
+    gap: 4,
+    fontSize: 12,
+    fontWeight: 800,
+    backgroundColor: color.surface,
+    color: color.fg,
+    transform: isPressed ? 'scale(0.96)' : undefined,
+    transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}`,
+  });
 
   return (
     <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-start' }}>
-      <View style={{ flex: 1 }}>
-        <Button
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Boton
+          bloque
           onPress={onAsignarFaltante}
           isDisabled={falta <= 0}
           data-testid="keypad-asignar-faltante"
-          style={{
-            height: ALTO_BOTON,
-            minHeight: ALTO_BOTON,
-            borderRadius: ALTO_BOTON / 2,
-            fontSize: 15,
-            fontWeight: 600,
-            color: theme.pageTextPositive,
-            ...styles.tnum,
-          }}
+          style={{ minHeight: 48, fontSize: 15, padding: '0 10px', ...num }}
         >
           {falta > 0
             ? t('Assign {{amount}}', { amount: format(falta, 'financial') })
             : ignorada
               ? t('Ignored this month')
               : t('Funded')}
-        </Button>
+        </Boton>
         <Text style={etiqueta}>
           <Trans>Underfunded amount</Trans>
         </Text>
       </View>
-      <View style={{ width: 84 }}>
+      <BotonIgnorar
+        ignorada={ignorada}
+        onPress={() => onMas('ignorar')}
+        style={pildora}
+      />
+      <View>
         <Button
+          variant="bare"
           ref={masRef}
           onPress={() => setMasOpen(true)}
           aria-label={t('More')}
           data-testid="keypad-mas"
-          style={{
-            height: ALTO_BOTON,
-            minHeight: ALTO_BOTON,
-            borderRadius: ALTO_BOTON / 2,
-            color: theme.pageTextPositive,
-          }}
+          style={pildora}
         >
-          <SvgDotsHorizontalTriple width={18} height={18} />
+          <Icono nombre="more" size={20} style={{ color: color.accent }} />
         </Button>
-        <Text style={etiqueta}>
-          <Trans>More</Trans>
-        </Text>
         <Popover
           triggerRef={masRef}
           isOpen={masOpen}

@@ -3,22 +3,25 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { SvgArrowThickRight } from '@actual-app/components/icons/v1';
-import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { CategoryEntity } from '@actual-app/core/types/models';
-import { css, cx } from '@emotion/css';
-import { AutoTextSize } from 'auto-text-size';
+import { css } from '@emotion/css';
 
 import { BalanceWithCarryover } from '#components/budget/BalanceWithCarryover';
+import { coloresPildora } from '#components/mobile/ui/Pildora';
+import type { EstadoPildora } from '#components/mobile/ui/Pildora';
+import { movimiento, num, radio } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
+import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { useFormat } from '#hooks/useFormat';
+import { useSheetValue } from '#hooks/useSheetValue';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import type { Binding } from '#spreadsheet';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
-import { getColumnWidth, PILL_STYLE } from './BudgetTable';
+import { getColumnWidth } from './BudgetTable';
 import { useIgnorarMes } from './useIgnorarMes';
 
 type BalanceCellProps = {
@@ -70,6 +73,28 @@ export function BalanceCell({
 
   const format = useFormat();
   const { ignorada } = useIgnorarMes(category.id, month);
+  const isGoalTemplatesEnabled = useFeatureFlag('goalTemplatesEnabled');
+  type Hoja = 'envelope-budget' | 'tracking-budget';
+  const goalValue = useSheetValue<Hoja, 'goal'>(goal);
+  const budgetedValue = useSheetValue<Hoja, 'budget'>(budgeted);
+  const longGoalValue = useSheetValue<Hoja, 'long-goal'>(longGoal);
+
+  // Mismo criterio que `makeBalanceAmountStyle`, dicho con píldoras: rojo si
+  // está en negativo, ámbar si no llega al objetivo, verde si hay saldo o se
+  // cumple, gris si no hay nada pendiente (o si está ignorada este mes).
+  const estadoDe = (valor: number): EstadoPildora => {
+    if (valor < 0) {
+      return 'rojo';
+    }
+    if (ignorada) {
+      return 'neutro';
+    }
+    if (isGoalTemplatesEnabled && goalValue != null) {
+      const base = longGoalValue === 1 ? valor : (budgetedValue ?? 0);
+      return base < goalValue ? 'aviso' : 'ok';
+    }
+    return valor > 0 ? 'ok' : 'neutro';
+  };
 
   return (
     <BalanceWithCarryover
@@ -85,38 +110,49 @@ export function BalanceCell({
       longGoal={longGoal}
       CarryoverIndicator={MobileCarryoverIndicator}
     >
-      {({ type, value, className: defaultClassName }) => (
-        <Button
-          variant="bare"
-          style={{
-            ...PILL_STYLE,
-            maxWidth: columnWidth,
-          }}
-          onPress={onPress}
-          aria-label={ariaLabel}
-        >
-          <PrivacyFilter>
-            <AutoTextSize
-              key={value}
-              as={Text}
-              minFontSizePx={6}
-              maxFontSizePx={12}
-              mode="oneline"
-              className={cx(
-                defaultClassName,
-                css({
-                  ...styles.tnum,
-                  maxWidth: columnWidth,
-                  textAlign: 'right',
-                  fontSize: 12,
-                }),
-              )}
-            >
-              {format(value, type)}
-            </AutoTextSize>
-          </PrivacyFilter>
-        </Button>
-      )}
+      {({ type, value }) => {
+        const estado = estadoDe(value);
+        const textoImporte = format(value, type);
+        const { fondo, texto: tinta } = coloresPildora(estado);
+        return (
+          <Button
+            variant="bare"
+            style={({ isPressed }) => ({
+              minHeight: 44,
+              maxWidth: columnWidth,
+              padding: 0,
+              backgroundColor: 'transparent',
+              transform: isPressed ? 'scale(0.95)' : undefined,
+              transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}`,
+            })}
+            onPress={onPress}
+            aria-label={ariaLabel}
+            data-estado={estado}
+          >
+            <PrivacyFilter>
+              <Text
+                className={css({
+                  ...num,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  minHeight: 28,
+                  padding: '0 10px',
+                  borderRadius: radio.pildora,
+                  backgroundColor: fondo,
+                  color: tinta,
+                  fontWeight: 800,
+                  // Se encoge con cifras largas para no salirse de la columna.
+                  fontSize: textoImporte.length > 9 ? 11.5 : 13,
+                  whiteSpace: 'nowrap',
+                  transition: `background-color ${movimiento.pildora}ms, color ${movimiento.pildora}ms`,
+                })}
+              >
+                {textoImporte}
+              </Text>
+            </PrivacyFilter>
+          </Button>
+        );
+      }}
     </BalanceWithCarryover>
   );
 }

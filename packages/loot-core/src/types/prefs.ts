@@ -123,7 +123,7 @@ export type LocalPrefs = Partial<{
 }>;
 
 export type Theme = 'light' | 'dark' | 'auto' | 'midnight' | string;
-export type DarkTheme = 'dark' | 'midnight';
+export type DarkTheme = 'dark' | 'midnight' | 'presupuesto-dark';
 
 // GlobalPrefs are the parsed global-store.json values
 export type GlobalPrefs = Partial<{

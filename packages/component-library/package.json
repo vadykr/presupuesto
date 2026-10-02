@@ -47,6 +47,8 @@
     "./themes/sidebar-redesign-light.css": "./src/themes/sidebar-redesign-light.css",
     "./themes/dark.css": "./src/themes/dark.css",
     "./themes/midnight.css": "./src/themes/midnight.css",
+    "./themes/presupuesto-dark.css": "./src/themes/presupuesto-dark.css",
+    "./themes/presupuesto-light.css": "./src/themes/presupuesto-light.css",
     "./tokens": "./src/tokens.ts",
     "./toggle": "./src/Toggle.tsx",
     "./tooltip": "./src/Tooltip.tsx",

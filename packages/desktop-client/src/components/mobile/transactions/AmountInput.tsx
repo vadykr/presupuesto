@@ -1,7 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import type { FocusEvent } from 'react';
 
-import { styles } from '@actual-app/components/styles';
 import * as Platform from '@actual-app/core/shared/platform';
 
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
@@ -90,11 +89,19 @@ export const AmountInput = memo(function AmountInput({
       style={props.style}
       textStyle={
         variant === 'large'
-          ? { ...styles.veryLargeText, textAlign: 'center' }
+          ? {
+              fontSize: 46,
+              fontWeight: 800,
+              letterSpacing: '-0.035em',
+              lineHeight: 1.15,
+              textAlign: 'center',
+              fontVariantNumeric: 'tabular-nums',
+            }
           : undefined
       }
       value={value}
       zeroSign={negate ? '-' : '+'}
+      hideSignButton={variant === 'large'}
     />
   );
 });

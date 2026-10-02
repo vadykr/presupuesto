@@ -1,0 +1,221 @@
+/*
+ * Tema «Presupuesto oscuro» (concepto A · Cartera).
+ * Es una capa que se aplica ENCIMA de dark.css: solo redefine lo que cambia.
+ * Los tokens propios llevan el prefijo --p-* (ver docs-vadym/diseno.md).
+ */
+:root {
+  /* Tipografía */
+  --font-family:
+    'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+
+  /* Superficies y texto */
+  --p-bg: #0b0f1a;
+  --p-surface: #141a2e;
+  --p-surface-2: #1c2440;
+  --p-surface-3: #25304f;
+  --p-line: rgba(160, 178, 230, 0.13);
+  --p-line-2: rgba(160, 178, 230, 0.24);
+  --p-fg: #eef1f8;
+  --p-fg-2: #a7b0c8;
+  --p-fg-3: #6c7691;
+
+  /* Acento y estados */
+  --p-accent: #3fae7a;
+  --p-accent-2: #5cc794;
+  --p-accent-ink: #06140d;
+  --p-accent-soft: rgba(63, 174, 122, 0.16);
+  --p-ok: #3fae7a;
+  --p-ok-soft: rgba(63, 174, 122, 0.16);
+  --p-warn: #e8b04b;
+  --p-warn-soft: rgba(232, 176, 75, 0.16);
+  --p-bad: #f0616a;
+  --p-bad-soft: rgba(240, 97, 106, 0.16);
+  --p-mute-soft: rgba(167, 176, 200, 0.12);
+
+  /* Héroe (Asignar) y tarjetas tipo Wallet */
+  --p-hero-a: #1b5a3f;
+  --p-hero-b: #123b2b;
+  --p-hero-fg: #eafff4;
+  --p-card-a: #1e3a5f;
+  --p-card-b: #16263f;
+  --p-card-c: #2a2350;
+  --p-card-d: #1a1b38;
+
+  --p-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+  --p-shadow-sheet: 0 -12px 30px rgba(0, 0, 0, 0.25);
+
+  /* 8 colores de categoría (huecos 0..7 de useColoresCategorias) */
+  --p-k0: #5b8def;
+  --p-k1: #9b7cf0;
+  --p-k2: #ee8f45;
+  --p-k3: #ef6f8e;
+  --p-k4: #e3cf55;
+  --p-k5: #46c2d6;
+  --p-k6: #d36ad6;
+  --p-k7: #a3c94a;
+
+  /* Colores de Actual remapeados al sistema A */
+  --color-pageBackground: var(--p-bg);
+  --color-pageBackgroundModalActive: var(--p-surface);
+  --color-pageText: var(--p-fg);
+  --color-pageTextLight: var(--p-fg-2);
+  --color-pageTextSubdued: var(--p-fg-3);
+  --color-pageTextDark: var(--p-fg);
+  --color-pageTextPositive: var(--p-accent);
+  --color-pageTextLink: var(--p-accent);
+  --color-pageTextLinkLight: var(--p-accent-2);
+
+  --color-cardBackground: var(--p-surface);
+  --color-cardBorder: var(--p-line-2);
+  --color-cardShadow: rgba(0, 0, 0, 0.35);
+
+  --color-tableBackground: var(--p-surface);
+  --color-tableRowBackgroundHover: var(--p-surface-2);
+  --color-tableText: var(--p-fg);
+  --color-tableTextSubdued: var(--p-fg-3);
+  --color-tableTextSelected: var(--p-fg);
+  --color-tableTextHover: var(--p-fg-2);
+  --color-tableTextInactive: var(--p-fg-3);
+  --color-tableHeaderText: var(--p-fg-2);
+  --color-tableHeaderBackground: var(--p-surface-2);
+  --color-tableBorder: var(--p-line);
+  --color-tableBorderSelected: var(--p-accent);
+  --color-tableBorderHover: var(--p-accent-2);
+  --color-tableBorderSeparator: var(--p-line-2);
+  --color-tableRowBackgroundHighlight: var(--p-accent-soft);
+  --color-tableRowBackgroundHighlightText: var(--p-fg);
+  --color-tableRowHeaderBackground: var(--p-surface);
+  --color-tableRowHeaderText: var(--p-fg);
+
+  --color-numberPositive: var(--p-ok);
+  --color-numberNegative: var(--p-bad);
+  --color-numberNeutral: var(--p-fg-3);
+  --color-templateNumberUnderFunded: var(--p-warn);
+  --color-toBudgetPositive: var(--p-ok);
+  --color-toBudgetZero: var(--p-ok);
+
+  --color-sidebarBackground: #070a12;
+  --color-sidebarItemAccentSelected: var(--p-accent);
+  --color-sidebarItemTextSelected: var(--p-accent-2);
+  --color-sidebarItemBackgroundHover: var(--p-surface-2);
+
+  --color-menuBackground: var(--p-surface-2);
+  --color-menuItemBackground: var(--p-surface-2);
+  --color-menuItemBackgroundHover: var(--p-surface-3);
+  --color-menuItemText: var(--p-fg);
+  --color-menuItemTextHover: var(--p-fg);
+  --color-menuItemTextSelected: var(--p-accent);
+  --color-menuItemTextHeader: var(--p-fg-2);
+  --color-menuBorder: var(--p-line);
+  --color-menuBorderHover: var(--p-accent);
+  --color-menuKeybindingText: var(--p-fg-3);
+  --color-menuAutoCompleteBackground: var(--p-surface);
+  --color-menuAutoCompleteBackgroundHover: var(--p-surface-3);
+  --color-menuAutoCompleteText: var(--p-fg);
+  --color-menuAutoCompleteTextHeader: var(--p-fg-2);
+
+  --color-modalBackground: var(--p-surface);
+  --color-modalBorder: var(--p-line);
+  --color-mobileHeaderBackground: var(--p-bg);
+  --color-mobileHeaderText: var(--p-fg);
+  --color-mobileHeaderTextSubdued: var(--p-fg-2);
+  --color-mobileHeaderTextHover: var(--p-surface-2);
+  --color-mobilePageBackground: var(--p-bg);
+  --color-mobileNavBackground: var(--p-surface-2);
+  --color-mobileNavItem: var(--p-fg-3);
+  --color-mobileNavItemSelected: var(--p-accent);
+  --color-mobileAccountShadow: rgba(0, 0, 0, 0.35);
+  --color-mobileTransactionSelected: var(--p-accent);
+  --color-mobileViewTheme: var(--p-bg);
+
+  --color-buttonPrimaryText: var(--p-accent-ink);
+  --color-buttonPrimaryBackground: var(--p-accent);
+  --color-buttonPrimaryBackgroundHover: var(--p-accent-2);
+  --color-buttonPrimaryShadow: transparent;
+  --color-buttonPrimaryDisabledText: var(--p-fg-3);
+  --color-buttonPrimaryDisabledBackground: var(--p-surface-3);
+  --color-buttonNormalText: var(--p-fg);
+  --color-buttonNormalTextHover: var(--p-fg);
+  --color-buttonNormalBackground: var(--p-surface-2);
+  --color-buttonNormalBackgroundHover: var(--p-surface-3);
+  --color-buttonNormalBorder: var(--p-line-2);
+  --color-buttonNormalShadow: transparent;
+  --color-buttonNormalSelectedText: var(--p-accent-ink);
+  --color-buttonNormalSelectedBackground: var(--p-accent);
+  --color-buttonNormalDisabledText: var(--p-fg-3);
+  --color-buttonNormalDisabledBackground: var(--p-surface);
+  --color-buttonNormalDisabledBorder: var(--p-line);
+  --color-buttonBareBackgroundHover: var(--p-surface-2);
+  --color-buttonBareBackgroundActive: var(--p-surface-3);
+
+  --color-noticeBackground: var(--p-ok-soft);
+  --color-noticeText: var(--p-ok);
+  --color-noticeTextLight: var(--p-ok);
+  --color-noticeBorder: transparent;
+  --color-warningBackground: var(--p-warn-soft);
+  --color-warningText: var(--p-warn);
+  --color-warningBorder: transparent;
+  --color-errorBackground: var(--p-bad-soft);
+  --color-errorText: var(--p-bad);
+  --color-errorTextMenu: var(--p-bad);
+  --color-errorBorder: var(--p-bad);
+
+  --color-formLabelText: var(--p-fg-3);
+  --color-formInputBackground: var(--p-surface-2);
+  --color-formInputBackgroundSelected: var(--p-surface-2);
+  --color-formInputBackgroundSelection: var(--p-accent);
+  --color-formInputBorder: var(--p-line-2);
+  --color-formInputBorderSelected: var(--p-accent);
+  --color-formInputText: var(--p-fg);
+  --color-formInputTextPlaceholder: var(--p-fg-3);
+  --color-formInputShadowSelected: var(--p-accent-soft);
+  --color-formInputTextHighlight: var(--p-accent);
+  --color-checkboxBackgroundSelected: var(--p-accent);
+  --color-checkboxBorderSelected: var(--p-accent);
+  --color-checkboxShadowSelected: var(--p-accent-soft);
+  --color-checkboxToggleBackground: var(--p-surface-3);
+  --color-checkboxToggleBackgroundSelected: var(--p-accent);
+
+  --color-pillBackground: var(--p-surface-2);
+  --color-pillBackgroundLight: var(--p-surface);
+  --color-pillText: var(--p-fg-2);
+  --color-pillTextHighlighted: var(--p-accent);
+  --color-pillBorder: var(--p-line-2);
+  --color-pillBackgroundSelected: var(--p-accent-soft);
+  --color-pillTextSelected: var(--p-accent);
+  --color-pillBorderSelected: var(--p-accent);
+  --color-pillTextSubdued: var(--p-fg-3);
+
+  --color-reportsRed: var(--p-bad);
+  --color-reportsBlue: var(--p-k0);
+  --color-reportsGreen: var(--p-ok);
+  --color-reportsGray: var(--p-fg-3);
+  --color-reportsInnerLabel: var(--p-bg);
+
+  --color-floatingActionBarBackground: var(--p-surface-2);
+  --color-floatingActionBarText: var(--p-fg);
+
+  --color-tooltipText: var(--p-fg);
+  --color-tooltipBackground: var(--p-surface-2);
+  --color-tooltipBorder: var(--p-line-2);
+
+  --color-overlayBackground: rgba(0, 0, 0, 0.4);
+
+  --color-chartQual1: var(--p-k0);
+  --color-chartQual2: var(--p-k1);
+  --color-chartQual3: var(--p-k2);
+  --color-chartQual4: var(--p-k3);
+  --color-chartQual5: var(--p-k4);
+  --color-chartQual6: var(--p-k5);
+  --color-chartQual7: var(--p-k6);
+  --color-chartQual8: var(--p-k7);
+
+  color-scheme: dark;
+}
+
+body {
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}

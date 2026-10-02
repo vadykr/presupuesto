@@ -18,7 +18,6 @@ import {
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { AnimatedLoading } from '@actual-app/components/icons/AnimatedLoading';
 import { SvgDelete } from '@actual-app/components/icons/v0';
 import { SvgDotsHorizontalTriple } from '@actual-app/components/icons/v1';
 import { Menu } from '@actual-app/components/menu';
@@ -38,8 +37,12 @@ import type {
   CategoryEntity,
   TransactionEntity,
 } from '@actual-app/core/types/models';
+import { css } from '@emotion/css';
 
 import { FloatingActionBar } from '#components/mobile/FloatingActionBar';
+import { Cargando } from '#components/mobile/ui/Cargando';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { color, espacio } from '#components/mobile/ui/tokens';
 import { useAccounts } from '#hooks/useAccounts';
 import { useCategoriesById } from '#hooks/useCategories';
 import { useLocale } from '#hooks/useLocale';
@@ -56,6 +59,10 @@ import { ROW_HEIGHT, TransactionListItem } from './TransactionListItem';
 
 const NOTIFICATION_BOTTOM_INSET = 75;
 
+const primeraMayuscula = css({
+  '&::first-letter': { textTransform: 'uppercase' },
+});
+
 type LoadingProps = {
   style?: CSSProperties;
   'aria-label': string;
@@ -66,16 +73,31 @@ function Loading({ style, 'aria-label': ariaLabel }: LoadingProps) {
   return (
     <View
       aria-label={ariaLabel || t('Loading...')}
-      style={{
-        backgroundColor: theme.mobilePageBackground,
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...style,
-      }}
+      style={{ flex: 1, ...style }}
     >
-      <AnimatedLoading width={25} height={25} />
+      <Cargando />
     </View>
+  );
+}
+
+/** «Hoy», «Ayer» o «jueves, 2 oct»: la fecha de cada grupo de movimientos. */
+function fechaDeGrupo(
+  fecha: string,
+  locale: Parameters<typeof monthUtils.format>[2],
+  t: (clave: string) => string,
+) {
+  const hoy = monthUtils.currentDay();
+  if (fecha === hoy) {
+    return t('Today');
+  }
+  if (fecha === monthUtils.subDays(hoy, 1)) {
+    return t('Yesterday');
+  }
+  const mismoAnio = fecha.slice(0, 4) === hoy.slice(0, 4);
+  return monthUtils.format(
+    fecha,
+    mismoAnio ? 'EEEE, d MMM' : 'EEEE, d MMM yyyy',
+    locale,
   );
 }
 
@@ -194,16 +216,16 @@ export function TransactionList({
             ]}
             renderEmptyState={() =>
               !isLoading && (
-                <View
-                  style={{
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: theme.mobilePageBackground,
-                  }}
-                >
-                  <Text style={{ fontSize: 15 }}>
-                    <Trans>No transactions</Trans>
-                  </Text>
+                <View style={{ padding: espacio.margen }}>
+                  <EstadoVacio
+                    ilustracion="barquito"
+                    titulo={<Trans>No transactions</Trans>}
+                    texto={
+                      <Trans>
+                        Nothing here yet. Add one when you pay for something.
+                      </Trans>
+                    }
+                  />
                 </View>
               )
             }
@@ -213,20 +235,26 @@ export function TransactionList({
               <ListBoxSection>
                 <Header
                   style={{
-                    ...styles.smallText,
-                    backgroundColor: theme.pageBackground,
-                    color: theme.tableHeaderText,
+                    backgroundColor: color.bg,
+                    color: color.fg2,
+                    fontSize: 13,
+                    fontWeight: 800,
                     display: 'flex',
-                    justifyContent: 'center',
-                    paddingBottom: 4,
-                    paddingTop: 4,
+                    justifyContent: 'flex-start',
+                    padding: `14px ${espacio.margen + 4}px 6px`,
                     position: 'sticky',
                     top: '0',
                     width: '100%',
                     zIndex: 10,
+                    textTransform: 'none',
                   }}
                 >
-                  {monthUtils.format(section.date, 'MMMM dd, yyyy', locale)}
+                  <span
+                    style={{ display: 'inline-block' }}
+                    className={primeraMayuscula}
+                  >
+                    {fechaDeGrupo(section.date, locale, t)}
+                  </span>
                 </Header>
                 <Collection
                   items={section.transactions.filter(

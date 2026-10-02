@@ -6,13 +6,19 @@ import { SvgFilter } from '@actual-app/components/icons/v1';
 import { Label } from '@actual-app/components/label';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type { TransactionEntity } from '@actual-app/core/types/models';
 
 import { Search } from '#components/common/Search';
 import { PullToRefresh } from '#components/mobile/PullToRefresh';
+import {
+  color,
+  espacio,
+  num,
+  radio,
+  sombra,
+} from '#components/mobile/ui/tokens';
 import { CellValue, CellValueText } from '#components/spreadsheet/CellValue';
 import { DisplayPayeeProvider } from '#hooks/useDisplayPayee';
 import { SelectedProvider, useSelected } from '#hooks/useSelected';
@@ -37,8 +43,8 @@ function TransactionSearchInput({
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.mobilePageBackground,
-        padding: 10,
+        backgroundColor: color.bg,
+        padding: `8px ${espacio.margen}px 4px`,
         width: '100%',
       }}
     >
@@ -52,8 +58,11 @@ function TransactionSearchInput({
         width="100%"
         height={styles.mobileMinHeight}
         style={{
-          backgroundColor: theme.tableBackground,
-          borderColor: theme.formInputBorder,
+          backgroundColor: color.surface,
+          borderColor: 'transparent',
+          borderRadius: radio.boton,
+          boxShadow: sombra.tarjeta,
+          fontSize: 15,
         }}
       />
     </View>
@@ -118,7 +127,7 @@ export function TransactionListWithBalances({
         <View
           style={{
             flexShrink: 0,
-            marginTop: 10,
+            marginTop: 4,
           }}
         >
           <View
@@ -189,10 +198,11 @@ function AppliedFiltersChip() {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        backgroundColor: theme.pillBackgroundSelected,
-        color: theme.pillTextSelected,
-        borderRadius: 15,
+        backgroundColor: color.accentSoft,
+        color: color.accent,
+        borderRadius: radio.pildora,
         padding: '4px 10px',
+        fontWeight: 800,
       }}
     >
       <SvgFilter width={12} height={12} style={{ flexShrink: 0 }} />
@@ -260,9 +270,11 @@ function BalanceWithCleared({
             <CellValueText
               {...props}
               style={{
-                fontSize: 12,
+                ...num,
+                fontSize: 13,
                 textAlign: 'center',
-                fontWeight: '500',
+                fontWeight: 800,
+                color: color.fg2,
               }}
               data-testid="transactions-balance-cleared"
             />
@@ -288,9 +300,11 @@ function BalanceWithCleared({
             <CellValueText
               {...props}
               style={{
-                fontSize: 12,
+                ...num,
+                fontSize: 13,
                 textAlign: 'center',
-                fontWeight: '500',
+                fontWeight: 800,
+                color: color.fg2,
               }}
               data-testid="transactions-balance-uncleared"
             />
@@ -309,21 +323,31 @@ function Balance({ balance }: BalanceProps) {
   const { t } = useTranslation();
   return (
     <View style={{ flexBasis: '33%' }}>
-      <Label title={t('Balance')} style={{ textAlign: 'center' }} />
+      <Label
+        title={t('Balance')}
+        style={{
+          textAlign: 'center',
+          fontSize: 12,
+          fontWeight: 700,
+          color: color.fg3,
+        }}
+      />
       <TransactionListBalanceCellValue binding={balance} type="financial">
         {props => (
           <CellValueText
             {...props}
             style={{
-              fontSize: 18,
+              ...num,
+              fontSize: 26,
               textAlign: 'center',
-              fontWeight: '500',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
               color:
                 props.value < 0
-                  ? theme.numberNegative
+                  ? color.bad
                   : props.value > 0
-                    ? theme.numberPositive
-                    : theme.numberNeutral,
+                    ? color.fg
+                    : color.fg3,
             }}
             data-testid="transactions-balance"
           />

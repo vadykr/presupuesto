@@ -17,6 +17,7 @@ import { getLatestAppVersion } from '#app/appSlice';
 import { closeBudget } from '#budgetfiles/budgetfilesSlice';
 import { Link } from '#components/common/Link';
 import { Checkbox, FormField, FormLabel } from '#components/forms';
+import { ListaMas } from '#components/mobile/mas/MasPage';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { Page } from '#components/Page';
 import { useServerURL, useServerVersion } from '#components/ServerContext';
@@ -245,6 +246,9 @@ export function Settings() {
           paddingBottom: MOBILE_NAV_HEIGHT,
         }}
       >
+        {/* Presupuesto: en el móvil, los accesos de «Más» (Pagos programados,
+            Beneficiarios, Reglas…) que ya no están en la barra de pestañas. */}
+        {isNarrowWidth && <ListaMas sinAjustes />}
         {isNarrowWidth && (
           <View
             style={{

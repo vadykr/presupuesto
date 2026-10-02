@@ -1,11 +1,12 @@
 import { Trans, useTranslation } from 'react-i18next';
 
-import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
+import { Icono } from '#components/mobile/ui/Icono';
+import { IconoZz as IconoZzTexto } from '#components/mobile/ui/IconoZz';
+import { color, num } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { useFormat } from '#hooks/useFormat';
@@ -13,7 +14,6 @@ import { useSheetValue } from '#hooks/useSheetValue';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
-import { IconoZz } from './IconoZz';
 import { faltante } from './objetivos';
 import { useIgnorarMes } from './useIgnorarMes';
 
@@ -56,19 +56,16 @@ export function EstadoObjetivoCorto({
   if (ignorada) {
     return (
       <View
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
         data-testid="estado-objetivo-corto"
         data-ignorada
       >
-        <IconoZz
-          width={10}
-          height={10}
-          style={{ color: theme.pageTextSubdued }}
-        />
+        <IconoZzTexto color={color.fg3} />
         <Text
           style={{
-            ...styles.tinyText,
-            color: theme.pageTextSubdued,
+            fontSize: 12.5,
+            fontWeight: 700,
+            color: color.fg3,
             whiteSpace: 'nowrap',
           }}
         >
@@ -88,18 +85,29 @@ export function EstadoObjetivoCorto({
     return null;
   }
   return (
-    <PrivacyFilter>
-      <Text
-        data-testid="estado-objetivo-corto"
-        style={{
-          ...styles.tinyText,
-          ...styles.tnum,
-          color: theme.templateNumberUnderFunded,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {t('{{amount}} more needed', { amount: format(falta, 'financial') })}
-      </Text>
-    </PrivacyFilter>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        color: color.warn,
+      }}
+    >
+      <Icono nombre="cal" size={15} />
+      <PrivacyFilter>
+        <Text
+          data-testid="estado-objetivo-corto"
+          style={{
+            ...num,
+            fontSize: 12.5,
+            fontWeight: 700,
+            color: color.warn,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {t('{{amount}} more needed', { amount: format(falta, 'financial') })}
+        </Text>
+      </PrivacyFilter>
+    </View>
   );
 }

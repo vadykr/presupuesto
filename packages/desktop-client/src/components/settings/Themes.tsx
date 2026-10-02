@@ -80,8 +80,9 @@ export function ThemeSettings() {
   }, [installedCustomLightTheme, theme, t]);
 
   const buildLightOptions = useCallback(() => {
+    // Presupuesto: con «auto», el tema claro base es «Presupuesto claro».
     const options: Array<readonly [string, string] | typeof Menu.line> = [
-      ['light', t('Light')],
+      ['light', t('Presupuesto light')],
     ];
     if (installedCustomLightTheme) {
       options.push([

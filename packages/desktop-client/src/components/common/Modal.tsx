@@ -132,7 +132,7 @@ export const Modal = ({
                     minWidth: '90vw',
                     maxHeight: 'calc(var(--visual-viewport-height) * 0.9)',
                     minHeight: 0,
-                    borderRadius: 6,
+                    borderRadius: isNarrowWidth ? 24 : 6,
                     //border: '1px solid ' + theme.modalBorder,
                     color: theme.pageText,
                     backgroundColor: theme.modalBackground,
@@ -231,14 +231,20 @@ const ModalContentContainer = ({
           }
         }, 0);
       } else {
+        // Presupuesto (concepto A): las hojas entran desde abajo con un
+        // muelle suave de 320 ms; sin animación con «reducir movimiento».
+        const reducir = window.matchMedia?.(
+          '(prefers-reduced-motion: reduce)',
+        ).matches;
         contentRef.current.style.opacity = '0';
-        contentRef.current.style.transform = 'translateY(10px) scale(1)';
+        contentRef.current.style.transform = 'translateY(24px) scale(1)';
 
         setTimeout(() => {
           if (contentRef.current) {
             mounted.current = true;
-            contentRef.current.style.transition =
-              'opacity .1s, transform .1s cubic-bezier(.42, 0, .58, 1)';
+            contentRef.current.style.transition = reducir
+              ? 'none'
+              : 'opacity .2s, transform .32s cubic-bezier(.2, .9, .3, 1.15)';
             contentRef.current.style.opacity = '1';
             setProps();
           }

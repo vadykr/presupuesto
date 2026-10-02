@@ -32,7 +32,9 @@ import { GlobalKeys } from './GlobalKeys';
 import { MobileBankSyncAccountEditPage } from './mobile/banksync/MobileBankSyncAccountEditPage';
 import { AsignarMesPage } from './mobile/budget/AsignarMesPage';
 import { ObjetivoPage } from './mobile/budget/ObjetivoPage';
+import { GastosPage } from './mobile/gastos/GastosPage';
 import { InicioPage } from './mobile/inicio/InicioPage';
+import { MasPage } from './mobile/mas/MasPage';
 import { MobileNavTabs } from './mobile/MobileNavTabs';
 import { TransactionEdit } from './mobile/transactions/TransactionEdit';
 import { NotificationsPage } from './news/NotificationsPage';
@@ -311,6 +313,34 @@ export function FinancesApp() {
                     <Route path="/reports/*" element={<Reports />} />
 
                     <Route
+                      path="/gastos"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <WideNotSupported redirectTo="/accounts">
+                            <GastosPage />
+                          </WideNotSupported>
+                        </ErrorBoundary>
+                      }
+                    />
+
+                    <Route
+                      path="/mas"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <WideNotSupported>
+                            <MasPage />
+                          </WideNotSupported>
+                        </ErrorBoundary>
+                      }
+                    />
+
+                    <Route
                       path="/budget"
                       element={
                         <ErrorBoundary
@@ -521,6 +551,8 @@ export function FinancesApp() {
                 <Routes>
                   <Route path="/inicio" element={<MobileNavTabs />} />
                   <Route path="/budget" element={<MobileNavTabs />} />
+                  <Route path="/gastos" element={<MobileNavTabs />} />
+                  <Route path="/mas" element={<MobileNavTabs />} />
                   <Route path="/accounts" element={<MobileNavTabs />} />
                   <Route path="/settings" element={<MobileNavTabs />} />
                   <Route path="/notifications" element={<MobileNavTabs />} />

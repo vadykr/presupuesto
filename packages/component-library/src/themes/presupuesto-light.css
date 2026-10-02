@@ -1,0 +1,219 @@
+/*
+ * Tema «Presupuesto claro» (concepto A · Cartera).
+ * Es una capa que se aplica ENCIMA de light.css: solo redefine lo que cambia.
+ * Los tokens propios llevan el prefijo --p-* (ver docs-vadym/diseno.md).
+ */
+:root {
+  /* Tipografía */
+  --font-family:
+    'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+
+  /* Superficies y texto */
+  --p-bg: #f4f6fb;
+  --p-surface: #ffffff;
+  --p-surface-2: #eaeef6;
+  --p-surface-3: #dde3ef;
+  --p-line: rgba(22, 32, 64, 0.1);
+  --p-line-2: rgba(22, 32, 64, 0.18);
+  --p-fg: #0e1424;
+  --p-fg-2: #4a5470;
+  --p-fg-3: #858ea6;
+
+  /* Acento y estados */
+  --p-accent: #1f8f5c;
+  --p-accent-2: #23a368;
+  --p-accent-ink: #ffffff;
+  --p-accent-soft: rgba(31, 143, 92, 0.12);
+  --p-ok: #1f8f5c;
+  --p-ok-soft: rgba(31, 143, 92, 0.12);
+  --p-warn: #a86d0f;
+  --p-warn-soft: rgba(214, 150, 40, 0.16);
+  --p-bad: #d23a46;
+  --p-bad-soft: rgba(210, 58, 70, 0.11);
+  --p-mute-soft: rgba(74, 84, 112, 0.09);
+
+  /* Héroe (Asignar) y tarjetas tipo Wallet */
+  --p-hero-a: #2a9a67;
+  --p-hero-b: #1f7c52;
+  --p-hero-fg: #ffffff;
+  --p-card-a: #3d6fb8;
+  --p-card-b: #2c5596;
+  --p-card-c: #5a4bb0;
+  --p-card-d: #40378a;
+
+  --p-shadow:
+    0 1px 2px rgba(20, 30, 60, 0.06), 0 8px 24px rgba(20, 30, 60, 0.08);
+  --p-shadow-sheet: 0 -8px 24px rgba(20, 30, 60, 0.1);
+
+  /* 8 colores de categoría (huecos 0..7 de useColoresCategorias) */
+  --p-k0: #3f6fd6;
+  --p-k1: #7a5ad8;
+  --p-k2: #d06f22;
+  --p-k3: #d84a6e;
+  --p-k4: #a8901a;
+  --p-k5: #1f9bb0;
+  --p-k6: #b347b6;
+  --p-k7: #6f9a1f;
+
+  /* Colores de Actual remapeados al sistema A */
+  --color-pageBackground: var(--p-bg);
+  --color-pageBackgroundModalActive: var(--p-surface);
+  --color-pageText: var(--p-fg);
+  --color-pageTextLight: var(--p-fg-2);
+  --color-pageTextSubdued: var(--p-fg-3);
+  --color-pageTextDark: var(--p-fg);
+  --color-pageTextPositive: var(--p-accent);
+  --color-pageTextLink: var(--p-accent);
+  --color-pageTextLinkLight: var(--p-accent-2);
+
+  --color-cardBackground: var(--p-surface);
+  --color-cardBorder: var(--p-line-2);
+  --color-cardShadow: rgba(20, 30, 60, 0.08);
+
+  --color-tableBackground: var(--p-surface);
+  --color-tableRowBackgroundHover: var(--p-surface-2);
+  --color-tableText: var(--p-fg);
+  --color-tableTextSubdued: var(--p-fg-3);
+  --color-tableTextSelected: var(--p-fg);
+  --color-tableTextHover: var(--p-fg-2);
+  --color-tableTextInactive: var(--p-fg-3);
+  --color-tableHeaderText: var(--p-fg-2);
+  --color-tableHeaderBackground: var(--p-surface-2);
+  --color-tableBorder: var(--p-line);
+  --color-tableBorderSelected: var(--p-accent);
+  --color-tableBorderHover: var(--p-accent-2);
+  --color-tableBorderSeparator: var(--p-line-2);
+  --color-tableRowBackgroundHighlight: var(--p-accent-soft);
+  --color-tableRowBackgroundHighlightText: var(--p-fg);
+  --color-tableRowHeaderBackground: var(--p-surface);
+  --color-tableRowHeaderText: var(--p-fg);
+
+  --color-numberPositive: var(--p-ok);
+  --color-numberNegative: var(--p-bad);
+  --color-numberNeutral: var(--p-fg-3);
+  --color-templateNumberUnderFunded: var(--p-warn);
+  --color-toBudgetPositive: var(--p-ok);
+  --color-toBudgetZero: var(--p-ok);
+
+  --color-sidebarItemAccentSelected: var(--p-accent);
+  --color-sidebarItemTextSelected: var(--p-accent-2);
+
+  --color-menuBackground: var(--p-surface-2);
+  --color-menuItemBackground: var(--p-surface-2);
+  --color-menuItemBackgroundHover: var(--p-surface-3);
+  --color-menuItemText: var(--p-fg);
+  --color-menuItemTextHover: var(--p-fg);
+  --color-menuItemTextSelected: var(--p-accent);
+  --color-menuItemTextHeader: var(--p-fg-2);
+  --color-menuBorder: var(--p-line);
+  --color-menuBorderHover: var(--p-accent);
+  --color-menuKeybindingText: var(--p-fg-3);
+  --color-menuAutoCompleteBackground: var(--p-surface);
+  --color-menuAutoCompleteBackgroundHover: var(--p-surface-3);
+  --color-menuAutoCompleteText: var(--p-fg);
+  --color-menuAutoCompleteTextHeader: var(--p-fg-2);
+
+  --color-modalBackground: var(--p-surface);
+  --color-modalBorder: var(--p-line);
+  --color-mobileHeaderBackground: var(--p-bg);
+  --color-mobileHeaderText: var(--p-fg);
+  --color-mobileHeaderTextSubdued: var(--p-fg-2);
+  --color-mobileHeaderTextHover: var(--p-surface-2);
+  --color-mobilePageBackground: var(--p-bg);
+  --color-mobileNavBackground: var(--p-surface-2);
+  --color-mobileNavItem: var(--p-fg-3);
+  --color-mobileNavItemSelected: var(--p-accent);
+  --color-mobileAccountShadow: rgba(20, 30, 60, 0.12);
+  --color-mobileTransactionSelected: var(--p-accent);
+  --color-mobileViewTheme: var(--p-bg);
+
+  --color-buttonPrimaryText: var(--p-accent-ink);
+  --color-buttonPrimaryBackground: var(--p-accent);
+  --color-buttonPrimaryBackgroundHover: var(--p-accent-2);
+  --color-buttonPrimaryShadow: transparent;
+  --color-buttonPrimaryDisabledText: var(--p-fg-3);
+  --color-buttonPrimaryDisabledBackground: var(--p-surface-3);
+  --color-buttonNormalText: var(--p-fg);
+  --color-buttonNormalTextHover: var(--p-fg);
+  --color-buttonNormalBackground: var(--p-surface-2);
+  --color-buttonNormalBackgroundHover: var(--p-surface-3);
+  --color-buttonNormalBorder: var(--p-line-2);
+  --color-buttonNormalShadow: transparent;
+  --color-buttonNormalSelectedText: var(--p-accent-ink);
+  --color-buttonNormalSelectedBackground: var(--p-accent);
+  --color-buttonNormalDisabledText: var(--p-fg-3);
+  --color-buttonNormalDisabledBackground: var(--p-surface);
+  --color-buttonNormalDisabledBorder: var(--p-line);
+  --color-buttonBareBackgroundHover: var(--p-surface-2);
+  --color-buttonBareBackgroundActive: var(--p-surface-3);
+
+  --color-noticeBackground: var(--p-ok-soft);
+  --color-noticeText: var(--p-ok);
+  --color-noticeTextLight: var(--p-ok);
+  --color-noticeBorder: transparent;
+  --color-warningBackground: var(--p-warn-soft);
+  --color-warningText: var(--p-warn);
+  --color-warningBorder: transparent;
+  --color-errorBackground: var(--p-bad-soft);
+  --color-errorText: var(--p-bad);
+  --color-errorTextMenu: var(--p-bad);
+  --color-errorBorder: var(--p-bad);
+
+  --color-formLabelText: var(--p-fg-3);
+  --color-formInputBackground: var(--p-surface-2);
+  --color-formInputBackgroundSelected: var(--p-surface-2);
+  --color-formInputBackgroundSelection: var(--p-accent);
+  --color-formInputBorder: var(--p-line-2);
+  --color-formInputBorderSelected: var(--p-accent);
+  --color-formInputText: var(--p-fg);
+  --color-formInputTextPlaceholder: var(--p-fg-3);
+  --color-formInputShadowSelected: var(--p-accent-soft);
+  --color-formInputTextHighlight: var(--p-accent);
+  --color-checkboxBackgroundSelected: var(--p-accent);
+  --color-checkboxBorderSelected: var(--p-accent);
+  --color-checkboxShadowSelected: var(--p-accent-soft);
+  --color-checkboxToggleBackground: var(--p-surface-3);
+  --color-checkboxToggleBackgroundSelected: var(--p-accent);
+
+  --color-pillBackground: var(--p-surface-2);
+  --color-pillBackgroundLight: var(--p-surface);
+  --color-pillText: var(--p-fg-2);
+  --color-pillTextHighlighted: var(--p-accent);
+  --color-pillBorder: var(--p-line-2);
+  --color-pillBackgroundSelected: var(--p-accent-soft);
+  --color-pillTextSelected: var(--p-accent);
+  --color-pillBorderSelected: var(--p-accent);
+  --color-pillTextSubdued: var(--p-fg-3);
+
+  --color-reportsRed: var(--p-bad);
+  --color-reportsBlue: var(--p-k0);
+  --color-reportsGreen: var(--p-ok);
+  --color-reportsGray: var(--p-fg-3);
+  --color-reportsInnerLabel: var(--p-bg);
+
+  --color-floatingActionBarBackground: var(--p-surface-2);
+  --color-floatingActionBarText: var(--p-fg);
+
+  --color-tooltipText: var(--p-fg);
+  --color-tooltipBackground: var(--p-surface-2);
+  --color-tooltipBorder: var(--p-line-2);
+
+  --color-overlayBackground: rgba(14, 20, 36, 0.4);
+
+  --color-chartQual1: var(--p-k0);
+  --color-chartQual2: var(--p-k1);
+  --color-chartQual3: var(--p-k2);
+  --color-chartQual4: var(--p-k3);
+  --color-chartQual5: var(--p-k4);
+  --color-chartQual6: var(--p-k5);
+  --color-chartQual7: var(--p-k6);
+  --color-chartQual8: var(--p-k7);
+
+  color-scheme: light;
+}
+
+body {
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
