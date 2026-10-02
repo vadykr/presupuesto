@@ -24,6 +24,8 @@ import type { Template } from '@actual-app/core/types/models/templates';
 
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import { InputField } from '#components/mobile/MobileForms';
+import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
+import { color, movimiento, radio } from '#components/mobile/ui/tokens';
 import { MobilePageHeader, Page } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useBudgetAutomations } from '#hooks/useBudgetAutomations';
@@ -563,12 +565,12 @@ function Aviso({ children }: { children: ReactNode }) {
   return (
     <View
       style={{
-        padding: 10,
-        borderRadius: 8,
-        backgroundColor: theme.warningBackground,
+        padding: '10px 14px',
+        borderRadius: radio.boton,
+        backgroundColor: color.warnSoft,
       }}
     >
-      <Text style={{ ...styles.smallText, color: theme.warningText }}>
+      <Text style={{ fontSize: 13, fontWeight: 700, color: color.warn }}>
         {children}
       </Text>
     </View>
@@ -594,10 +596,11 @@ function Pestanas({
       role="group"
       style={{
         flexDirection: 'row',
-        borderRadius: ALTO_BOTON / 2,
-        border: `1px solid ${theme.tableBorder}`,
+        gap: 4,
+        padding: 4,
+        borderRadius: radio.boton,
         overflow: 'hidden',
-        backgroundColor: theme.tableBackground,
+        backgroundColor: color.surface2,
       }}
     >
       {opciones.map(([valor, texto]) => {
@@ -613,18 +616,14 @@ function Pestanas({
               flex: 1,
               height: ALTO_BOTON,
               minHeight: ALTO_BOTON,
-              borderRadius: 0,
+              borderRadius: 11,
               padding: 0,
               fontSize: 13,
               whiteSpace: 'nowrap',
-              fontWeight: activa ? 600 : 400,
-              color: activa ? theme.pageTextPositive : theme.pageText,
-              backgroundColor: activa
-                ? theme.tableRowBackgroundHighlight
-                : 'transparent',
-              boxShadow: activa
-                ? `inset 0 0 0 2px ${theme.pillBorderSelected}`
-                : 'none',
+              fontWeight: 800,
+              color: activa ? color.accent : color.fg3,
+              backgroundColor: activa ? color.accentSoft : 'transparent',
+              transition: `background-color ${movimiento.pildora}ms, color ${movimiento.pildora}ms`,
             }}
           >
             {texto}
@@ -665,11 +664,14 @@ function IgnorarEsteMes({
           width={18}
           height={18}
           style={{
-            color: ignorada ? theme.pageTextPositive : theme.pageTextSubdued,
+            color: ignorada ? color.accent : color.fg3,
           }}
         />
         <View style={{ flex: 1, gap: 2 }}>
-          <label htmlFor="ignorar-mes" style={{ fontSize: 15 }}>
+          <label
+            htmlFor="ignorar-mes"
+            style={{ fontSize: 15, fontWeight: 700 }}
+          >
             {t('Ignore this month ({{month}})', { month: nombreMes })}
           </label>
           <Text style={{ ...styles.tinyText, color: theme.pageTextSubdued }}>
@@ -700,9 +702,7 @@ function Tarjeta({ children }: { children: ReactNode }) {
   return (
     <View
       style={{
-        borderRadius: 12,
-        backgroundColor: theme.tableBackground,
-        border: `1px solid ${theme.tableBorder}`,
+        ...estiloTarjeta('normal', 0),
         overflow: 'hidden',
       }}
     >
@@ -726,15 +726,26 @@ function Campo({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-        padding: '10px 12px',
-        borderBottom: `1px solid ${theme.tableBorder}`,
+        padding: '10px 14px',
+        borderBottom: `1px solid ${color.line}`,
       }}
     >
-      <View style={{ color: theme.pageTextPositive, flexShrink: 0, width: 22 }}>
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          backgroundColor: color.surface2,
+          color: color.fg2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
         {icon}
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-        <Text style={{ ...styles.smallText, color: theme.pageTextSubdued }}>
+        <Text style={{ fontSize: 13, fontWeight: 700, color: color.fg3 }}>
           {label}
         </Text>
         {children}
@@ -837,10 +848,10 @@ function Tendencias({
         padding: '0 12px',
         borderRadius: 0,
         justifyContent: 'space-between',
-        borderBottom: `1px solid ${theme.tableBorder}`,
+        borderBottom: `1px solid ${color.line}`,
       }}
     >
-      <Text style={{ color: theme.pageText }}>{label}</Text>
+      <Text style={{ color: color.fg, fontWeight: 700 }}>{label}</Text>
       <PrivacyFilter>
         <Text
           style={{

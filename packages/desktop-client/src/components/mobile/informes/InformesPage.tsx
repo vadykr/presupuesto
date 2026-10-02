@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
-import { SvgFilter2 } from '@actual-app/components/icons/v2';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
+import { BotonRedondo } from '#components/mobile/ui/Cabecera';
+import { color } from '#components/mobile/ui/tokens';
 import { createAgeOfMoneySpreadsheet } from '#components/reports/spreadsheets/age-of-money-spreadsheet';
 import type { AgeOfMoneyData } from '#components/reports/spreadsheets/age-of-money-spreadsheet';
 import { createSpreadsheet as netWorthSpreadsheet } from '#components/reports/spreadsheets/net-worth-spreadsheet';
@@ -183,26 +183,19 @@ export function InformesPage() {
   return (
     <PaginaInforme
       titulo={t('Reports')}
+      subtitulo={monthUtils.format(mesActual, 'MMMM yyyy', locale)}
       sinAtras
       data-testid="informes"
       rightContent={
-        <Button
-          variant="bare"
+        <BotonRedondo
+          icono="sliders"
           aria-label={t('What counts as spending')}
           onPress={() => setFiltroAbierto(true)}
-          style={{ margin: 10, minWidth: 44, minHeight: 44 }}
-        >
-          <SvgFilter2 width={18} height={18} />
-        </Button>
+        />
       }
     >
-      <View
-        style={{ paddingLeft: GUTTER, paddingRight: GUTTER, paddingTop: 14 }}
-      >
-        <Text style={{ ...styles.veryLargeText, textTransform: 'capitalize' }}>
-          {monthUtils.format(mesActual, 'MMMM yyyy', locale)}
-        </Text>
-        <Text style={{ ...styles.smallText, color: theme.pageTextSubdued }}>
+      <View style={{ paddingLeft: GUTTER + 4, paddingRight: GUTTER }}>
+        <Text style={{ fontSize: 14, fontWeight: 600, color: color.fg2 }}>
           {t('How you are doing, at a glance.')}
         </Text>
       </View>

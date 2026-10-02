@@ -1,20 +1,27 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { Trans, useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { Card } from '@actual-app/components/card';
-import {
-  SvgCheveronLeft,
-  SvgCheveronRight,
-} from '@actual-app/components/icons/v1';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
-import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
+import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
+import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
+import { BotonRedondo, Cabecera } from '#components/mobile/ui/Cabecera';
+import { Cargando as CargandoBarquito } from '#components/mobile/ui/Cargando';
+import { Icono } from '#components/mobile/ui/Icono';
+import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
+import {
+  color,
+  espacio,
+  num,
+  radio,
+  sombra,
+} from '#components/mobile/ui/tokens';
 import { MobilePageHeader, Page } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useLocale } from '#hooks/useLocale';
@@ -48,26 +55,40 @@ export function PaginaInforme({
   return (
     <Page
       header={
-        <MobilePageHeader
-          title={
-            subtitulo ? (
-              <View>
-                <TextOneLine>{titulo}</TextOneLine>
-                <TextOneLine style={styles.smallText}>{subtitulo}</TextOneLine>
-              </View>
-            ) : (
-              titulo
-            )
-          }
-          leftContent={sinAtras ? undefined : <MobileBackButton />}
-          rightContent={rightContent}
-        />
+        sinAtras ? (
+          <Cabecera
+            titulo={titulo}
+            subtitulo={subtitulo}
+            derecha={rightContent}
+            style={{ paddingBottom: 10 }}
+          />
+        ) : (
+          <MobilePageHeader
+            title={
+              subtitulo ? (
+                <View>
+                  <TextOneLine>{titulo}</TextOneLine>
+                  <TextOneLine style={styles.smallText}>
+                    {subtitulo}
+                  </TextOneLine>
+                </View>
+              ) : (
+                titulo
+              )
+            }
+            leftContent={<MobileBackButton />}
+            rightContent={rightContent}
+          />
+        )
       }
       padding={0}
     >
       <PaletaInformes />
       {/* flexShrink 0: la página desplaza, no se comprime (las gráficas tienen alto fijo). */}
-      <View style={{ paddingBottom: 90, flexShrink: 0 }} data-testid={testId}>
+      <View
+        style={{ paddingBottom: MOBILE_NAV_HEIGHT + 16, flexShrink: 0 }}
+        data-testid={testId}
+      >
         {children}
       </View>
     </Page>
@@ -83,13 +104,13 @@ export type Tono = 'neutro' | 'bien' | 'mal' | 'aviso';
 export function colorDeTono(tono: Tono): string {
   switch (tono) {
     case 'bien':
-      return theme.noticeText;
+      return color.ok;
     case 'mal':
-      return theme.errorText;
+      return color.bad;
     case 'aviso':
-      return theme.warningText;
+      return color.warn;
     default:
-      return theme.pageText;
+      return color.fg;
   }
 }
 
@@ -118,26 +139,19 @@ export function Hero({
   return (
     <View style={{ gap: 2, ...style }}>
       {etiqueta && (
-        <Text
-          style={{
-            ...styles.smallText,
-            color: theme.pageTextSubdued,
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: 0.5,
-          }}
-        >
+        <Text style={{ fontSize: 13, fontWeight: 800, color: color.fg3 }}>
           {etiqueta}
         </Text>
       )}
       <PrivacyFilter>
         <Text
           style={{
-            fontSize: tamano === 'grande' ? 36 : 26,
-            lineHeight: 1.1,
-            fontWeight: 700,
+            ...num,
+            fontSize: tamano === 'grande' ? 42 : 28,
+            lineHeight: 1.05,
+            fontWeight: 800,
+            letterSpacing: '-0.035em',
             color: colorDeTono(tono),
-            fontVariantNumeric: 'proportional-nums',
           }}
           data-testid="hero-valor"
         >
@@ -146,10 +160,11 @@ export function Hero({
       </PrivacyFilter>
       <Text
         style={{
-          ...styles.mediumText,
-          fontWeight: 400,
-          color: theme.pageText,
-          lineHeight: 1.35,
+          fontSize: 14.5,
+          fontWeight: 500,
+          color: color.fg2,
+          lineHeight: 1.45,
+          marginTop: 4,
         }}
         data-testid="hero-frase"
       >
@@ -175,19 +190,20 @@ export function Tarjeta({
   'data-testid': testId,
 }: TarjetaProps) {
   return (
-    <Card
+    <View
       style={{
-        marginLeft: GUTTER - 4,
-        marginRight: GUTTER - 4,
-        marginTop: 12,
+        ...estiloTarjeta('normal', 0),
+        overflow: 'hidden',
+        marginLeft: GUTTER,
+        marginRight: GUTTER,
+        marginTop: espacio.tarjetas,
         flexShrink: 0,
-        boxShadow: styles.cardShadow,
         ...style,
       }}
       data-testid={testId}
     >
       {children}
-    </Card>
+    </View>
   );
 }
 
@@ -221,11 +237,11 @@ export function TarjetaInforme({
           flexDirection: 'column',
           alignItems: 'stretch',
           textAlign: 'left',
-          padding: 14,
-          paddingBottom: 12,
+          padding: 16,
+          paddingBottom: 14,
           gap: 10,
-          borderRadius: 6,
-          color: theme.pageText,
+          borderRadius: radio.tarjeta,
+          color: color.fg,
         }}
       >
         <View
@@ -235,22 +251,10 @@ export function TarjetaInforme({
             justifyContent: 'space-between',
           }}
         >
-          <Text
-            style={{
-              ...styles.smallText,
-              fontWeight: 600,
-              color: theme.pageTextSubdued,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
-          >
+          <Text style={{ fontSize: 13, fontWeight: 800, color: color.fg3 }}>
             {titulo}
           </Text>
-          <SvgCheveronRight
-            width={16}
-            height={16}
-            style={{ color: theme.pageTextSubdued }}
-          />
+          <Icono nombre="cr" size={18} style={{ color: color.fg3 }} />
         </View>
         <Hero valor={valor} frase={frase} tono={tono} tamano="medio" />
         {children && <View style={{ marginTop: 2 }}>{children}</View>}
@@ -271,7 +275,7 @@ export function Seccion({
   style?: CSSProperties;
 }) {
   return (
-    <View style={{ marginTop: 18, ...style }}>
+    <View style={{ marginTop: espacio.seccion, ...style }}>
       {(titulo || accion) && (
         <View
           style={{
@@ -283,15 +287,7 @@ export function Seccion({
             paddingBottom: 6,
           }}
         >
-          <Text
-            style={{
-              ...styles.smallText,
-              fontWeight: 600,
-              color: theme.pageTextSubdued,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
-          >
+          <Text style={{ fontSize: 13, fontWeight: 800, color: color.fg2 }}>
             {titulo}
           </Text>
           {accion}
@@ -306,9 +302,9 @@ export function Vacio({ children }: { children: ReactNode }) {
   return (
     <Text
       style={{
-        ...styles.mediumText,
-        fontWeight: 400,
-        color: theme.pageTextSubdued,
+        fontSize: 14,
+        fontWeight: 600,
+        color: color.fg3,
         padding: GUTTER,
         textAlign: 'center',
       }}
@@ -347,7 +343,7 @@ export type Segmento = {
 export function BarraApilada({
   segmentos,
   total,
-  alto = 14,
+  alto = 16,
   onPress,
 }: {
   segmentos: Segmento[];
@@ -360,8 +356,8 @@ export function BarraApilada({
       <View
         style={{
           height: alto,
-          borderRadius: alto / 2,
-          backgroundColor: theme.tableBorder,
+          borderRadius: 5,
+          backgroundColor: color.surface3,
         }}
       />
     );
@@ -376,10 +372,8 @@ export function BarraApilada({
     <View
       style={{
         flexDirection: 'row',
-        gap: 2,
+        gap: 3,
         height: alto,
-        borderRadius: alto / 2,
-        overflow: 'hidden',
       }}
       role="img"
     >
@@ -394,7 +388,7 @@ export function BarraApilada({
               flex: `${s.valor} 0 0`,
               minWidth: 3,
               padding: 0,
-              borderRadius: 0,
+              borderRadius: 5,
               backgroundColor: s.color,
             }}
           />
@@ -405,6 +399,7 @@ export function BarraApilada({
             style={{
               flex: `${s.valor} 0 0`,
               minWidth: 3,
+              borderRadius: 5,
               backgroundColor: s.color,
             }}
           />
@@ -415,7 +410,8 @@ export function BarraApilada({
           style={{
             flex: `${resto} 0 0`,
             minWidth: 3,
-            backgroundColor: theme.pageTextSubdued,
+            borderRadius: 5,
+            backgroundColor: color.fg3,
             opacity: 0.5,
           }}
         />
@@ -464,7 +460,7 @@ export function MiniBarras({
                 flex: 1,
                 height: h,
                 maxWidth: 24,
-                borderRadius: '3px 3px 0 0',
+                borderRadius: '4px 4px 1px 1px',
                 backgroundColor: atipico ? 'transparent' : color,
                 boxShadow: atipico ? `inset 0 0 0 2px ${color}` : undefined,
                 opacity: ultimo || atipico ? 1 : 0.45,
@@ -480,7 +476,7 @@ export function MiniBarras({
             left: 0,
             right: 0,
             bottom: Math.round((referencia / maximo) * alto),
-            borderTop: `1px solid ${theme.pageText}`,
+            borderTop: '1px dashed var(--p-fg-2, var(--color-pageText))',
             opacity: 0.6,
           }}
         />
@@ -512,7 +508,7 @@ export function FilaValor({
   detalle,
   valor,
   valorSecundario,
-  color,
+  color: colorFila,
   fraccion,
   icono,
   tonoValor = 'neutro',
@@ -530,49 +526,38 @@ export function FilaValor({
         paddingBottom: 8,
         paddingLeft: GUTTER,
         paddingRight: onPress ? 8 : GUTTER,
-        borderTop: `1px solid ${theme.tableBorder}`,
+        borderTop: `1px solid ${color.line}`,
       }}
       data-testid={testId}
     >
-      {color && <Punto color={color} />}
+      {colorFila && <Punto color={colorFila} />}
       {icono}
       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-        <TextOneLine style={{ ...styles.mediumText, fontWeight: 500 }}>
+        <TextOneLine style={{ fontSize: 14, fontWeight: 700 }}>
           {nombre}
         </TextOneLine>
         {detalle && (
           <TextOneLine
-            style={{ ...styles.smallText, color: theme.pageTextSubdued }}
+            style={{ fontSize: 12.5, fontWeight: 600, color: color.fg3 }}
           >
             {detalle}
           </TextOneLine>
         )}
         {fraccion !== undefined && (
-          <View
-            style={{
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: theme.tableBorder,
-            }}
-          >
-            <View
-              style={{
-                width: `${Math.max(0, Math.min(1, fraccion)) * 100}%`,
-                height: 4,
-                borderRadius: 2,
-                backgroundColor: color ?? theme.pageTextSubdued,
-              }}
-            />
-          </View>
+          <BarraProgreso
+            valor={fraccion}
+            alto={6}
+            color={colorFila ?? color.fg3}
+          />
         )}
       </View>
       <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
         <PrivacyFilter>
           <Text
             style={{
-              ...styles.mediumText,
-              ...styles.tnum,
-              fontWeight: 600,
+              ...num,
+              fontSize: 14,
+              fontWeight: 800,
               color: colorDeTono(tonoValor),
             }}
           >
@@ -582,22 +567,17 @@ export function FilaValor({
         {valorSecundario && (
           <Text
             style={{
-              ...styles.smallText,
-              ...styles.tnum,
-              color: theme.pageTextSubdued,
+              ...num,
+              fontSize: 12,
+              fontWeight: 700,
+              color: color.fg3,
             }}
           >
             {valorSecundario}
           </Text>
         )}
       </View>
-      {onPress && (
-        <SvgCheveronRight
-          width={14}
-          height={14}
-          style={{ color: theme.pageTextSubdued, flexShrink: 0 }}
-        />
-      )}
+      {onPress && <Icono nombre="cr" size={16} style={{ color: color.fg3 }} />}
     </View>
   );
   if (!onPress) {
@@ -612,7 +592,7 @@ export function FilaValor({
         padding: 0,
         borderRadius: 0,
         textAlign: 'left',
-        color: theme.pageText,
+        color: color.fg,
       }}
     >
       {contenido}
@@ -658,18 +638,14 @@ export function Pildoras<T extends string>({
             data-selected={activa || undefined}
             onPress={() => onChange(o.valor)}
             style={{
-              ...styles.smallText,
-              fontWeight: activa ? 600 : 500,
-              paddingTop: 6,
-              paddingBottom: 6,
-              paddingLeft: 12,
-              paddingRight: 12,
-              borderRadius: 999,
-              minHeight: 32,
-              backgroundColor: activa
-                ? theme.pillBackgroundSelected
-                : theme.pillBackground,
-              color: activa ? theme.pillTextSelected : theme.pillText,
+              fontSize: 13,
+              fontWeight: 800,
+              padding: '0 14px',
+              borderRadius: radio.pildora,
+              minHeight: 36,
+              backgroundColor: activa ? color.fg : color.surface,
+              color: activa ? color.bg : color.fg2,
+              boxShadow: activa ? undefined : sombra.tarjeta,
             }}
           >
             {o.etiqueta}
@@ -699,37 +675,31 @@ export function SelectorMes({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingLeft: GUTTER - 8,
-        paddingRight: GUTTER - 8,
+        paddingLeft: GUTTER,
+        paddingRight: GUTTER,
       }}
     >
-      <Button
-        variant="bare"
+      <BotonRedondo
+        icono="cl"
         aria-label={t('Previous month')}
         onPress={() => onChange(monthUtils.prevMonth(mes))}
-        style={{ minWidth: 44, minHeight: 44 }}
-      >
-        <SvgCheveronLeft width={22} height={22} />
-      </Button>
+      />
       <Text
         style={{
-          ...styles.mediumText,
-          fontWeight: 600,
+          fontSize: 18,
+          fontWeight: 800,
           textTransform: 'capitalize',
         }}
         data-testid="selector-mes"
       >
         {monthUtils.format(mes, 'MMMM yyyy', locale)}
       </Text>
-      <Button
-        variant="bare"
+      <BotonRedondo
+        icono="cr"
         aria-label={t('Next month')}
         isDisabled={!puedeAvanzar}
         onPress={() => onChange(monthUtils.nextMonth(mes))}
-        style={{ minWidth: 44, minHeight: 44, opacity: puedeAvanzar ? 1 : 0.3 }}
-      >
-        <SvgCheveronRight width={22} height={22} />
-      </Button>
+      />
     </View>
   );
 }
@@ -770,9 +740,5 @@ export function NombreMes({ mes }: { mes: string }) {
 }
 
 export function Cargando() {
-  return (
-    <Vacio>
-      <Trans>Loading…</Trans>
-    </Vacio>
-  );
+  return <CargandoBarquito />;
 }
