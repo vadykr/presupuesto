@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Trans } from 'react-i18next';
 
@@ -23,6 +23,7 @@ import {
   ModalHeader,
   ModalTitle,
 } from '#components/common/Modal';
+import { QuickBudgetButtons } from '#components/mobile/budget/QuickBudgetButtons';
 import { AmountInput } from '#components/mobile/transactions/AmountInput';
 import { Notes } from '#components/Notes';
 import { useCategory } from '#hooks/useCategory';
@@ -60,16 +61,29 @@ export function TrackingBudgetMenuModal({
     // Adjust based on desired number of buttons per row.
     flexBasis: '100%',
   };
-  const budgeted = useTrackingSheetValue(
+  const sheetBudgeted = useTrackingSheetValue(
     trackingBudget.catBudgeted(categoryId),
   );
+  // Copia local de lo presupuestado para que los botones rápidos ± y el
+  // campo de importe reflejen el cambio al instante, sin esperar a la hoja.
+  const [budgeted, setBudgeted] = useState(sheetBudgeted || 0);
+  useEffect(() => {
+    setBudgeted(sheetBudgeted || 0);
+  }, [sheetBudgeted]);
   const { data: category } = useCategory(categoryId);
   const mobileCalculatorEnabled = useFeatureFlag('mobileCalculator');
   const notesId = category ? `${category.id}-${month}` : '';
   const originalNotes = useNotes(notesId) ?? '';
 
   const _onUpdateBudget = (amount: number) => {
-    onUpdateBudget?.(amountToInteger(amount));
+    const integerAmount = amountToInteger(amount);
+    setBudgeted(integerAmount);
+    onUpdateBudget?.(integerAmount);
+  };
+
+  const _onQuickUpdateBudget = (integerAmount: number) => {
+    setBudgeted(integerAmount);
+    onUpdateBudget?.(integerAmount);
   };
 
   const _onEditNotes = () => {
@@ -125,6 +139,10 @@ export function TrackingBudgetMenuModal({
               variant="large"
             />
           </View>
+          <QuickBudgetButtons
+            budgeted={budgeted}
+            onUpdateBudget={_onQuickUpdateBudget}
+          />
           <View
             style={{
               display: showMore ? 'none' : undefined,

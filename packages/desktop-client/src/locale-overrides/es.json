@@ -26,5 +26,7 @@
   "Spent": "Gastado",
   "Income": "Ingresos",
   "Assigned in future months": "Asignado en meses futuros",
-  "Available": "Disponible"
+  "Available": "Disponible",
+  "Subtract {{amount}} from budget": "Restar {{amount}} al presupuesto",
+  "Add {{amount}} to budget": "Sumar {{amount}} al presupuesto"
 }
