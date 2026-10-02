@@ -23,6 +23,7 @@ import {
 } from '#components/budget/BalanceWithCarryover';
 import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
 import { prewarmMonth } from '#components/budget/util';
+import { useIgnorarMes } from '#components/mobile/budget/useIgnorarMes';
 import { MobilePageHeader, Page } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { CellValueText } from '#components/spreadsheet/CellValue';
@@ -492,7 +493,7 @@ function PorHacer({
 // ---------------------------------------------------------------------------
 
 function Fijadas({
-  month: _month,
+  month,
   onOpenCategory,
   onEdit,
 }: {
@@ -552,7 +553,7 @@ function Fijadas({
               <TextOneLine style={{ flex: 1, color: theme.pageText }}>
                 {category.name}
               </TextOneLine>
-              <SaldoDisponible category={category} />
+              <SaldoDisponible category={category} month={month} />
               <SvgCheveronRight
                 width={14}
                 height={14}
@@ -566,10 +567,19 @@ function Fijadas({
   );
 }
 
-function SaldoDisponible({ category }: { category: CategoryEntity }) {
+function SaldoDisponible({
+  category,
+  month,
+}: {
+  category: CategoryEntity;
+  month: string;
+}) {
+  // «Ignorada este mes»: el saldo se enseña en neutro, no en ámbar.
+  const { ignorada } = useIgnorarMes(category.id, month);
   return (
     <BalanceWithCarryover
       isDisabled
+      goalIgnored={ignorada}
       carryover={envelopeBudget.catCarryover(category.id)}
       balance={envelopeBudget.catBalance(category.id)}
       goal={envelopeBudget.catGoal(category.id)}

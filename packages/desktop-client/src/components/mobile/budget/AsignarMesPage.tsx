@@ -58,6 +58,7 @@ import {
   useMoveMoneyModal,
 } from './AssignKeypad';
 import { AssignKeypadProvider, useAssignKeypad } from './AssignKeypadContext';
+import { IconoZz } from './IconoZz';
 import {
   asignarGastadoMesPasado,
   asignarInfrafinanciadas,
@@ -70,6 +71,7 @@ import type { DatosCategoriaMes, EstadoFila } from './objetivos';
 import { RowName } from './RowName';
 import { useDatosObjetivos } from './useDatosObjetivos';
 import { useFichaCategoria } from './useFichaCategoria';
+import { useIgnorarMes } from './useIgnorarMes';
 
 type OnBudgetAction = (month: string, type: string, args?: unknown) => void;
 
@@ -790,6 +792,8 @@ export function useTextoEstado() {
                 spent: format(estado.gastado, 'financial'),
                 assigned: format(estado.asignado, 'financial'),
               });
+        case 'ignorada':
+          return t('Ignored this month');
         default:
           return t('No target');
       }
@@ -905,9 +909,18 @@ function FilaCategoria({ category, datos, dia }: FilaCategoriaProps) {
         </View>
       </View>
       <Barra progreso={estado.progreso} color={color} />
-      <Text style={{ ...styles.smallText, color }} data-testid="asignar-estado">
-        {textoEstado(estado, dia)}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        {estado.tipo === 'ignorada' && (
+          <IconoZz width={13} height={13} style={{ color }} />
+        )}
+        <Text
+          style={{ ...styles.smallText, color }}
+          data-testid="asignar-estado"
+          data-ignorada={estado.tipo === 'ignorada' || undefined}
+        >
+          {textoEstado(estado, dia)}
+        </Text>
+      </View>
     </Button>
   );
 }
@@ -960,8 +973,11 @@ function AccionesInfrafinanciado({
   const masRef = useRef<HTMLButtonElement>(null);
   const [masOpen, setMasOpen] = useState(false);
 
+  const locale = useLocale();
   const falta = datos ? faltante(datos) : 0;
   const month = keypad?.month ?? '';
+  const { ignorada, setIgnorada } = useIgnorarMes(category.id, month);
+  const nombreMes = month ? monthUtils.format(month, 'MMMM', locale) : '';
 
   const onAsignarFaltante = () => {
     if (!keypad || !datos || falta <= 0) {
@@ -992,6 +1008,20 @@ function AccionesInfrafinanciado({
         break;
       case 'details':
         onEditCategory(category.id);
+        break;
+      case 'ignorar':
+        void setIgnorada(!ignorada);
+        showUndoNotification({
+          message: ignorada
+            ? t('{{categoryName}} is no longer ignored in {{month}}.', {
+                categoryName: category.name,
+                month: nombreMes,
+              })
+            : t('{{categoryName}} ignored in {{month}}.', {
+                categoryName: category.name,
+                month: nombreMes,
+              }),
+        });
         break;
       default:
         break;
@@ -1024,7 +1054,9 @@ function AccionesInfrafinanciado({
         >
           {falta > 0
             ? t('Assign {{amount}}', { amount: format(falta, 'financial') })
-            : t('Funded')}
+            : ignorada
+              ? t('Ignored this month')
+              : t('Funded')}
         </Button>
         <Text style={etiqueta}>
           <Trans>Underfunded amount</Trans>
@@ -1065,6 +1097,12 @@ function AccionesInfrafinanciado({
               { name: 'move', text: t('Move money') },
               { name: 'target', text: t('Target') },
               { name: 'details', text: t('Details') },
+              Menu.line,
+              {
+                name: 'ignorar',
+                text: t('Ignore this month ({{month}})', { month: nombreMes }),
+                toggle: ignorada,
+              },
             ]}
           />
         </Popover>

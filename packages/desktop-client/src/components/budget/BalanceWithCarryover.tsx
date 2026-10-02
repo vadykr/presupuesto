@@ -95,6 +95,11 @@ type BalanceWithCarryoverProps = Omit<
   shouldInlineGoalStatus?: boolean;
   CarryoverIndicator?: ComponentType<CarryoverIndicatorProps>;
   tooltipDisabled?: boolean;
+  /**
+   * «Ignorar este mes»: el objetivo no se tiene en cuenta para el color ni
+   * el estado del saldo (como si la categoría no tuviera objetivo este mes).
+   */
+  goalIgnored?: boolean;
 };
 
 export function BalanceWithCarryover({
@@ -107,13 +112,15 @@ export function BalanceWithCarryover({
   shouldInlineGoalStatus,
   CarryoverIndicator: CarryoverIndicatorComponent = CarryoverIndicator,
   tooltipDisabled,
+  goalIgnored,
   children,
   ...props
 }: BalanceWithCarryoverProps) {
   const { t } = useTranslation();
   const { isNarrowWidth } = useResponsive();
   const carryoverValue = useSheetValue(carryover);
-  const goalValue = useSheetValue(goal);
+  const goalSheetValue = useSheetValue(goal);
+  const goalValue = goalIgnored ? null : goalSheetValue;
   const budgetedValue = useSheetValue(budgeted);
   const longGoalValue = useSheetValue(longGoal);
   const isGoalTemplatesEnabled = useFeatureFlag('goalTemplatesEnabled');

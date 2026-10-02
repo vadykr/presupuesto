@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import * as monthUtils from '@actual-app/core/shared/months';
-import type { CategoryEntity } from '@actual-app/core/types/models';
+import { q } from '@actual-app/core/shared/query';
+import type { CategoryEntity, NoteEntity } from '@actual-app/core/types/models';
 
+import { useQuery } from '#hooks/useQuery';
 import { useSpreadsheet } from '#hooks/useSpreadsheet';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
+import { categoriasIgnoradas } from './objetivos';
 import type { DatosCategoriaMes } from './objetivos';
 
 const CAMPOS = [
@@ -20,7 +23,8 @@ const CAMPOS = [
  * Valores vivos de la hoja de un mes (objetivo, asignado, saldo, gastado)
  * para una lista de categorías. Se suscribe a las celdas igual que
  * `useSheetValue`, pero para todas a la vez, de modo que la cabecera de
- * «Asignar el mes» pueda sumar lo infrafinanciado.
+ * «Asignar el mes» pueda sumar lo infrafinanciado. Incluye si la categoría
+ * está «ignorada este mes» (marca `#ignorar-mes` en su nota de mes).
  */
 export function useDatosObjetivos(
   month: string,
@@ -32,6 +36,18 @@ export function useDatosObjetivos(
   const [celdas, setCeldas] = useState<Record<string, number | null>>({});
 
   const ids = useMemo(() => categories.map(c => c.id), [categories]);
+
+  // Notas: solo para la marca «#ignorar-mes» de las notas de mes
+  // (`<categoría>-<mes>`). Se filtran aquí porque AQL no admite `$like`
+  // sobre un campo de tipo id.
+  const { data: notas } = useQuery<NoteEntity>(
+    () => q('notes').select('*'),
+    [],
+  );
+  const ignoradas = useMemo(
+    () => categoriasIgnoradas(notas, month),
+    [notas, month],
+  );
 
   useEffect(() => {
     setCeldas({});
@@ -64,8 +80,9 @@ export function useDatosObjetivos(
         budgeted: celdas[`budget-${id}`] ?? 0,
         balance: celdas[`leftover-${id}`] ?? 0,
         spent: celdas[`sum-amount-${id}`] ?? 0,
+        ignorada: ignoradas.has(id),
       });
     }
     return datos;
-  }, [celdas, ids]);
+  }, [celdas, ids, ignoradas]);
 }
