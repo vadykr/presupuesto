@@ -29,5 +29,6 @@
   "Subtract {{amount}} from budget": "Restar {{amount}} al presupuesto",
   "Add {{amount}} to budget": "Sumar {{amount}} al presupuesto",
   "Open {{categoryName}} category": "Abrir la categoría {{categoryName}}",
-  "No pinned categories yet. Open a category menu in the Budget tab and choose \"Pin to home\".": "Todavía no hay categorías fijadas. Abre el menú de una categoría en la pestaña Presupuesto y elige «Fijar en inicio»."
+  "No pinned categories yet. Open a category menu in the Budget tab and choose \"Pin to home\".": "Todavía no hay categorías fijadas. Abre el menú de una categoría en la pestaña Presupuesto y elige «Fijar en inicio».",
+  "Open menu for {{groupName}} group": "Abrir el menú del grupo {{groupName}}"
 }
