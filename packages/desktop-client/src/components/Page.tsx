@@ -192,7 +192,7 @@ export function Page({ header, style, padding, children, footer }: PageProps) {
         // Presupuesto: al cambiar de pestaña la página entra con un muelle
         // suave (concepto A); quieta con «reducir movimiento».
         ...(isNarrowWidth && {
-          animation: `${entrarPagina} 320ms cubic-bezier(.2, .9, .3, 1.15) both`,
+          animation: `${entrarPagina} 320ms cubic-bezier(.2, .9, .3, 1.15) backwards`,
           '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
         }),
       }}

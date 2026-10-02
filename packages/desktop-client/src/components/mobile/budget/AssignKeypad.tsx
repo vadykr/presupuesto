@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
@@ -194,7 +195,10 @@ export function AssignKeypad({
     </KeypadButton>
   );
 
-  return (
+  // Portal a <body>: un ancestro con `transform` (animación de entrada de la
+  // página) sería el bloque contenedor del `position: fixed` y el panel no
+  // quedaría pegado a la ventana.
+  return createPortal(
     <View
       innerRef={panelRef}
       role="group"
@@ -214,7 +218,7 @@ export function AssignKeypad({
         backgroundColor: color.surface2,
         borderRadius: '26px 26px 0 0',
         boxShadow: sombra.hoja,
-        animation: `${entrarDesdeAbajo} ${movimiento.hoja}ms ${movimiento.muelle} both`,
+        animation: `${entrarDesdeAbajo} ${movimiento.hoja}ms ${movimiento.muelle} backwards`,
         '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
       }}
     >
@@ -279,7 +283,8 @@ export function AssignKeypad({
           <Trans>Done</Trans>
         </KeypadButton>
       </View>
-    </View>
+    </View>,
+    document.body,
   );
 }
 

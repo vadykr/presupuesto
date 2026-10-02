@@ -420,7 +420,7 @@ function HeroeFijada({
       })}
     >
       <View style={{ gap: 2, alignItems: 'center', width: '100%' }}>
-        <TextOneLine style={{ fontSize: 18, fontWeight: 800 }}>
+        <TextOneLine style={{ fontSize: 16, fontWeight: 800 }}>
           <IconoCategoria nombre={category.name} /> {nombre}
         </TextOneLine>
         {fecha && (

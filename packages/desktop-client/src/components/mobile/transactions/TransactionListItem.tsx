@@ -220,7 +220,7 @@ export function TransactionListItem({
                       : 'tag'
               }
               colorPropio={colorIcono}
-              style={{ fontSize: 18 }}
+              style={{ fontSize: 16 }}
             >
               {emoji}
             </IconoCaja>

@@ -38,7 +38,7 @@ export function Cabecera({ titulo, subtitulo, derecha, style }: CabeceraProps) {
         {subtitulo != null && (
           <Text
             style={{
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 700,
               letterSpacing: '0.02em',
               color: color.fg3,

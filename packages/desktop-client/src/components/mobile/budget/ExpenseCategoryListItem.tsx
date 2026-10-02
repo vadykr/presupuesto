@@ -86,7 +86,7 @@ function ExpenseCategoryName({
             <Text
               aria-hidden
               style={{
-                fontSize: 18,
+                fontSize: 16,
                 lineHeight: 1,
                 width: 24,
                 textAlign: 'center',

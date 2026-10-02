@@ -205,7 +205,7 @@ function ResumenDeuda({
               data-testid="deuda-saldo"
               style={{
                 ...styles.tnum,
-                fontSize: 32,
+                fontSize: 28,
                 fontWeight: 700,
                 color:
                   deuda.saldo > 0 ? theme.numberNegative : theme.numberPositive,

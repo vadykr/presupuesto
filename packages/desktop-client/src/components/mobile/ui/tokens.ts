@@ -100,13 +100,13 @@ export const INTERLINEADO = 1.25;
 
 /**
  * Tamaños tipográficos (Manrope, pesos altos). Escala contenida (pulido,
- * oct-2026): cabecera 28, héroe 32, títulos 15-16, cuerpo 14-15, secundario 13.
+ * oct-2026): cabecera 26, héroe 28, títulos 15-16, cuerpo 14-15, secundario 13.
  */
 export const texto = {
-  display: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em' },
+  display: { fontSize: 26, fontWeight: 800, letterSpacing: '-0.025em' },
   /** Número héroe (Asignar, detalle de informe). */
   heroe: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 800,
     letterSpacing: '-0.03em',
     lineHeight: 1.05,

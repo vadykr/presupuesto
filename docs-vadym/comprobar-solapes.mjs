@@ -68,7 +68,9 @@ function detectar() {
         const icono = e => e.tagName === 'svg' || e.tagName === 'SVG';
         if (dx > 2 && dy > 2 && !icono(hijos[i]) && !icono(hijos[j])) {
           problemas.push(
-            `solape ${Math.round(dy)}px entre ${nombre(hijos[i])} y ${nombre(hijos[j])}`,
+            `solape ${Math.round(dy)}px entre ${nombre(hijos[i])} y ${nombre(
+              hijos[j],
+            )}`,
           );
         }
       }
@@ -83,7 +85,9 @@ function detectar() {
       padre.clientHeight > 0
     ) {
       problemas.push(
-        `AVISO contenido desbordado ${padre.scrollHeight - padre.clientHeight}px en ${nombre(padre)}`,
+        `AVISO contenido desbordado ${
+          padre.scrollHeight - padre.clientHeight
+        }px en ${nombre(padre)}`,
       );
     }
   }
@@ -187,7 +191,12 @@ try {
   await esperar(page, 1500);
 
   const ids = await page.evaluate(async () => {
-    const nota = `#prestamo ${JSON.stringify({ tipo: 'autoLoan', interes_anual: 8.72, cuota_minima: 246.72, desde: '2026-07-01' })}`;
+    const nota = `#prestamo ${JSON.stringify({
+      tipo: 'autoLoan',
+      interes_anual: 8.72,
+      cuota_minima: 246.72,
+      desde: '2026-07-01',
+    })}`;
     const cuenta = await window.$send('account-create', {
       name: 'Ford KUGA',
       offBudget: true,
@@ -214,6 +223,7 @@ try {
 
   const pantallas = [
     ['inicio', '/inicio'],
+    ['plan', '/budget'],
     ['asignar', '/asignar'],
     ['anual', '/anual'],
     ['objetivo', `/categories/${ids.categoria}/objetivo`],
@@ -241,9 +251,11 @@ try {
     for (const p of problemas.filter(p => p.startsWith('AVISO'))) {
       avisos.push(`${nombre}: ${p}`);
     }
-    const captura = { deuda: 'fix-deuda', 'filtro-categorias': 'fix-filtro' }[
-      nombre
-    ];
+    const captura = {
+      deuda: 'fix-deuda',
+      'filtro-categorias': 'fix-filtro',
+      plan: 'arreglos3-plan',
+    }[nombre];
     if (captura) {
       await page.screenshot({ path: path.join(capturas, `${captura}.png`) });
     }
@@ -302,13 +314,133 @@ try {
         resultados.push({
           nombre: 'filtro-categorias',
           problemas: [
-            `la fila ${i} (y1=${filas[i].y1}) empieza antes de acabar la anterior (y2=${filas[i - 1].y2})`,
+            `la fila ${i} (y1=${
+              filas[i].y1
+            }) empieza antes de acabar la anterior (y2=${filas[i - 1].y2})`,
           ],
         });
         break;
       }
     }
   }
+  // Cabecera de cuenta con importes de 7 dígitos: nada se pisa ni se sale.
+  const cuentaGrande = await page.evaluate(async () => {
+    const cuenta = await window.$send('account-create', {
+      name: 'Cuenta grande',
+      offBudget: false,
+      balance: 0,
+    });
+    await window.$send('transactions-batch-update', {
+      added: [
+        {
+          id: crypto.randomUUID(),
+          account: cuenta,
+          date: '2026-07-01',
+          amount: -123456789,
+          cleared: true,
+        },
+        {
+          id: crypto.randomUUID(),
+          account: cuenta,
+          date: '2026-07-02',
+          amount: 61491200,
+          cleared: false,
+        },
+      ],
+    });
+    return cuenta;
+  });
+  await visitar('cuenta-cabecera', async () => {
+    await page.evaluate(r => {
+      window.history.pushState({}, '', r);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, `/accounts/${cuentaGrande}`);
+  });
+  {
+    const problemas = [];
+    for (const id of [
+      'transactions-balance',
+      'transactions-balance-cleared',
+      'transactions-balance-uncleared',
+    ]) {
+      const c = await page
+        .locator(`[data-testid="${id}"]`)
+        .first()
+        .boundingBox();
+      if (!c) {
+        problemas.push(`${id} no está visible`);
+      } else if (c.x < 0 || c.x + c.width > 390) {
+        problemas.push(`${id} se sale de la pantalla (x=${c.x}, w=${c.width})`);
+      }
+    }
+    const saldo = await page
+      .locator('[data-testid="transactions-balance"]')
+      .first()
+      .boundingBox();
+    const conf = await page
+      .locator('[data-testid="transactions-balance-cleared"]')
+      .first()
+      .boundingBox();
+    if (saldo && conf && conf.y < saldo.y + saldo.height - 1) {
+      problemas.push('«Confirmado» no queda debajo del saldo');
+    }
+    resultados.push({ nombre: 'cuenta-cabecera-cajas', problemas });
+    await page.screenshot({
+      path: path.join(capturas, 'arreglos3-cuenta.png'),
+    });
+  }
+
+  // Teclado de «Asignar el mes»: pegado al borde inferior de la ventana, tanto
+  // llegando por navegación interna desde Inicio como con carga directa.
+  async function comprobarTeclado(nombre) {
+    const problemas = [];
+    const fila = page.locator('[data-testid="asignar-fila"]').first();
+    await fila.waitFor({ timeout: 30000 });
+    await fila.click();
+    await esperar(page, 900);
+    const panel = page.locator('[data-testid="assign-keypad"]');
+    const caja = await panel.boundingBox();
+    if (!caja) {
+      problemas.push('el teclado no se abrió');
+    } else {
+      const fondo = caja.y + caja.height;
+      if (Math.abs(fondo - ALTO) > 2) {
+        problemas.push(`el teclado acaba en y=${fondo}, esperado ${ALTO}`);
+      }
+      if (await panel.evaluate(e => e.parentElement !== document.body)) {
+        problemas.push('el teclado no cuelga de <body>');
+      }
+    }
+    resultados.push({ nombre, problemas });
+    if (nombre === 'teclado-asignar-directo') {
+      await page.screenshot({
+        path: path.join(capturas, 'arreglos3-asignar.png'),
+      });
+    }
+  }
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/inicio');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await esperar(page, 1000);
+  const botonAsignar = page.getByRole('button', {
+    name: /^asignar$|^assign$/i,
+  });
+  if (await botonAsignar.count()) {
+    await botonAsignar.first().click();
+  } else {
+    await page.evaluate(() => {
+      window.history.pushState({}, '', '/asignar');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+  }
+  await esperar(page, 1200);
+  await comprobarTeclado('teclado-asignar-navegando');
+  await page.goto(`${BASE}/asignar`);
+  await page.waitForFunction(() => window.$send, null, { timeout: 90000 });
+  await esperar(page, 2500);
+  await comprobarTeclado('teclado-asignar-directo');
+
   // Deuda: comprobación explícita con boundingBox de los bloques principales.
   await page.evaluate(r => {
     window.history.pushState({}, '', r);
