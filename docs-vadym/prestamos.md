@@ -61,3 +61,19 @@ Solo se guarda el **último** valor de cada serie; el histórico de tipos de YNA
 Lectura en código: `leerDatosPrestamo(note)` en
 `packages/loot-core/src/server/importers/ynab5-prestamos.ts` devuelve el objeto o `null`. La fase 4
 puede usarlo tal cual o moverlo a un módulo común.
+
+## Fase 4: pantalla de deuda (rama `claude/deudas`)
+
+- `leerDatosPrestamo` / `escribirDatosPrestamo` y el tipo `DatosPrestamo` viven ahora en
+  `packages/loot-core/src/shared/prestamos.ts` (el importador los reexporta). Clave opcional nueva:
+  `saldo_inicial` (euros, positivo) para fijar la deuda inicial a mano.
+- La nota de cuenta se guarda con id `account-<id>` (el que lee la interfaz). Antes el importador la
+  guardaba con el id de la cuenta y no se veía; la pantalla de deuda lee ambos.
+- `mobile/deudas/`: `amortizacion.ts` (método francés, interés mensual = anual/12, `simularExtra`),
+  `movimientosDeuda.ts` (saldo inicial, pagado, reparto interés/capital de cada letra), `DeudaPage.tsx`
+  (cabecera + pestañas Deuda/Movimientos), `SimuladorPage.tsx`, `FormularioPrestamo.tsx`.
+- Ruta: la de siempre `/accounts/:id`; `?vista=simulador` abre el simulador y `?prestamo=1` el formulario
+  (menú de cuenta → «Marcar como préstamo» / «Datos del préstamo»).
+- Reparto de una letra: interés = el movimiento «Intereses del préstamo» del mes si existe; si no,
+  deuda anterior × interés / 12. «Registrar intereses del mes» crea ese movimiento (importe = deuda × i/12).
+- Capturas: `capturas/deuda*.png` (390×844, presupuesto demo).

@@ -325,7 +325,7 @@ function ResumenDeuda({
         >
           {deuda.hayInteresEsteMes
             ? t('Interest for this month already recorded')
-            : t("Record this month's interest ({{amount}})", {
+            : t('Record interest for this month ({{amount}})', {
                 amount: format(interesMes, 'financial'),
               })}
         </Button>
@@ -444,6 +444,8 @@ function Celda({
     <View
       style={{
         padding: 12,
+        minHeight: 64,
+        flexShrink: 0,
         borderRadius: 10,
         backgroundColor: theme.tableBackground,
         border: `1px solid ${theme.tableBorder}`,

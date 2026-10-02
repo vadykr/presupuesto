@@ -57,13 +57,16 @@ export function useDeuda(
   );
   const { data: payees = [] } = usePayees();
   const { data: transacciones, isLoading } = useQuery<
-    Pick<TransactionEntity, 'id' | 'date' | 'amount' | 'payee'>
+    Pick<
+      TransactionEntity,
+      'id' | 'date' | 'amount' | 'payee' | 'starting_balance_flag'
+    >
   >(
     () =>
       q('transactions')
         .filter({ account: account.id })
         .options({ splits: 'none' })
-        .select(['id', 'date', 'amount', 'payee']),
+        .select(['id', 'date', 'amount', 'payee', 'starting_balance_flag']),
     [account.id],
   );
 
@@ -77,6 +80,7 @@ export function useDeuda(
       date: t.date,
       amount: t.amount,
       payee: t.payee ? (nombres.get(t.payee) ?? null) : null,
+      apertura: !!t.starting_balance_flag,
     }));
 
     const saldo = Math.max(0, -saldoCuenta);

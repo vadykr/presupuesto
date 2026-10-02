@@ -12,6 +12,8 @@ export type MovimientoDeuda = {
   date: string;
   amount: number;
   payee: string | null;
+  /** Movimiento de apertura de la cuenta (`starting_balance_flag`). */
+  apertura?: boolean;
 };
 
 const RE_SALDO_INICIAL = /starting balance|saldo (inicial|de apertura)/i;
@@ -42,7 +44,9 @@ export function saldoInicial(
   }
   const orden = ordenados(movs);
   const apertura = orden.find(
-    m => m.payee && RE_SALDO_INICIAL.test(m.payee) && m.amount < 0,
+    m =>
+      m.amount < 0 &&
+      (m.apertura || (m.payee && RE_SALDO_INICIAL.test(m.payee))),
   );
   if (apertura) {
     return -apertura.amount;
