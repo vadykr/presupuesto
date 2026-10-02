@@ -28,6 +28,7 @@ import { useAssignKeypad } from './AssignKeypadContext';
 import { BalanceCell } from './BalanceCell';
 import { BudgetCell } from './BudgetCell';
 import { getColumnWidth, ROW_HEIGHT } from './BudgetTable';
+import { EstadoObjetivoCorto } from './EstadoObjetivoCorto';
 import { SpentCell } from './SpentCell';
 
 type ExpenseCategoryNameProps = {
@@ -198,6 +199,7 @@ function ExpenseCategoryCells({
             categoryName: category.name,
           })}
         />
+        <EstadoObjetivoCorto category={category} />
       </View>
     </View>
   );

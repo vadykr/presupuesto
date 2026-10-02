@@ -153,15 +153,15 @@ describe('InicioPage', () => {
     ]);
   });
 
-  it('«Asignar» abre el traspaso desde «Listo para asignar»', async () => {
+  it('«Asignar» abre la pantalla «Asignar el mes»', async () => {
     const user = userEvent.setup();
     renderInicio();
 
     await user.click(await screen.findByRole('button', { name: 'Assign' }));
 
-    const action = dispatch.mock.calls.at(-1)?.[0];
-    expect(action.payload.modal.name).toBe('transfer');
-    expect(action.payload.modal.options.amount).toBe(12_50);
+    expect(navigate).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/asignar\?month=\d{4}-\d{2}$/),
+    );
   });
 
   it('con sobreasignación ofrece «Corregir» y abre el resumen del mes', async () => {

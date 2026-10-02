@@ -152,6 +152,24 @@ export function setBudget({
   });
 }
 
+/**
+ * Asigna varios importes de un mes en una sola operación (una sola entrada
+ * de deshacer). Lo usa «Asignar el mes» del móvil para auto-asignar.
+ */
+export async function setBudgetAmounts({
+  month,
+  amounts,
+}: {
+  month: string;
+  amounts: { category: CategoryEntity['id']; amount: number }[];
+}): Promise<void> {
+  await batchMessages(async () => {
+    for (const { category, amount } of amounts) {
+      await setBudget({ category, month, amount });
+    }
+  });
+}
+
 export function setGoal({ month, category, goal, long_goal }): Promise<void> {
   const table = getBudgetTable();
   const existing = db.firstSync<

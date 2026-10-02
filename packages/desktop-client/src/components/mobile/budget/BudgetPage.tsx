@@ -99,6 +99,7 @@ export function BudgetPage() {
   const numberFormat = _numberFormat || 'comma-dot';
   const [hideFraction] = useSyncedPref('hideFraction');
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const applyBudgetAction = useBudgetActions();
   const createCategory = useCreateCategoryMutation();
   const saveCategory = useSaveCategoryMutation();
@@ -141,19 +142,11 @@ export function BudgetPage() {
         }),
       );
     } else {
-      dispatch(
-        pushModal({
-          modal: {
-            name: 'envelope-budget-summary',
-            options: {
-              month: startMonth,
-              onBudgetAction,
-            },
-          },
-        }),
-      );
+      // «Listo para asignar» abre la pantalla «Asignar el mes» (el resumen
+      // del mes sigue disponible desde su menú «⋯»).
+      void navigate(`/asignar?month=${startMonth}`);
     }
-  }, [budgetType, dispatch, onBudgetAction, startMonth]);
+  }, [budgetType, dispatch, navigate, startMonth]);
 
   const onOpenNewCategoryGroupModal = useCallback(() => {
     dispatch(
@@ -432,6 +425,7 @@ export function BudgetPage() {
             name: 'category-menu',
             options: {
               categoryId: category.id,
+              month: startMonth,
               onSave: onSaveCategory,
               onEditNotes: onOpenCategoryNotesModal,
               onDelete: onDeleteCategory,

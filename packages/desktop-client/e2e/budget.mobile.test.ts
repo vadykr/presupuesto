@@ -489,16 +489,18 @@ budgetTypes.forEach(budgetType => {
     });
 
     if (budgetType === 'Envelope') {
-      test('checks that clicking the To Budget/Overbudgeted amount opens the budget summary menu modal', async () => {
+      // Presupuesto (fork): «Listo para asignar» abre la pantalla «Asignar el
+      // mes» en vez del resumen del mes (que sigue en su menú «⋯»).
+      test('checks that clicking the To Budget/Overbudgeted amount opens the assign page', async () => {
         const budgetPage = await navigation.goToBudgetPage();
 
-        const envelopeBudgetSummaryModal =
-          await budgetPage.openEnvelopeBudgetSummary();
+        await budgetPage.toBudgetButton
+          .or(budgetPage.overbudgetedButton)
+          .first()
+          .click();
 
-        await expect(envelopeBudgetSummaryModal.heading).toHaveText(
-          'Budget Summary',
-        );
-        await expect(page).toMatchThemeScreenshots();
+        await expect(page).toHaveURL(/\/asignar\?month=\d{4}-\d{2}/);
+        await expect(page.getByTestId('asignar-cabecera')).toBeVisible();
       });
     }
 

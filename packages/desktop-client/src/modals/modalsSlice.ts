@@ -378,6 +378,8 @@ export type Modal =
       name: 'category-menu';
       options: {
         categoryId: CategoryEntity['id'];
+        /** Mes que se está viendo (para «Objetivo»); por defecto el actual. */
+        month?: string;
         onSave: (category: CategoryEntity) => void;
         onEditNotes: (id: NoteEntity['id']) => void;
         onDelete: (categoryId: CategoryEntity['id']) => void;

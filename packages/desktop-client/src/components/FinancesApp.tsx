@@ -30,6 +30,8 @@ import { EnableBankingCallback } from './EnableBankingCallback';
 import { FeatureErrorFallback } from './FeatureErrorFallback';
 import { GlobalKeys } from './GlobalKeys';
 import { MobileBankSyncAccountEditPage } from './mobile/banksync/MobileBankSyncAccountEditPage';
+import { AsignarMesPage } from './mobile/budget/AsignarMesPage';
+import { ObjetivoPage } from './mobile/budget/ObjetivoPage';
 import { InicioPage } from './mobile/inicio/InicioPage';
 import { MobileNavTabs } from './mobile/MobileNavTabs';
 import { TransactionEdit } from './mobile/transactions/TransactionEdit';
@@ -273,6 +275,34 @@ export function FinancesApp() {
                         >
                           <WideNotSupported>
                             <InicioPage />
+                          </WideNotSupported>
+                        </ErrorBoundary>
+                      }
+                    />
+
+                    <Route
+                      path="/asignar"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <WideNotSupported>
+                            <AsignarMesPage />
+                          </WideNotSupported>
+                        </ErrorBoundary>
+                      }
+                    />
+
+                    <Route
+                      path="/categories/:id/objetivo"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <WideNotSupported>
+                            <ObjetivoPage />
                           </WideNotSupported>
                         </ErrorBoundary>
                       }

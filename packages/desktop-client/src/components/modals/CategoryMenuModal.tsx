@@ -1,5 +1,5 @@
 // @ts-strict-ignore
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
@@ -8,6 +8,7 @@ import {
   SvgChartPie,
   SvgDotsHorizontalTriple,
   SvgPin,
+  SvgTarget,
   SvgTrash,
 } from '@actual-app/components/icons/v1';
 import {
@@ -18,8 +19,11 @@ import {
 import { Menu } from '@actual-app/components/menu';
 import { Popover } from '@actual-app/components/popover';
 import { styles } from '@actual-app/components/styles';
+import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
+import * as monthUtils from '@actual-app/core/shared/months';
+import type { Template } from '@actual-app/core/types/models/templates';
 
 import {
   Modal,
@@ -27,9 +31,13 @@ import {
   ModalHeader,
   ModalTitle,
 } from '#components/common/Modal';
+import { useResumenObjetivo } from '#components/mobile/budget/ObjetivoPage';
+import { objetivoDesdePlantillas } from '#components/mobile/budget/objetivos';
 import { Notes } from '#components/Notes';
 import { useCategory } from '#hooks/useCategory';
 import { useCategoryGroup } from '#hooks/useCategoryGroup';
+import { useFeatureFlag } from '#hooks/useFeatureFlag';
+import { useNavigate } from '#hooks/useNavigate';
 import { useNotes } from '#hooks/useNotes';
 import { usePinnedCategories } from '#hooks/usePinnedCategories';
 import type { Modal as ModalType } from '#modals/modalsSlice';
@@ -41,6 +49,7 @@ type CategoryMenuModalProps = Extract<
 
 export function CategoryMenuModal({
   categoryId,
+  month,
   onSave,
   onEditNotes,
   onDelete,
@@ -54,6 +63,23 @@ export function CategoryMenuModal({
   const originalNotes = useNotes(category.id);
   const { isPinned, togglePinned } = usePinnedCategories();
   const pinned = isPinned(categoryId);
+  const navigate = useNavigate();
+  const goalTemplatesEnabled = useFeatureFlag('goalTemplatesEnabled');
+  const resumenObjetivo = useResumenObjetivo();
+
+  // Resumen del objetivo actual («50,52 € al mes») a partir de goal_def y
+  // la marca de la nota; ver mobile/budget/objetivos.ts.
+  const objetivo = useMemo(() => {
+    if (!category?.goal_def) {
+      return null;
+    }
+    try {
+      const templates = JSON.parse(category.goal_def) as Template[];
+      return objetivoDesdePlantillas(templates, originalNotes);
+    } catch {
+      return 'otro' as const;
+    }
+  }, [category?.goal_def, originalNotes]);
 
   const onRename = newName => {
     if (newName && newName !== category.name) {
@@ -181,6 +207,42 @@ export function CategoryMenuModal({
                   ) : (
                     <Trans>Pin to home</Trans>
                   )}
+                </Button>
+              )}
+              {goalTemplatesEnabled && !category.is_income && (
+                <Button
+                  style={{
+                    ...buttonStyle,
+                    height: 'auto',
+                    minHeight: styles.mobileMinHeight,
+                    padding: '6px 10px',
+                  }}
+                  onPress={() => {
+                    state.close();
+                    void navigate(
+                      `/categories/${category.id}/objetivo?month=${month ?? monthUtils.currentMonth()}`,
+                    );
+                  }}
+                  data-testid="category-objetivo"
+                >
+                  <SvgTarget
+                    width={20}
+                    height={20}
+                    style={{ paddingRight: 5, flexShrink: 0 }}
+                  />
+                  <View style={{ alignItems: 'flex-start', minWidth: 0 }}>
+                    <Trans>Target</Trans>
+                    <Text
+                      style={{
+                        ...styles.smallText,
+                        color: theme.pageTextSubdued,
+                        fontWeight: 400,
+                      }}
+                      data-testid="category-objetivo-resumen"
+                    >
+                      {resumenObjetivo(objetivo)}
+                    </Text>
+                  </View>
                 </Button>
               )}
               {onEditAutomations && (
