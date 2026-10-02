@@ -75,3 +75,36 @@ Lo que **no** cambia:
   `favicon-16x16.png`, `favicon-32x32.png` (solo «€», la carpeta no se lee a ese tamaño) y
   `favicon.ico` (16/32/48). `browserconfig.xml` usa el mismo verde como color de mosaico.
 - Para regenerarlos: `pip install Pillow && python3 docs-vadym/generar-iconos.py`.
+
+## Limpieza de restos de Actual (`MODO_PRESUPUESTO`)
+
+Segundo flag en `packages/desktop-client/src/presupuesto.ts`:
+
+```ts
+export const MODO_PRESUPUESTO = true;
+```
+
+Con `MODO_PRESUPUESTO = false` vuelve el comportamiento original de Actual en todo lo que sigue.
+Además `presupuesto.ts` exporta `appName` («Presupuesto»), `URL_AYUDA` (carpeta `docs-vadym/` del
+repositorio en GitHub) y `urlAyuda(urlUpstream)`, que sustituye los enlaces a `actualbudget.org/docs`.
+
+| Dónde                                                               | Qué se ha ocultado / cambiado                                                                                                                                                                                    |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `manager/WelcomeScreen.tsx`                                         | Sin archivo: pantalla «Presupuesto» con «Importar desde YNAB» (abre el importador nYNAB) y «Empezar de cero». Fuera «Probar la demo», «Conectar a un servidor» y los textos/enlace a la guía de Actual.          |
+| `manager/ServerURL.tsx`, `manager/ManagementApp.tsx`                | La barra «Usando este dispositivo · Configurar sincronización» y «App: v… \| Servidor: …» no salen. Con servidor configurado la barra «Usando servidor: … Cambiar» sí sigue saliendo.                            |
+| `manager/subscribe/Bootstrap.tsx`, `Login.tsx`                      | Textos con `appName`; sin «Probar demo» ni enlace al tour de Actual. El flujo con servidor y contraseña no cambia.                                                                                               |
+| `settings/ServerSettings.tsx` (nuevo), `settings/index.tsx`         | Bloque **Servidor** en Ajustes: cierra el presupuesto y abre `/config-server` (flag de sesión `consumirConfigServidor`). Es la única entrada a la configuración del servidor/clave.                              |
+| `settings/index.tsx`                                                | «Acerca de»: sin aviso de actualización, «Notas de la versión», casillas de actualizaciones y de noticias. Ocultos `AuthSettings` (OpenID/multiusuario) y `BudgetTypeSettings`; el cifrado solo si hay servidor. |
+| `modals/manager/ImportModal.tsx`                                    | Solo **nYNAB** y **Archivo de Presupuesto (.zip)** (copia de «Exportar datos»). YNAB4 oculto.                                                                                                                    |
+| `modals/manager/ImportYNAB5Modal.tsx`                               | La ayuda enlaza a `docs-vadym/importacion-ynab.md`.                                                                                                                                                              |
+| `UpdateNotification.tsx`, `app/appSlice.ts`, `hooks/useNewsFeed.ts` | Sin aviso de «nueva versión de Actual», sin consulta de versiones, sin campana/avisos de noticias ni la petición a GitHub.                                                                                       |
+| `HelpMenu.tsx`                                                      | «Documentación» abre `URL_AYUDA`; fuera «Soporte de la comunidad (Discord)». «Atajos de teclado» se queda: la barra de título (y la ayuda) solo existe en pantallas anchas, no en el móvil.                      |
+| `locale-overrides/es.json`                                          | Textos propios en castellano: «Actual» → «Presupuesto» en las cadenas visibles de upstream y cadenas nuevas.                                                                                                     |
+
+No se ha tocado (a propósito): `components/mobile/*`, `style/themes`, `component-library`. El selector de
+temas de Ajustes (`settings/Themes.tsx`) sigue igual; cuando exista el tema propio habrá que filtrar
+`themeOptions` y quitar «Tema personalizado» ahí. «Funciones experimentales» sigue al final de
+«Avanzado». Exportar, Reparar, Restablecer sincronización y Formato se mantienen.
+
+Para revertir una pieza concreta sin tocar el flag basta quitar su condición `MODO_PRESUPUESTO` en el
+archivo de la tabla.

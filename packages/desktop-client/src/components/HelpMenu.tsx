@@ -12,6 +12,7 @@ import { useToggle } from 'usehooks-ts';
 
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { pushModal } from '#modals/modalsSlice';
+import { MODO_PRESUPUESTO, URL_AYUDA } from '#presupuesto';
 import { useDispatch } from '#redux';
 
 import { useTour } from './tour/TourProvider';
@@ -39,7 +40,10 @@ const getPageDocs = (page: string) => {
 };
 
 function openDocsForCurrentPage() {
-  window.Actual.openURLInBrowser(getPageDocs(window.location.pathname));
+  // Presupuesto: la ayuda es la carpeta docs-vadym del repositorio.
+  window.Actual.openURLInBrowser(
+    MODO_PRESUPUESTO ? URL_AYUDA : getPageDocs(window.location.pathname),
+  );
 }
 
 type HelpMenuItem =
@@ -132,10 +136,14 @@ export const HelpMenu = () => {
               name: 'docs',
               text: t('Documentation'),
             },
-            {
-              name: 'discord',
-              text: t('Community support (Discord)'),
-            },
+            ...(MODO_PRESUPUESTO
+              ? []
+              : [
+                  {
+                    name: 'discord',
+                    text: t('Community support (Discord)'),
+                  },
+                ]),
             { name: 'keyboard-shortcuts', text: t('Keyboard shortcuts') },
             { name: 'start-tour', text: t('Take a tour') },
             ...(showGoalTemplates && page === '/budget'

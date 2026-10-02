@@ -10,6 +10,7 @@ import type { TFunction } from 'i18next';
 import { Link } from '#components/common/Link';
 import { useGlobalPref } from '#hooks/useGlobalPref';
 import { availableLanguages, setI18NextLanguage } from '#i18n';
+import { urlAyuda } from '#presupuesto';
 
 import { Setting } from './UI';
 
@@ -80,7 +81,9 @@ export function LanguageSettings() {
             the instructions{' '}
             <Link
               variant="external"
-              to="https://actualbudget.org/docs/install/build-from-source#translations"
+              to={urlAyuda(
+                'https://actualbudget.org/docs/install/build-from-source#translations',
+              )}
             >
               here
             </Link>{' '}

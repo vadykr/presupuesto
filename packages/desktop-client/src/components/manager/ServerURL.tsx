@@ -1,14 +1,22 @@
 import React from 'react';
-import { Trans } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { Text } from '@actual-app/components/text';
 import { View } from '@actual-app/components/view';
 
 import { Link } from '#components/common/Link';
 import { useServerURL } from '#components/ServerContext';
+import { MODO_PRESUPUESTO } from '#presupuesto';
 
 export function ServerURL() {
+  const { t } = useTranslation();
   const url = useServerURL();
+
+  // Presupuesto: sin servidor no se ofrece «Configurar sincronización» en
+  // primer plano (queda en Ajustes → Servidor).
+  if (MODO_PRESUPUESTO && !url) {
+    return null;
+  }
 
   return (
     <View
@@ -25,9 +33,7 @@ export function ServerURL() {
     >
       <Text>
         {url ? (
-          <Trans>
-            Using server: <strong>{url}</strong>
-          </Trans>
+          <strong>{t('Using server: {{url}}', { url })}</strong>
         ) : (
           <Trans>Using this device only</Trans>
         )}

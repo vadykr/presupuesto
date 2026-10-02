@@ -9,6 +9,7 @@ import { Link } from '#components/common/Link';
 import { useServerURL } from '#components/ServerContext';
 import { useMetadataPref } from '#hooks/useMetadataPref';
 import { pushModal } from '#modals/modalsSlice';
+import { urlAyuda } from '#presupuesto';
 import { useDispatch } from '#redux';
 
 import { Setting } from './UI';
@@ -49,7 +50,9 @@ export function EncryptionSettings() {
         </Trans>{' '}
         <Link
           variant="external"
-          to="https://actualbudget.org/docs/getting-started/sync/#end-to-end-encryption"
+          to={urlAyuda(
+            'https://actualbudget.org/docs/getting-started/sync/#end-to-end-encryption',
+          )}
           linkColor="purple"
         >
           <Trans>Learn more</Trans>
@@ -73,7 +76,7 @@ export function EncryptionSettings() {
         </Trans>{' '}
         <Link
           variant="external"
-          to="https://actualbudget.org/docs/config/https"
+          to={urlAyuda('https://actualbudget.org/docs/config/https')}
           linkColor="purple"
         >
           <Trans>Learn more</Trans>
@@ -106,7 +109,9 @@ export function EncryptionSettings() {
         </Trans>{' '}
         <Link
           variant="external"
-          to="https://actualbudget.org/docs/getting-started/sync/#end-to-end-encryption"
+          to={urlAyuda(
+            'https://actualbudget.org/docs/getting-started/sync/#end-to-end-encryption',
+          )}
           linkColor="purple"
         >
           <Trans>Learn more</Trans>
@@ -129,7 +134,9 @@ export function EncryptionSettings() {
         </Trans>{' '}
         <Link
           variant="external"
-          to="https://actualbudget.org/docs/getting-started/sync/#end-to-end-encryption"
+          to={urlAyuda(
+            'https://actualbudget.org/docs/getting-started/sync/#end-to-end-encryption',
+          )}
           linkColor="purple"
         >
           <Trans>Learn more</Trans>

@@ -7,6 +7,7 @@ import { send } from '@actual-app/core/platform/client/connection';
 
 import { Link } from '#components/common/Link';
 import { useSyncedPref } from '#hooks/useSyncedPref';
+import { urlAyuda } from '#presupuesto';
 
 import { Setting } from './UI';
 
@@ -48,7 +49,9 @@ export function BudgetTypeSettings() {
         </Trans>{' '}
         <Link
           variant="external"
-          to="https://actualbudget.org/docs/getting-started/envelope-budgeting"
+          to={urlAyuda(
+            'https://actualbudget.org/docs/getting-started/envelope-budgeting',
+          )}
           linkColor="purple"
         >
           <Trans>Learn more</Trans>
@@ -63,7 +66,9 @@ export function BudgetTypeSettings() {
         </Trans>{' '}
         <Link
           variant="external"
-          to="https://actualbudget.org/docs/getting-started/tracking-budget"
+          to={urlAyuda(
+            'https://actualbudget.org/docs/getting-started/tracking-budget',
+          )}
           linkColor="purple"
         >
           <Trans>Learn more</Trans>

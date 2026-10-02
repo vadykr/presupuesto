@@ -5,6 +5,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 
 import { pushModal } from '#modals/modalsSlice';
 import { loadPrefs } from '#prefs/prefsSlice';
+import { MODO_PRESUPUESTO } from '#presupuesto';
 import { createAppAsyncThunk } from '#redux';
 import { getUploadError } from '#util/error';
 import { getIsOutdated, getLatestVersion } from '#util/versions';
@@ -108,7 +109,12 @@ export const getLatestAppVersion = createAppAsyncThunk(
   `${sliceName}/getLatestAppVersion`,
   async (_, { dispatch, getState }) => {
     const globalPrefs = getState().prefs.global;
-    if (globalPrefs && globalPrefs.notifyWhenUpdateIsAvailable) {
+    // Presupuesto: no se consulta si hay una versión nueva de Actual.
+    if (
+      !MODO_PRESUPUESTO &&
+      globalPrefs &&
+      globalPrefs.notifyWhenUpdateIsAvailable
+    ) {
       const theLatestVersion = await getLatestVersion();
       dispatch(
         setAppState({

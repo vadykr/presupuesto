@@ -24,6 +24,7 @@ import {
   useLoginMethod,
 } from '#components/ServerContext';
 import { useNavigate } from '#hooks/useNavigate';
+import { appName } from '#presupuesto';
 import { useDispatch } from '#redux';
 import { loggedIn } from '#users/usersSlice';
 
@@ -356,7 +357,7 @@ export function Login() {
 
   return (
     <View style={{ maxWidth: 450, marginTop: -30, color: theme.pageText }}>
-      <Title text={t('Sign in to this Actual instance')} />
+      <Title text={t('Sign in to {{appName}}', { appName })} />
 
       {loginMethods?.length > 1 && (
         <Text

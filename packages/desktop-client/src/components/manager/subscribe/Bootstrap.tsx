@@ -13,6 +13,7 @@ import { createBudget } from '#budgetfiles/budgetfilesSlice';
 import { Link } from '#components/common/Link';
 import { useRefreshLoginMethods } from '#components/ServerContext';
 import { useNavigate } from '#hooks/useNavigate';
+import { appName, MODO_PRESUPUESTO } from '#presupuesto';
 import { useDispatch } from '#redux';
 
 import { Title, useBootstrapped } from './common';
@@ -68,24 +69,26 @@ export function Bootstrap() {
 
   return (
     <View style={{ maxWidth: 450 }}>
-      <Title text={t('Welcome to Actual!')} />
+      <Title text={t('Welcome to {{appName}}!', { appName })} />
       <Paragraph style={{ fontSize: 16, color: theme.pageTextDark }}>
         <Trans>
-          Actual is a super fast privacy-focused app for managing your finances.
-          To secure your data, you'll need to set a password for your server.
+          {{ appName }} is a privacy-focused app for managing your finances. To
+          secure your data, you'll need to set a password for your server.
         </Trans>
       </Paragraph>
 
-      <Paragraph isLast style={{ fontSize: 16, color: theme.pageTextDark }}>
-        <Trans>
-          Consider opening{' '}
-          <Link variant="external" to="https://actualbudget.org/docs/tour/">
-            our tour
-          </Link>{' '}
-          in a new tab for some guidance on what to do when you've set your
-          password.
-        </Trans>
-      </Paragraph>
+      {!MODO_PRESUPUESTO && (
+        <Paragraph isLast style={{ fontSize: 16, color: theme.pageTextDark }}>
+          <Trans>
+            Consider opening{' '}
+            <Link variant="external" to="https://actualbudget.org/docs/tour/">
+              our tour
+            </Link>{' '}
+            in a new tab for some guidance on what to do when you've set your
+            password.
+          </Trans>
+        </Paragraph>
+      )}
 
       {error && (
         <Text
@@ -102,17 +105,19 @@ export function Bootstrap() {
 
       <ConfirmPasswordForm
         buttons={
-          <Button
-            variant="bare"
-            style={{
-              fontSize: 15,
-              color: theme.pageTextLink,
-              marginRight: 15,
-            }}
-            onPress={onDemo}
-          >
-            {t('Try Demo')}
-          </Button>
+          MODO_PRESUPUESTO ? undefined : (
+            <Button
+              variant="bare"
+              style={{
+                fontSize: 15,
+                color: theme.pageTextLink,
+                marginRight: 15,
+              }}
+              onPress={onDemo}
+            >
+              {t('Try Demo')}
+            </Button>
+          )
         }
         onSetPassword={onSetPassword}
         onError={setError}

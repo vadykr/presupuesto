@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { newsQueries } from '#news/queries';
 import type { NewsEntry } from '#news/types';
 import { getNewestDate, getUnseenEntries } from '#news/utils';
+import { MODO_PRESUPUESTO } from '#presupuesto';
 
 import { useGlobalPref } from './useGlobalPref';
 
@@ -12,7 +13,8 @@ export function useNewsFeed() {
   // The setting (on by default) lets the user opt out of the feed and of the
   // request it makes to GitHub.
   const [showNewsFeed] = useGlobalPref('showNewsFeed');
-  const isEnabled = Boolean(showNewsFeed);
+  // Presupuesto: sin noticias de Actual (ni la petición a GitHub).
+  const isEnabled = !MODO_PRESUPUESTO && Boolean(showNewsFeed);
   const [lastSeenNewsDate, setLastSeenNewsDate] =
     useGlobalPref('lastSeenNewsDate');
 
