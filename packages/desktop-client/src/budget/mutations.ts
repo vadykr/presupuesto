@@ -603,6 +603,13 @@ export type ApplyBudgetActionPayload =
       };
     }
   | {
+      type: 'budget-amounts';
+      month: string;
+      args: {
+        amounts: { category: CategoryEntity['id']; amount: number }[];
+      };
+    }
+  | {
       type: 'copy-last';
       month: string;
       args?: never;
@@ -771,6 +778,12 @@ export function useBudgetActions() {
             month,
             category: args.category,
             amount: args.amount,
+          });
+          return null;
+        case 'budget-amounts':
+          await send('budget/budget-amounts', {
+            month,
+            amounts: args.amounts,
           });
           return null;
         case 'copy-last':
