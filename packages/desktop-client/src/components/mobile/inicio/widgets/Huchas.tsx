@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { SvgPiggyBank } from '@actual-app/components/icons/v1';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { View } from '@actual-app/components/view';
@@ -12,14 +11,12 @@ import type {
   TransactionEntity,
 } from '@actual-app/core/types/models';
 
-import {
-  CajaIcono,
-  EstadoVacio,
-  Tarjeta,
-} from '#components/mobile/inicio/comunes';
+import { Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
 import { estilos } from '#components/mobile/inicio/inicio.estilos';
 import { useCuentasEspeciales } from '#components/mobile/inicio/widgets/useCuentasEspeciales';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { IconoCaja } from '#components/mobile/ui/IconoCaja';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useDateFormat } from '#hooks/useDateFormat';
 import { useFormat } from '#hooks/useFormat';
@@ -37,12 +34,23 @@ export function Huchas({ tamano }: PropsWidget) {
   const { huchas, cargando } = useCuentasEspeciales();
 
   return (
-    <Tarjeta titulo={t('Piggy banks')} data-testid="inicio-huchas">
-      {huchas.length === 0
-        ? !cargando && (
-            <EstadoVacio texto={t('No off-budget accounts to show.')} />
-          )
-        : huchas.map((h, i) => (
+    <Tarjeta
+      titulo={t('Piggy banks')}
+      data-testid="inicio-huchas"
+      sinTarjeta={huchas.length === 0}
+      relleno={0}
+    >
+      {huchas.length === 0 ? (
+        !cargando && (
+          <EstadoVacio
+            ilustracion="barquito"
+            titulo={t('No piggy banks')}
+            texto={t('No off-budget accounts to show.')}
+          />
+        )
+      ) : (
+        <View style={{ padding: '4px 14px' }}>
+          {huchas.map((h, i) => (
             <FilaHucha
               key={h.id}
               account={h}
@@ -50,6 +58,8 @@ export function Huchas({ tamano }: PropsWidget) {
               separada={i > 0}
             />
           ))}
+        </View>
+      )}
     </Tarjeta>
   );
 }
@@ -103,16 +113,15 @@ function FilaHucha({
       style={{
         ...estilos.fila,
         ...(separada ? estilos.filaSeparada : null),
-        justifyContent: 'flex-start',
-        textAlign: 'left',
+        ...estilos.filaBoton,
         padding: '8px 0',
-        borderRadius: 0,
-        width: '100%',
       }}
     >
-      <CajaIcono estado="bien">
-        <SvgPiggyBank width={18} height={18} />
-      </CajaIcono>
+      <IconoCaja
+        icono="piggy"
+        tono="ok"
+        size={tamano === 'compacto' ? 36 : 44}
+      />
       <View style={estilos.filaTexto}>
         <TextOneLine style={estilos.filaTitulo}>{account.name}</TextOneLine>
         {tamano !== 'compacto' && ultimo && (

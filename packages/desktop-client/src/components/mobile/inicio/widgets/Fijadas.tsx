@@ -13,17 +13,21 @@ import { useDatosObjetivos } from '#components/mobile/budget/useDatosObjetivos';
 import { avanceFijada, iconoDeNombre } from '#components/mobile/inicio/avance';
 import type { Avance } from '#components/mobile/inicio/avance';
 import {
+  AccionTexto,
   Anillo,
-  BarraProgreso,
-  EstadoVacio,
-  Pildora,
   Tarjeta,
 } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
 import {
   coloresEstado,
   estilos,
+  pildoraDeEstado,
 } from '#components/mobile/inicio/inicio.estilos';
+import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { Pildora } from '#components/mobile/ui/Pildora';
+import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
+import { color, movimiento } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useCategories } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
@@ -69,24 +73,24 @@ export function Fijadas({ tamano, month }: PropsWidget) {
     <Tarjeta
       titulo={t('Pinned')}
       data-testid="inicio-fijadas"
+      // Las baldosas ya son tarjetas; la lista grande va en una sola.
+      sinTarjeta={fijadas.length === 0 || tamano !== 'grande'}
+      relleno={0}
       accion={
-        <Button
-          variant="bare"
-          onPress={() => void navigate('/budget')}
-          style={estilos.botonCabecera}
-        >
+        <AccionTexto onPress={() => void navigate('/budget')}>
           <Trans>Edit</Trans>
-        </Button>
+        </AccionTexto>
       }
     >
       {fijadas.length === 0 ? (
         <EstadoVacio
+          titulo={t('Nothing pinned yet')}
           texto={t(
             'No pinned categories yet. Open a category menu in the Budget tab and choose "Pin to home".',
           )}
         />
       ) : tamano === 'grande' ? (
-        <View>
+        <View style={{ padding: '4px 14px' }}>
           {fijadas.map((c, i) => (
             <FilaFijada
               key={c.id}
@@ -168,20 +172,30 @@ function BaldosaFijada({
       aria-label={t('Open {{categoryName}} category', {
         categoryName: category.name,
       })}
-      style={{ ...estilos.fijadaBaldosa, padding: compacta ? '8px 4px' : 12 }}
+      style={({ isPressed }) => ({
+        ...estiloTarjeta('normal', 0),
+        ...estilos.fijadaBaldosa,
+        ...(compacta && { minHeight: 0, padding: '10px 8px', gap: 6 }),
+        color: color.fg,
+        transform: isPressed ? 'scale(0.97)' : undefined,
+        transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}`,
+      })}
     >
       <Anillo
         fraccion={avance.fraccion}
         estado={avance.estado}
-        tamano={compacta ? 40 : 58}
-        grosor={compacta ? 4 : 6}
+        tamano={compacta ? 36 : 44}
+        grosor={compacta ? 3.5 : 4.5}
         etiqueta={textoAvance}
       >
         <IconoCategoria nombre={category.name} />
       </Anillo>
       <TextOneLine style={estilos.fijadaNombre}>{nombre}</TextOneLine>
       <PrivacyFilter>
-        <Pildora estado={avance.estado}>
+        <Pildora
+          estado={pildoraDeEstado[avance.estado]}
+          style={compacta ? { minHeight: 24, fontSize: 12 } : undefined}
+        >
           {format(datos.balance, 'financial')}
         </Pildora>
       </PrivacyFilter>
@@ -216,18 +230,15 @@ function FilaFijada({
       style={{
         ...estilos.fila,
         ...(separada ? estilos.filaSeparada : null),
-        justifyContent: 'flex-start',
-        textAlign: 'left',
-        padding: '8px 0',
-        borderRadius: 0,
-        width: '100%',
+        ...estilos.filaBoton,
+        padding: '10px 0',
       }}
     >
       <Anillo
         fraccion={avance.fraccion}
         estado={avance.estado}
-        tamano={48}
-        grosor={5}
+        tamano={44}
+        grosor={4.5}
         etiqueta={textoAvance}
       >
         <IconoCategoria nombre={category.name} />
@@ -243,18 +254,14 @@ function FilaFijada({
         >
           <TextOneLine style={estilos.filaTitulo}>{nombre}</TextOneLine>
           <PrivacyFilter>
-            <Pildora estado={avance.estado}>
+            <Pildora estado={pildoraDeEstado[avance.estado]}>
               {format(datos.balance, 'financial')}
             </Pildora>
           </PrivacyFilter>
         </View>
         <BarraProgreso
-          partes={[
-            {
-              fraccion: avance.fraccion,
-              color: coloresEstado[avance.estado].color,
-            },
-          ]}
+          valor={avance.fraccion}
+          color={coloresEstado[avance.estado].color}
         />
         <PrivacyFilter>
           <Text style={estilos.filaSub}>{textoAvance}</Text>

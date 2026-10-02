@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 
-import { Card } from '@actual-app/components/card';
+import { Button } from '@actual-app/components/button';
 import { Text } from '@actual-app/components/text';
 import { View } from '@actual-app/components/view';
-import { css, keyframes } from '@emotion/css';
+import { css } from '@emotion/css';
+
+import { TituloSeccion } from '#components/mobile/ui/Cabecera';
+import { Tarjeta as TarjetaUi } from '#components/mobile/ui/Tarjeta';
+import { color } from '#components/mobile/ui/tokens';
 
 import type { EstadoAvance } from './avance';
 import {
-  colores,
   coloresEstado,
   estilos,
   sinMovimiento,
@@ -22,26 +25,85 @@ export type PropsWidget = {
   month: string;
 };
 
-/** Tarjeta de widget: título en versalitas, acción opcional a la derecha. */
+/**
+ * Bloque de un widget del sistema A: título de sección (13/800) con acción
+ * opcional encima de una tarjeta elevada. Con `cabecera="tarjeta"` el título
+ * va dentro de la tarjeta (Cuenta común, Resumen). `sinTarjeta` deja el
+ * contenido suelto bajo el título (las baldosas de Fijadas ya son tarjetas).
+ */
 export function Tarjeta({
   titulo,
   accion,
   children,
+  cabecera = 'seccion',
+  sinTarjeta = false,
+  relleno,
+  onPress,
+  'aria-label': ariaLabel,
   'data-testid': testId,
 }: {
-  titulo: ReactNode;
+  titulo?: ReactNode;
   accion?: ReactNode;
   children: ReactNode;
+  cabecera?: 'seccion' | 'tarjeta';
+  sinTarjeta?: boolean;
+  relleno?: number;
+  onPress?: () => void;
+  'aria-label'?: string;
   'data-testid'?: string;
 }) {
+  const fuera = cabecera === 'seccion' && (titulo != null || accion != null);
+  const dentro = cabecera === 'tarjeta' && (titulo != null || accion != null);
   return (
-    <Card style={estilos.tarjeta} data-testid={testId}>
-      <View style={estilos.tarjetaCabecera}>
-        <Text style={estilos.tarjetaTitulo}>{titulo}</Text>
-        {accion}
-      </View>
-      <View style={estilos.tarjetaCuerpo}>{children}</View>
-    </Card>
+    <View style={estilos.widget} data-testid={testId}>
+      {fuera && (
+        <TituloSeccion accion={accion} style={estilos.tituloSeccion}>
+          {titulo}
+        </TituloSeccion>
+      )}
+      {sinTarjeta ? (
+        children
+      ) : (
+        <TarjetaUi
+          relleno={relleno}
+          onPress={onPress}
+          aria-label={ariaLabel}
+          style={estilos.tarjetaCuerpo}
+        >
+          {dentro && (
+            <View style={estilos.tarjetaCabecera}>
+              <Text style={estilos.tarjetaTitulo}>{titulo}</Text>
+              {accion}
+            </View>
+          )}
+          {children}
+        </TarjetaUi>
+      )}
+    </View>
+  );
+}
+
+/** Acción de texto en color de acento («Editar», «Ver», «Categorías»). */
+export function AccionTexto({
+  children,
+  style,
+  ...props
+}: { children: ReactNode; style?: CSSProperties } & Omit<
+  ComponentProps<typeof Button>,
+  'variant' | 'style' | 'children'
+>) {
+  return (
+    <Button
+      variant="bare"
+      {...props}
+      style={({ isPressed }) => ({
+        ...estilos.accionTexto,
+        opacity: isPressed ? 0.6 : 1,
+        ...style,
+      })}
+    >
+      {children}
+    </Button>
   );
 }
 
@@ -67,47 +129,6 @@ export function Fila({
   );
 }
 
-/** Icono dentro de un cuadro de color suave (pieza física de la tarjeta). */
-export function CajaIcono({
-  estado = 'neutro',
-  children,
-}: {
-  estado?: EstadoAvance;
-  children: ReactNode;
-}) {
-  const { color, fondo } = coloresEstado[estado];
-  return (
-    <View style={{ ...estilos.cajaIcono, color, backgroundColor: fondo }}>
-      {children}
-    </View>
-  );
-}
-
-export function Pildora({
-  estado,
-  children,
-  style,
-}: {
-  estado: EstadoAvance;
-  children: ReactNode;
-  style?: CSSProperties;
-}) {
-  const { color, fondo } = coloresEstado[estado];
-  return (
-    <Text
-      style={{
-        ...estilos.pildora,
-        color,
-        backgroundColor: fondo,
-        transition: 'color 180ms, background-color 180ms',
-        ...style,
-      }}
-    >
-      {children}
-    </Text>
-  );
-}
-
 /**
  * Devuelve 0 en el primer pintado y el valor real en el siguiente, para que
  * la barra o el anillo «se llenen» al aparecer con una transición CSS.
@@ -125,27 +146,21 @@ const claseTransicion = css({
   [sinMovimiento]: { transition: 'none !important' },
 });
 
-/** Barra de progreso gruesa y redonda, con pista visible. */
-export function BarraProgreso({
+/**
+ * Barra de 8 px con varias partes seguidas (Resumen: gastado + asignado).
+ * Para un solo valor, `BarraProgreso` de `ui`.
+ */
+export function BarraPartes({
   partes,
-  alto,
   etiqueta,
 }: {
   /** Fracciones 0..1 (se recortan) con su color, de izquierda a derecha. */
   partes: { fraccion: number; color: string }[];
-  alto?: number;
   etiqueta?: string;
 }) {
   const llenado = useLlenado(1);
   return (
-    <View
-      role="img"
-      aria-label={etiqueta}
-      style={{
-        ...estilos.barraPista,
-        ...(alto ? { height: alto, borderRadius: alto / 2 } : null),
-      }}
-    >
+    <View role="img" aria-label={etiqueta} style={estilos.barraPista}>
       {partes.map((p, i) => (
         <View
           key={i}
@@ -163,14 +178,15 @@ export function BarraProgreso({
 }
 
 /**
- * Anillo de avance con el emoji (o la inicial) dentro. El color va por
- * estado y el trazo se llena al aparecer.
+ * Anillo de avance con el emoji (o la inicial, o el %) dentro: pista
+ * `surface-3`, trazo del color de estado, centro en su color suave. El trazo
+ * se llena al aparecer.
  */
 export function Anillo({
   fraccion,
   estado,
-  tamano = 56,
-  grosor = 6,
+  tamano = 48,
+  grosor = 5,
   children,
   etiqueta,
 }: {
@@ -184,7 +200,7 @@ export function Anillo({
   const valor = useLlenado(Math.max(0, Math.min(1, fraccion)));
   const r = (tamano - grosor) / 2;
   const circunferencia = 2 * Math.PI * r;
-  const { color, fondo } = coloresEstado[estado];
+  const { color: trazo, fondo } = coloresEstado[estado];
   return (
     <View
       role="img"
@@ -210,7 +226,7 @@ export function Anillo({
           cy={tamano / 2}
           r={r}
           fill={fondo}
-          stroke={colores.pista}
+          stroke={color.surface3}
           strokeWidth={grosor}
         />
         <circle
@@ -219,7 +235,7 @@ export function Anillo({
           cy={tamano / 2}
           r={r}
           fill="none"
-          stroke={color}
+          stroke={trazo}
           strokeWidth={grosor}
           strokeLinecap="round"
           strokeDasharray={circunferencia}
@@ -234,68 +250,14 @@ export function Anillo({
       <View
         style={{
           position: 'relative',
-          fontSize: tamano * 0.38,
+          fontSize: Math.round(tamano * 0.4),
           lineHeight: 1,
           fontWeight: 800,
-          color,
+          color: trazo,
         }}
       >
         {children}
       </View>
-    </View>
-  );
-}
-
-const mecer = keyframes({
-  '0%, 100%': { transform: 'rotate(-3deg)' },
-  '50%': { transform: 'rotate(3deg)' },
-});
-
-/**
- * Ilustración sutil para «Todo en orden» y los estados vacíos: un barquito
- * de vela sobre dos olas (guiño discreto, nunca en los números).
- */
-export function Barquito({ tamano = 64 }: { tamano?: number }) {
-  return (
-    <svg
-      width={tamano}
-      height={tamano * 0.75}
-      viewBox="0 0 64 48"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className={css({
-        animation: `${mecer} 2.4s ease-in-out infinite`,
-        transformOrigin: '50% 80%',
-        [sinMovimiento]: { animation: 'none' },
-      })}
-    >
-      <path d="M32 6v24" />
-      <path d="M32 9c7 3 11 9 12 17H32" />
-      <path d="M32 13c-5 3-8 8-9 13h9" />
-      <path d="M18 31h28l-4 6H22z" />
-      <path d="M6 42c4 0 4-2 8-2s4 2 8 2 4-2 8-2 4 2 8 2 4-2 8-2 4 2 8 2" />
-    </svg>
-  );
-}
-
-export function EstadoVacio({
-  texto,
-  children,
-}: {
-  texto: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <View style={estilos.vacio}>
-      <View style={{ color: colores.textoSuave, opacity: 0.7 }}>
-        <Barquito />
-      </View>
-      <Text style={estilos.vacioTexto}>{texto}</Text>
-      {children}
     </View>
   );
 }

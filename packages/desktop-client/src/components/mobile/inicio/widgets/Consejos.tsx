@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
-import { SvgLightBulb } from '@actual-app/components/icons/v1';
 import { Text } from '@actual-app/components/text';
 import { View } from '@actual-app/components/view';
 
-import { CajaIcono, Fila, Tarjeta } from '#components/mobile/inicio/comunes';
+import { AccionTexto, Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
 import { estilos } from '#components/mobile/inicio/inicio.estilos';
+import { IconoCaja } from '#components/mobile/ui/IconoCaja';
+import { color, movimiento, radio } from '#components/mobile/ui/tokens';
 import { useNavigate } from '#hooks/useNavigate';
 
 /**
@@ -132,32 +132,64 @@ function ConsejosConDatos({
       titulo={t('Advice')}
       data-testid="inicio-consejos"
       accion={
-        <Button
-          variant="bare"
-          onPress={() => void navigate(RUTA_ANALISIS)}
-          style={estilos.botonCabecera}
-        >
+        <AccionTexto onPress={() => void navigate(RUTA_ANALISIS)}>
           <Trans>See all</Trans>
-        </Button>
+        </AccionTexto>
       }
     >
-      <Fila>
-        <CajaIcono estado={total > 0 ? 'aviso' : 'bien'}>
-          <SvgLightBulb width={18} height={18} />
-        </CajaIcono>
-        <View style={estilos.filaTexto}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
+          <IconoCaja
+            icono="bulb"
+            tono={total > 0 ? 'aviso' : 'ok'}
+            size={tamano === 'compacto' ? 32 : 36}
+          />
           <Text style={estilos.filaTitulo}>
             {cargando
               ? '…'
               : t('{{count}} piece of advice this month', { count: total })}
           </Text>
-          {tamano !== 'compacto' && primero && !cargando && (
-            <Text style={{ ...estilos.filaSub, lineHeight: 1.45 }}>
-              {primero}
-            </Text>
-          )}
         </View>
-      </Fila>
+        {!cargando && total > 1 && <Puntos total={total} />}
+      </View>
+      {tamano !== 'compacto' && primero && !cargando && (
+        <Text style={estilos.consejoTexto}>{primero}</Text>
+      )}
     </Tarjeta>
+  );
+}
+
+/** Puntos de paginación como en la maqueta: el primero, el que se enseña. */
+function Puntos({ total }: { total: number }) {
+  const puntos = Math.min(total, 5);
+  return (
+    <View aria-hidden style={{ flexDirection: 'row', gap: 6, flexShrink: 0 }}>
+      {Array.from({ length: puntos }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            width: i === 0 ? 14 : 6,
+            height: 6,
+            borderRadius: radio.pildora,
+            backgroundColor: i === 0 ? color.accent : color.surface3,
+            transition: `width ${movimiento.pildora}ms`,
+          }}
+        />
+      ))}
+    </View>
   );
 }

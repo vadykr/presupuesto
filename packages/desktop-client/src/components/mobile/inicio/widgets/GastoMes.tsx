@@ -1,6 +1,5 @@
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { View } from '@actual-app/components/view';
@@ -11,9 +10,10 @@ import { PaletaInformes } from '#components/mobile/informes/paleta';
 import { useCategoriasExcluidas } from '#components/mobile/informes/useCategoriasExcluidas';
 import { useColoresCategorias } from '#components/mobile/informes/useColoresCategorias';
 import { useTotalesMensuales } from '#components/mobile/informes/useTotalesMensuales';
-import { EstadoVacio, Fila, Tarjeta } from '#components/mobile/inicio/comunes';
+import { AccionTexto, Fila, Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
 import { estilos } from '#components/mobile/inicio/inicio.estilos';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFormat } from '#hooks/useFormat';
 import { useNavigate } from '#hooks/useNavigate';
@@ -41,24 +41,29 @@ export function GastoMes({ tamano, month }: PropsWidget) {
       ? t('Uncategorized')
       : (categorias.get(id)?.nombre ?? t('Unknown'));
 
+  const vacio = !isLoading && desglose.total === 0;
+
   return (
     <Tarjeta
       titulo={t('Spending this month')}
       data-testid="inicio-gasto-mes"
+      sinTarjeta={vacio}
       accion={
-        <Button
-          variant="bare"
+        <AccionTexto
           onPress={() => void navigate(`/reports/gasto?mes=${month}`)}
-          style={estilos.botonCabecera}
         >
           <Trans>See</Trans>
-        </Button>
+        </AccionTexto>
       }
     >
       {/* Variables de color de categoría (las mismas que en Informes). */}
       <PaletaInformes />
-      {!isLoading && desglose.total === 0 ? (
-        <EstadoVacio texto={t('No spending yet this month.')} />
+      {vacio ? (
+        <EstadoVacio
+          ilustracion="barquito"
+          titulo={t('No spending yet')}
+          texto={t('No spending yet this month.')}
+        />
       ) : (
         <>
           <PrivacyFilter>
@@ -69,7 +74,7 @@ export function GastoMes({ tamano, month }: PropsWidget) {
           {tamano !== 'compacto' && (
             <BarraApilada
               total={desglose.total}
-              alto={10}
+              alto={12}
               segmentos={desglose.filas.map(f => ({
                 clave: f.categoria ?? 'sin-categoria',
                 valor: f.importe,
@@ -84,7 +89,7 @@ export function GastoMes({ tamano, month }: PropsWidget) {
                 <Fila
                   key={f.categoria ?? 'sin'}
                   separada
-                  style={{ minHeight: 38 }}
+                  style={{ minHeight: 44 }}
                 >
                   <View
                     style={{
@@ -96,7 +101,7 @@ export function GastoMes({ tamano, month }: PropsWidget) {
                     }}
                   />
                   <TextOneLine
-                    style={{ ...estilos.filaTitulo, flex: 1, fontWeight: 600 }}
+                    style={{ ...estilos.filaTitulo, flex: 1, fontWeight: 700 }}
                   >
                     {nombreDe(f.categoria)}
                   </TextOneLine>
