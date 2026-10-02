@@ -89,6 +89,11 @@ export function avanceFijada(datos: DatosCategoriaMes): Avance {
   };
 }
 
+/** Porcentaje entero 0..100 del avance (tope 100 %; 0 sin datos). */
+export function porcentajeAvance(avance: Avance): number {
+  return Math.round(recortar(avance.fraccion) * 100);
+}
+
 /**
  * Separa un emoji inicial del nombre («💳 Visa» → { emoji: '💳', nombre:
  * 'Visa' }). Sin emoji, la inicial hace de icono.

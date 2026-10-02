@@ -5,12 +5,19 @@ import { Button } from '@actual-app/components/button';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { View } from '@actual-app/components/view';
+import * as monthUtils from '@actual-app/core/shared/months';
 import { groupById } from '@actual-app/core/shared/util';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
+import { plantillasDe } from '#components/mobile/anual/useAnual';
+import { objetivoDesdePlantillas } from '#components/mobile/budget/objetivos';
 import type { DatosCategoriaMes } from '#components/mobile/budget/objetivos';
 import { useDatosObjetivos } from '#components/mobile/budget/useDatosObjetivos';
-import { avanceFijada, iconoDeNombre } from '#components/mobile/inicio/avance';
+import {
+  avanceFijada,
+  iconoDeNombre,
+  porcentajeAvance,
+} from '#components/mobile/inicio/avance';
 import type { Avance } from '#components/mobile/inicio/avance';
 import {
   AccionTexto,
@@ -31,7 +38,9 @@ import { color, movimiento } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useCategories } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
+import { useLocale } from '#hooks/useLocale';
 import { useNavigate } from '#hooks/useNavigate';
+import { useNotes } from '#hooks/useNotes';
 import { usePinnedCategories } from '#hooks/usePinnedCategories';
 
 const SIN_DATOS: DatosCategoriaMes = {
@@ -47,8 +56,10 @@ const SIN_DATOS: DatosCategoriaMes = {
  * ve el avance (anillo con el emoji dentro, color por estado, se llena al
  * entrar) y el disponible como píldora.
  *
- * Tamaños: compacto = anillos pequeños; normal = baldosas de tres en fila;
- * grande = lista con barra y «X de Y».
+ * Tamaños: compacto = anillos pequeños; grande = lista con barra y «X de Y»;
+ * normal = depende de cuántas haya: una = tarjeta héroe a ancho completo
+ * (anillo grande con el porcentaje), dos = dos tarjetas con anillo mediano,
+ * tres o más = baldosas de tres en fila (anillo con el porcentaje dentro).
  */
 export function Fijadas({ tamano, month }: PropsWidget) {
   const { t } = useTranslation();
@@ -102,14 +113,29 @@ export function Fijadas({ tamano, month }: PropsWidget) {
             />
           ))}
         </View>
+      ) : tamano === 'normal' && fijadas.length === 1 ? (
+        <HeroeFijada
+          category={fijadas[0]}
+          datos={datos.get(fijadas[0].id) ?? SIN_DATOS}
+          onPress={() => abrir(fijadas[0].id)}
+        />
       ) : (
-        <View style={estilos.fijadasRejilla}>
+        <View
+          data-testid="fijadas-rejilla"
+          data-columnas={tamano === 'normal' && fijadas.length === 2 ? 2 : 3}
+          style={
+            tamano === 'normal' && fijadas.length === 2
+              ? estilos.fijadasMitades
+              : estilos.fijadasRejilla
+          }
+        >
           {fijadas.map(c => (
             <BaldosaFijada
               key={c.id}
               category={c}
               datos={datos.get(c.id) ?? SIN_DATOS}
               compacta={tamano === 'compacto'}
+              mediana={tamano === 'normal' && fijadas.length === 2}
               onPress={() => abrir(c.id)}
             />
           ))}
@@ -144,6 +170,21 @@ function useTextoAvance(avance: Avance): string {
   }
 }
 
+function useTextoPorcentaje(avance: Avance): string {
+  const { t } = useTranslation();
+  return t('{{percent}}%', { percent: porcentajeAvance(avance) });
+}
+
+/** Emoji pequeño delante del nombre (sin emoji, la inicial). */
+function NombreConEmoji({ nombre: completo }: { nombre: string }) {
+  const { nombre } = iconoDeNombre(completo);
+  return (
+    <TextOneLine style={estilos.fijadaNombre}>
+      <IconoCategoria nombre={completo} /> {nombre}
+    </TextOneLine>
+  );
+}
+
 function IconoCategoria({ nombre }: { nombre: string }) {
   const { emoji, inicial } = iconoDeNombre(nombre);
   return <span aria-hidden>{emoji ?? inicial}</span>;
@@ -153,11 +194,13 @@ function BaldosaFijada({
   category,
   datos,
   compacta,
+  mediana = false,
   onPress,
 }: {
   category: CategoryEntity;
   datos: DatosCategoriaMes;
   compacta: boolean;
+  mediana?: boolean;
   onPress: () => void;
 }) {
   const { t } = useTranslation();
@@ -165,6 +208,7 @@ function BaldosaFijada({
   const avance = avanceFijada(datos);
   const textoAvance = useTextoAvance(avance);
   const { nombre } = iconoDeNombre(category.name);
+  const porcentaje = useTextoPorcentaje(avance);
 
   return (
     <Button
@@ -185,13 +229,29 @@ function BaldosaFijada({
       <Anillo
         fraccion={avance.fraccion}
         estado={avance.estado}
-        tamano={compacta ? 36 : 44}
-        grosor={compacta ? 3.5 : 4.5}
+        tamano={compacta ? 36 : mediana ? 96 : 56}
+        grosor={compacta ? 3.5 : mediana ? 9 : 5}
         etiqueta={textoAvance}
       >
-        <IconoCategoria nombre={category.name} />
+        {compacta ? (
+          <IconoCategoria nombre={category.name} />
+        ) : (
+          <span
+            data-testid="fijada-porcentaje"
+            style={{
+              ...estilos.fijadaPorcentaje,
+              fontSize: mediana ? 22 : 13,
+            }}
+          >
+            {porcentaje}
+          </span>
+        )}
       </Anillo>
-      <TextOneLine style={estilos.fijadaNombre}>{nombre}</TextOneLine>
+      {compacta ? (
+        <TextOneLine style={estilos.fijadaNombre}>{nombre}</TextOneLine>
+      ) : (
+        <NombreConEmoji nombre={category.name} />
+      )}
       <PrivacyFilter>
         <Pildora
           estado={pildoraDeEstado[avance.estado]}
@@ -267,6 +327,133 @@ function FilaFijada({
         <PrivacyFilter>
           <Text style={estilos.filaSub}>{textoAvance}</Text>
         </PrivacyFilter>
+      </View>
+    </Button>
+  );
+}
+
+function HeroeFijada({
+  category,
+  datos,
+  onPress,
+}: {
+  category: CategoryEntity;
+  datos: DatosCategoriaMes;
+  onPress: () => void;
+}) {
+  const { t } = useTranslation();
+  const format = useFormat();
+  const locale = useLocale();
+  const avance = avanceFijada(datos);
+  const textoAvance = useTextoAvance(avance);
+  const porcentaje = useTextoPorcentaje(avance);
+  const { nombre } = iconoDeNombre(category.name);
+  const nota = useNotes(category.id);
+  const { color: colorEstado } = coloresEstado[avance.estado];
+
+  const fecha = useMemo(() => {
+    const plantillas = plantillasDe(category.goal_def);
+    if (plantillas.length === 0) {
+      return null;
+    }
+    const objetivo = objetivoDesdePlantillas(plantillas, nota);
+    return objetivo && objetivo !== 'otro' && 'fecha' in objetivo
+      ? monthUtils.format(objetivo.fecha, 'd MMM yyyy', locale)
+      : null;
+  }, [category.goal_def, nota, locale]);
+
+  const conObjetivo = avance.modo === 'objetivo';
+  const cifras = conObjetivo
+    ? [
+        { etiqueta: t('So far'), valor: avance.hecho, color: colorEstado },
+        {
+          etiqueta: t('To go'),
+          valor: Math.max(0, avance.total - avance.hecho),
+          color: color.fg,
+        },
+      ]
+    : [
+        {
+          etiqueta: t('Spent'),
+          valor: avance.hecho,
+          color: color.fg,
+          sub: t('of {{total}}', { total: format(avance.total, 'financial') }),
+        },
+        {
+          etiqueta: t('Available'),
+          valor: datos.balance,
+          color: colorEstado,
+        },
+      ];
+
+  return (
+    <Button
+      variant="bare"
+      onPress={onPress}
+      data-testid="fijada-heroe"
+      aria-label={t('Open {{categoryName}} category', {
+        categoryName: category.name,
+      })}
+      style={({ isPressed }) => ({
+        ...estiloTarjeta('normal', 0),
+        ...estilos.fijadaHeroe,
+        color: color.fg,
+        transform: isPressed ? 'scale(0.98)' : undefined,
+        transition: `transform ${movimiento.pulsar}ms ${movimiento.muelle}`,
+      })}
+    >
+      <View style={{ gap: 2, alignItems: 'center', width: '100%' }}>
+        <TextOneLine style={{ fontSize: 18, fontWeight: 800 }}>
+          <IconoCategoria nombre={category.name} /> {nombre}
+        </TextOneLine>
+        {fecha && (
+          <Text style={estilos.filaSub} data-testid="fijada-fecha">
+            {t('by {{date}}', { date: fecha })}
+          </Text>
+        )}
+      </View>
+      <View style={{ alignItems: 'center' }}>
+        <Anillo
+          fraccion={avance.fraccion}
+          estado={avance.estado}
+          tamano={150}
+          grosor={12}
+          etiqueta={textoAvance}
+        >
+          <View style={{ alignItems: 'center', gap: 4 }}>
+            <span
+              data-testid="fijada-porcentaje"
+              style={{
+                fontSize: 34,
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                lineHeight: 1,
+              }}
+            >
+              {porcentaje}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: color.fg3 }}>
+              {t('completed')}
+            </span>
+          </View>
+        </Anillo>
+      </View>
+      <View style={estilos.fijadaHeroeCifras}>
+        {cifras.map(c => (
+          <View key={c.etiqueta} style={{ gap: 2, alignItems: 'center' }}>
+            <Text style={estilos.resumenEtiqueta}>{c.etiqueta}</Text>
+            <PrivacyFilter>
+              <Text style={{ ...estilos.cifra, fontSize: 20, color: c.color }}>
+                {format(c.valor, 'financial')}
+              </Text>
+            </PrivacyFilter>
+            {'sub' in c && c.sub && (
+              <PrivacyFilter>
+                <Text style={estilos.filaSub}>{c.sub}</Text>
+              </PrivacyFilter>
+            )}
+          </View>
+        ))}
       </View>
     </Button>
   );

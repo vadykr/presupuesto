@@ -16,7 +16,7 @@ import { useSyncedPref } from '#hooks/useSyncedPref';
 import { calcularFilas, esObjetivoAnual, parseGrupos, resumir } from './anual';
 import type { EntradaAnual, FilaAnual, ResumenAnual } from './anual';
 
-function plantillasDe(goalDef: string | null | undefined): Template[] {
+export function plantillasDe(goalDef: string | null | undefined): Template[] {
   if (!goalDef) {
     return [];
   }

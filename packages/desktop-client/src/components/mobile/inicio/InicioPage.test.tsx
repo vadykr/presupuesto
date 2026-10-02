@@ -220,6 +220,113 @@ describe('InicioPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('fijadas: 2 en normal = dos tarjetas con el porcentaje dentro', async () => {
+    renderInicio();
+
+    const fijadas = await screen.findByTestId('inicio-fijadas');
+    expect(within(fijadas).getByTestId('fijadas-rejilla')).toHaveAttribute(
+      'data-columnas',
+      '2',
+    );
+    // 100/400 = 25 %; gastado de más = 100 %.
+    expect(
+      within(fijadas)
+        .getAllByTestId('fijada-porcentaje')
+        .map(el => el.textContent),
+    ).toEqual(['25%', '100%']);
+    expect(within(fijadas).queryByTestId('fijada-heroe')).toBeNull();
+  });
+
+  it('fijadas: 3 o más en normal = rejilla de tres con porcentaje', async () => {
+    vi.mocked(usePinnedCategories).mockReturnValue({
+      pinnedIds: ['cat-comida', 'cat-regalos', 'cat-llum'],
+      isPinned: vi.fn(),
+      togglePinned: vi.fn(),
+      setPinnedIds: vi.fn(),
+    });
+    renderInicio();
+
+    const fijadas = await screen.findByTestId('inicio-fijadas');
+    expect(within(fijadas).getByTestId('fijadas-rejilla')).toHaveAttribute(
+      'data-columnas',
+      '3',
+    );
+    expect(
+      within(fijadas)
+        .getAllByTestId('fijada-porcentaje')
+        .map(el => el.textContent),
+    ).toEqual(['25%', '100%', '0%']);
+  });
+
+  it('fijadas: una sola = tarjeta héroe con porcentaje, hasta ahora y faltan', async () => {
+    const user = userEvent.setup();
+    vi.mocked(usePinnedCategories).mockReturnValue({
+      pinnedIds: ['cat-comida'],
+      isPinned: vi.fn(),
+      togglePinned: vi.fn(),
+      setPinnedIds: vi.fn(),
+    });
+    vi.mocked(useCategories).mockReturnValue({
+      data: {
+        list: [
+          {
+            ...comida,
+            goal_def: JSON.stringify([
+              {
+                type: 'by',
+                amount: 400,
+                month: '2027-07',
+                directive: 'template',
+              },
+            ]),
+          },
+          regalos,
+          llum,
+        ],
+        grouped: [grupo],
+      },
+    } as never);
+    renderInicio();
+
+    const heroe = await screen.findByTestId('fijada-heroe');
+    expect(within(heroe).getByTestId('fijada-porcentaje')).toHaveTextContent(
+      '25%',
+    );
+    expect(within(heroe).getByText('completed')).toBeInTheDocument();
+    expect(within(heroe).getByText('So far')).toBeInTheDocument();
+    expect(within(heroe).getByText('100.00')).toBeInTheDocument();
+    expect(within(heroe).getByText('To go')).toBeInTheDocument();
+    expect(within(heroe).getByText('300.00')).toBeInTheDocument();
+    expect(within(heroe).getByTestId('fijada-fecha')).toHaveTextContent(
+      'by 1 Jul 2027',
+    );
+    expect(screen.queryByTestId('fijadas-rejilla')).toBeNull();
+
+    await user.click(heroe);
+    expect(navigate).toHaveBeenLastCalledWith(
+      expect.stringMatching(/^\/categories\/cat-comida\?month=\d{4}-\d{2}$/),
+    );
+  });
+
+  it('fijadas: una sola sin objetivo = gastado y disponible', async () => {
+    vi.mocked(usePinnedCategories).mockReturnValue({
+      pinnedIds: ['cat-regalos'],
+      isPinned: vi.fn(),
+      togglePinned: vi.fn(),
+      setPinnedIds: vi.fn(),
+    });
+    renderInicio();
+
+    const heroe = await screen.findByTestId('fijada-heroe');
+    expect(within(heroe).getByTestId('fijada-porcentaje')).toHaveTextContent(
+      '100%',
+    );
+    expect(within(heroe).getByText('Spent')).toBeInTheDocument();
+    expect(within(heroe).getByText('of 50.00')).toBeInTheDocument();
+    expect(within(heroe).getByText('Available')).toBeInTheDocument();
+    expect(within(heroe).getByText('-22.30')).toBeInTheDocument();
+  });
+
   it('fijadas en grande: lista con barra y texto de avance', async () => {
     prefs.valores['inicio-widgets'] = JSON.stringify([
       { id: 'fijadas', tamano: 'grande' },

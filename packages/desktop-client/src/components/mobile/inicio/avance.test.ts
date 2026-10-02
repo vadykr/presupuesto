@@ -1,6 +1,11 @@
 import type { DatosCategoriaMes } from '#components/mobile/budget/objetivos';
 
-import { avanceFijada, estadoDeCategoria, iconoDeNombre } from './avance';
+import {
+  avanceFijada,
+  estadoDeCategoria,
+  iconoDeNombre,
+  porcentajeAvance,
+} from './avance';
 
 const datos = (d: Partial<DatosCategoriaMes>): DatosCategoriaMes => ({
   goal: null,
@@ -105,5 +110,30 @@ describe('icono de la categoría', () => {
       nombre: 'capritxos',
       inicial: 'C',
     });
+  });
+});
+
+describe('porcentaje de las fijadas', () => {
+  it('asignado / objetivo, redondeado', () => {
+    expect(
+      porcentajeAvance(
+        avanceFijada(datos({ goal: 3000_00, budgeted: 923_08 })),
+      ),
+    ).toBe(31);
+  });
+  it('tope 100 % con el objetivo superado', () => {
+    expect(
+      porcentajeAvance(avanceFijada(datos({ goal: 100_00, budgeted: 250_00 }))),
+    ).toBe(100);
+  });
+  it('sin objetivo: gastado / asignado; sin nada, 0 %', () => {
+    expect(
+      porcentajeAvance(
+        avanceFijada(
+          datos({ budgeted: 200_00, balance: 150_00, spent: -50_00 }),
+        ),
+      ),
+    ).toBe(25);
+    expect(porcentajeAvance(avanceFijada(datos({})))).toBe(0);
   });
 });
