@@ -38,7 +38,7 @@ import { SheetNameProvider } from '#hooks/useSheetName';
 import { useSpreadsheet } from '#hooks/useSpreadsheet';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { useUndo } from '#hooks/useUndo';
-import { collapseModals, pushModal } from '#modals/modalsSlice';
+import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
@@ -368,44 +368,11 @@ function PorHacer({
     );
   }, [categoryGroupsToShow, dispatch, month, onOpenCoverCategoryModal, t]);
 
-  // «Asignar»: mover lo listo para asignar a una categoría (transfer-available).
+  // «Asignar»: la pantalla «Asignar el mes» (calcada de YNAB).
+  const navigate = useNavigate();
   const onAssign = useCallback(() => {
-    dispatch(
-      pushModal({
-        modal: {
-          name: 'transfer',
-          options: {
-            title: t('Transfer to category'),
-            month,
-            amount: toBudget,
-            onSubmit: (amount, toCategoryId) => {
-              void onBudgetAction(month, 'transfer-available', {
-                amount,
-                month,
-                category: toCategoryId,
-              });
-              dispatch(collapseModals({ rootModalName: 'transfer' }));
-              showUndoNotification({
-                message: t('Transferred {{amount}} to {{categoryName}}', {
-                  amount: format(amount, 'financial'),
-                  categoryName: categoriesById[toCategoryId].name,
-                }),
-              });
-            },
-          },
-        },
-      }),
-    );
-  }, [
-    categoriesById,
-    dispatch,
-    format,
-    month,
-    onBudgetAction,
-    showUndoNotification,
-    t,
-    toBudget,
-  ]);
+    void navigate(`/asignar?month=${month}`);
+  }, [month, navigate]);
 
   // «Corregir» (sobreasignado): el resumen del mes de Actual trae la opción
   // de cubrir lo sobreasignado desde otra categoría.

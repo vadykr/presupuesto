@@ -32,7 +32,7 @@ import { useAssignKeypad } from './AssignKeypadContext';
 import type { KeypadKey } from './AssignKeypadContext';
 
 /** Por encima de la barra de pestañas (zIndex 100) y debajo de los modales. */
-const KEYPAD_Z_INDEX = 200;
+export const KEYPAD_Z_INDEX = 200;
 const KEY_HEIGHT = 46;
 const PILL_HEIGHT = 44;
 const GAP = 6;
@@ -40,6 +40,12 @@ const GAP = 6;
 type AssignKeypadProps = {
   /** «Detalles»: abre la ficha de la categoría. */
   onEditCategory: (id: CategoryEntity['id']) => void;
+  /**
+   * Fila de acciones encima de las teclas. Por defecto, las píldoras
+   * «Auto-asignar · Mover dinero · Detalles»; «Asignar el mes» pone aquí el
+   * botón «Asignar X € — Importe infrafinanciado».
+   */
+  renderActions?: (category: CategoryEntity) => ReactNode;
 };
 
 /**
@@ -47,7 +53,10 @@ type AssignKeypadProps = {
  * estilo de la calculadora de YNAB: la lista sigue visible y se puede
  * desplazar; la fila seleccionada enseña la expresión mientras se teclea.
  */
-export function AssignKeypad({ onEditCategory }: AssignKeypadProps) {
+export function AssignKeypad({
+  onEditCategory,
+  renderActions,
+}: AssignKeypadProps) {
   const keypad = useAssignKeypad();
   const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -169,10 +178,14 @@ export function AssignKeypad({ onEditCategory }: AssignKeypadProps) {
         ...styles.shadowLarge,
       }}
     >
-      <ActionPills
-        category={selectedCategory}
-        onEditCategory={onEditCategory}
-      />
+      {renderActions ? (
+        renderActions(selectedCategory)
+      ) : (
+        <ActionPills
+          category={selectedCategory}
+          onEditCategory={onEditCategory}
+        />
+      )}
       <View
         style={{
           display: 'grid',
@@ -265,24 +278,10 @@ type ActionPillsProps = {
 function ActionPills({ category, onEditCategory }: ActionPillsProps) {
   const keypad = useAssignKeypad();
   const { t } = useTranslation();
-  const dispatch = useDispatch();
-  const format = useFormat();
   const { showUndoNotification } = useUndo();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
   const isGoalTemplatesEnabled = useFeatureFlag('goalTemplatesEnabled');
   const categoryNotes = useNotes(category.id);
-  const {
-    data: { list: categoriesById } = {
-      list: {} as Record<string, CategoryEntity>,
-    },
-  } = useCategoriesById();
-
-  const catBalance =
-    useSheetValue<'envelope-budget' | 'tracking-budget', 'leftover'>(
-      budgetType === 'tracking'
-        ? trackingBudget.catBalance(category.id)
-        : envelopeBudget.catBalance(category.id),
-    ) ?? 0;
 
   const autoAssignRef = useRef<HTMLButtonElement>(null);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
@@ -372,57 +371,7 @@ function ActionPills({ category, onEditCategory }: ActionPillsProps) {
     [category.name, runAutoAssign, t],
   );
 
-  const onMoveMoney = useCallback(() => {
-    if (!onBudgetAction) {
-      return;
-    }
-    dispatch(
-      pushModal({
-        modal: {
-          name: 'transfer',
-          options: {
-            title: category.name,
-            categoryId: category.id,
-            month,
-            amount: catBalance,
-            showToBeBudgeted: true,
-            onSubmit: (amount, toCategoryId) => {
-              onBudgetAction(month, 'transfer-category', {
-                amount,
-                from: category.id,
-                to: toCategoryId,
-                currencyCode: format.currency.code,
-              });
-              showUndoNotification({
-                message: t(
-                  'Transferred {{amount}} from {{fromCategoryName}} to {{toCategoryName}}.',
-                  {
-                    amount: format(amount, 'financial'),
-                    fromCategoryName: category.name,
-                    toCategoryName:
-                      toCategoryId === 'to-budget'
-                        ? t('To Budget')
-                        : categoriesById[toCategoryId]?.name,
-                  },
-                ),
-              });
-            },
-          },
-        },
-      }),
-    );
-  }, [
-    catBalance,
-    categoriesById,
-    category.id,
-    category.name,
-    dispatch,
-    format,
-    month,
-    onBudgetAction,
-    showUndoNotification,
-    t,
-  ]);
+  const onMoveMoney = useMoveMoneyModal(category);
 
   const pillStyle: CSSProperties = {
     flex: 1,
@@ -502,6 +451,87 @@ function ActionPills({ category, onEditCategory }: ActionPillsProps) {
       </Button>
     </View>
   );
+}
+
+/**
+ * «Mover dinero»: abre el modal de traspaso desde la categoría (o desde
+ * «Listo para asignar») y aplica `transfer-category` con aviso de deshacer.
+ * Lo usan la fila de píldoras del teclado y «Asignar el mes».
+ */
+export function useMoveMoneyModal(category: CategoryEntity) {
+  const keypad = useAssignKeypad();
+  const { t } = useTranslation();
+  const dispatch = useDispatch();
+  const format = useFormat();
+  const { showUndoNotification } = useUndo();
+  const [budgetType = 'envelope'] = useSyncedPref('budgetType');
+  const {
+    data: { list: categoriesById } = {
+      list: {} as Record<string, CategoryEntity>,
+    },
+  } = useCategoriesById();
+
+  const catBalance =
+    useSheetValue<'envelope-budget' | 'tracking-budget', 'leftover'>(
+      budgetType === 'tracking'
+        ? trackingBudget.catBalance(category.id)
+        : envelopeBudget.catBalance(category.id),
+    ) ?? 0;
+
+  const month = keypad?.month ?? '';
+  const onBudgetAction = keypad?.onBudgetAction;
+
+  return useCallback(() => {
+    if (!onBudgetAction) {
+      return;
+    }
+    dispatch(
+      pushModal({
+        modal: {
+          name: 'transfer',
+          options: {
+            title: category.name,
+            categoryId: category.id,
+            month,
+            amount: catBalance,
+            showToBeBudgeted: true,
+            onSubmit: (amount, toCategoryId) => {
+              onBudgetAction(month, 'transfer-category', {
+                amount,
+                from: category.id,
+                to: toCategoryId,
+                currencyCode: format.currency.code,
+              });
+              showUndoNotification({
+                message: t(
+                  'Transferred {{amount}} from {{fromCategoryName}} to {{toCategoryName}}.',
+                  {
+                    amount: format(amount, 'financial'),
+                    fromCategoryName: category.name,
+                    toCategoryName:
+                      toCategoryId === 'to-budget'
+                        ? t('To Budget')
+                        : categoriesById[toCategoryId]?.name,
+                  },
+                ),
+              });
+            },
+          },
+        },
+      }),
+    );
+  }, [
+    catBalance,
+    categoriesById,
+    category.id,
+    category.name,
+    dispatch,
+    format,
+    month,
+    onBudgetAction,
+    showUndoNotification,
+    t,
+  ]);
 }
 
 function getScrollParent(element: HTMLElement): HTMLElement | null {
