@@ -5,17 +5,10 @@ import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
 import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
-import {
-  BarraProgreso,
-  Fila,
-  Tarjeta,
-} from '#components/mobile/inicio/comunes';
+import { BarraPartes, Fila, Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
-import {
-  colores,
-  coloresEstado,
-  estilos,
-} from '#components/mobile/inicio/inicio.estilos';
+import { estilos } from '#components/mobile/inicio/inicio.estilos';
+import { color } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
@@ -54,13 +47,13 @@ export function ResumenMes({ tamano, month }: PropsWidget) {
   const nombreMes = monthUtils.format(month, 'MMMM', locale);
 
   const barra = (
-    <BarraProgreso
+    <BarraPartes
       etiqueta={t('Spent {{percent}} of income', {
         percent: `${Math.round(fraccionDe(gastado, totalIncome) * 100)} %`,
       })}
       partes={[
-        { fraccion: fGastado, color: colores.acento },
-        { fraccion: fAsignado, color: coloresEstado.bien.fondo },
+        { fraccion: fGastado, color: color.accent },
+        { fraccion: fAsignado, color: color.accentSoft },
       ]}
     />
   );
@@ -74,11 +67,12 @@ export function ResumenMes({ tamano, month }: PropsWidget) {
   return (
     <Tarjeta
       titulo={t('Summary of {{month}}', { month: nombreMes })}
+      cabecera="tarjeta"
       data-testid="inicio-resumen"
     >
       {tamano === 'compacto' ? (
-        <Fila style={{ minHeight: 0 }}>
-          <Text style={estilos.filaSub}>
+        <Fila style={{ minHeight: 0, justifyContent: 'space-between' }}>
+          <Text style={estilos.resumenEtiqueta}>
             <Trans>Spent</Trans>
           </Text>
           <PrivacyFilter>
@@ -103,7 +97,7 @@ export function ResumenMes({ tamano, month }: PropsWidget) {
       )}
       {barra}
       {tamano === 'grande' && (
-        <Fila separada style={{ minHeight: 40 }}>
+        <Fila separada style={{ minHeight: 44, paddingTop: 8 }}>
           <Text style={{ ...estilos.filaSub, flex: 1 }}>
             <Trans>Left to spend of what you assigned</Trans>
           </Text>

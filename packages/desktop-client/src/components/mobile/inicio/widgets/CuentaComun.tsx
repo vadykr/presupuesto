@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
-import { SvgClose, SvgUserGroup } from '@actual-app/components/icons/v1';
 import { Text } from '@actual-app/components/text';
 import { TextOneLine } from '@actual-app/components/text-one-line';
 import { View } from '@actual-app/components/view';
@@ -10,13 +9,7 @@ import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
 import { useDatosObjetivos } from '#components/mobile/budget/useDatosObjetivos';
-import {
-  CajaIcono,
-  EstadoVacio,
-  Fila,
-  Pildora,
-  Tarjeta,
-} from '#components/mobile/inicio/comunes';
+import { AccionTexto, Fila, Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
 import {
   alternarCategoriaComun,
@@ -26,6 +19,11 @@ import {
   leerCategoriasComunes,
 } from '#components/mobile/inicio/cuentaComun';
 import { estilos } from '#components/mobile/inicio/inicio.estilos';
+import { Boton } from '#components/mobile/ui/Boton';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { Icono } from '#components/mobile/ui/Icono';
+import { IconoCaja } from '#components/mobile/ui/IconoCaja';
+import { Pildora } from '#components/mobile/ui/Pildora';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useAccounts } from '#hooks/useAccounts';
 import { useCategories } from '#hooks/useCategories';
@@ -129,13 +127,9 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
   };
 
   const accion = (
-    <Button
-      variant="bare"
-      onPress={() => setConfigurando(c => !c)}
-      style={estilos.botonCabecera}
-    >
+    <AccionTexto onPress={() => setConfigurando(c => !c)}>
       {configurando ? <Trans>Done</Trans> : <Trans>Categories</Trans>}
-    </Button>
+    </AccionTexto>
   );
 
   if (elegidas.length === 0 && !configurando) {
@@ -143,21 +137,21 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
       <Tarjeta
         titulo={t('Joint account')}
         accion={accion}
+        sinTarjeta
         data-testid="inicio-cuenta-comun"
       >
         <EstadoVacio
+          anchoIlustracion={96}
+          titulo={t('How much to deposit?')}
           texto={t(
             'Choose the categories paid from the joint account to see how much to deposit each month.',
           )}
-        >
-          <Button
-            variant="primary"
-            onPress={anadirCategoria}
-            style={estilos.boton}
-          >
-            <Trans>Choose categories</Trans>
-          </Button>
-        </EstadoVacio>
+          accion={
+            <Boton variante="primario" onPress={anadirCategoria}>
+              <Trans>Choose categories</Trans>
+            </Boton>
+          }
+        />
       </Tarjeta>
     );
   }
@@ -168,14 +162,14 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
       accion={accion}
       data-testid="inicio-cuenta-comun"
     >
-      <Fila>
-        {tamano !== 'compacto' && (
-          <CajaIcono>
-            <SvgUserGroup width={18} height={18} />
-          </CajaIcono>
-        )}
+      <Fila style={{ minHeight: 0 }}>
+        <IconoCaja
+          icono="users"
+          tono="acento"
+          size={tamano === 'compacto' ? 36 : 44}
+        />
         <View style={estilos.filaTexto}>
-          <Text style={estilos.filaSub}>
+          <Text style={estilos.etiquetaPequena}>
             <Trans>Deposit this month</Trans>
           </Text>
           <PrivacyFilter>
@@ -185,13 +179,9 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
           </PrivacyFilter>
         </View>
         {tamano === 'compacto' && (
-          <Button
-            variant="primary"
-            onPress={registrarTraspaso}
-            style={estilos.boton}
-          >
+          <Boton variante="primario" onPress={registrarTraspaso}>
             <Trans>Transfer now</Trans>
-          </Button>
+          </Boton>
         )}
       </Fila>
 
@@ -206,9 +196,9 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
       {(tamano === 'grande' || configurando) && (
         <View>
           {elegidas.map(c => (
-            <Fila key={c.id} separada style={{ minHeight: 40 }}>
+            <Fila key={c.id} separada style={{ minHeight: 48 }}>
               <TextOneLine
-                style={{ ...estilos.filaTitulo, flex: 1, fontWeight: 600 }}
+                style={{ ...estilos.filaTitulo, flex: 1, fontWeight: 700 }}
               >
                 {c.name}
               </TextOneLine>
@@ -224,7 +214,7 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
                   onPress={() => guardar(alternarCategoriaComun(ids, c.id))}
                   style={estilos.botonIcono}
                 >
-                  <SvgClose width={10} height={10} />
+                  <Icono nombre="x" size={18} />
                 </Button>
               )}
             </Fila>
@@ -233,22 +223,16 @@ export function CuentaComun({ tamano, month }: PropsWidget) {
       )}
 
       {configurando ? (
-        <Button
-          variant="normal"
-          onPress={anadirCategoria}
-          style={estilos.boton}
-        >
+        <Boton variante="fantasma" onPress={anadirCategoria}>
+          <Icono nombre="plus" size={18} />
           <Trans>Add a category</Trans>
-        </Button>
+        </Boton>
       ) : (
         tamano !== 'compacto' && (
-          <Button
-            variant="primary"
-            onPress={registrarTraspaso}
-            style={estilos.boton}
-          >
+          <Boton variante="primario" onPress={registrarTraspaso}>
             <Trans>Record transfer</Trans>
-          </Button>
+            <Icono nombre="cr" size={18} />
+          </Boton>
         )
       )}
     </Tarjeta>

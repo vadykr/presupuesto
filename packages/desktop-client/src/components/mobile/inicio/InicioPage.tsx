@@ -1,29 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
-import { Text } from '@actual-app/components/text';
-import { TextOneLine } from '@actual-app/components/text-one-line';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
+import { css } from '@emotion/css';
 
 import { sync } from '#app/appSlice';
 import { prewarmMonth } from '#components/budget/util';
-import { MobilePageHeader, Page } from '#components/Page';
+import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
+import { Boton } from '#components/mobile/ui/Boton';
+import { BotonRedondo, Cabecera } from '#components/mobile/ui/Cabecera';
+import { Cargando } from '#components/mobile/ui/Cargando';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { color, espacio, radio, sombra } from '#components/mobile/ui/tokens';
+import { Page } from '#components/Page';
 import { SyncRefresh } from '#components/SyncRefresh';
 import { useLocale } from '#hooks/useLocale';
+import { useNavigate } from '#hooks/useNavigate';
 import { SheetNameProvider } from '#hooks/useSheetName';
 import { useSpreadsheet } from '#hooks/useSpreadsheet';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 import { useDispatch } from '#redux';
 
-import { EstadoVacio } from './comunes';
 import { EditarInicio } from './EditarInicio';
-import { estilos } from './inicio.estilos';
+import { entradaEscalonada, estilos } from './inicio.estilos';
 import type { IdWidget } from './modeloWidgets';
 import { useInicioWidgets } from './useInicioWidgets';
 import { useModuloConsejos } from './widgets/Consejos';
 import { COMPONENTES_WIDGET, SOLO_SOBRES } from './widgets/registro';
+
+const claseLista = css(entradaEscalonada);
 
 /**
  * Pantalla de inicio de «Presupuesto» (solo móvil), personalizable: una lista
@@ -35,6 +41,7 @@ export function InicioPage() {
   const { t } = useTranslation();
   const locale = useLocale();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const spreadsheet = useSpreadsheet();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
   const { widgets, guardar, restablecer } = useInicioWidgets();
@@ -72,15 +79,50 @@ export function InicioPage() {
 
   const visibles = widgets.filter(w => !noDisponibles.has(w.id));
 
+  const hoy = new Date();
+  const dia = hoy.getDate();
+  const diasMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+
   return (
     <Page
       header={
-        <MobilePageHeader
-          title={
-            <TextOneLine>
-              <Trans>Home</Trans>
-            </TextOneLine>
+        <Cabecera
+          titulo={
+            <span
+              data-testid="inicio-mes"
+              style={{ textTransform: 'capitalize' }}
+            >
+              {monthUtils.format(month, 'MMMM', locale)}
+            </span>
           }
+          subtitulo={t('day {{day}} of {{days}}', { day: dia, days: diasMes })}
+          derecha={
+            <>
+              <Boton
+                variante={editando ? 'primario' : 'fantasma'}
+                onPress={() => setEditando(e => !e)}
+                aria-label={editando ? t('Done editing home') : t('Edit home')}
+                style={
+                  editando
+                    ? { borderRadius: radio.pildora }
+                    : {
+                        borderRadius: radio.pildora,
+                        backgroundColor: color.surface,
+                        color: color.accent,
+                        boxShadow: sombra.tarjeta,
+                      }
+                }
+              >
+                {editando ? <Trans>Done</Trans> : <Trans>Edit</Trans>}
+              </Boton>
+              <BotonRedondo
+                icono="more"
+                aria-label={t('More')}
+                onPress={() => void navigate('/mas')}
+              />
+            </>
+          }
+          style={{ paddingBottom: 10 }}
         />
       }
       padding={0}
@@ -92,13 +134,12 @@ export function InicioPage() {
           }}
         >
           {() => (
-            <View style={estilos.pagina}>
-              <Cabecera
-                month={month}
-                locale={locale}
-                editando={editando}
-                onEditar={() => setEditando(e => !e)}
-              />
+            <View
+              style={{
+                paddingBottom: MOBILE_NAV_HEIGHT + espacio.margen,
+                flexShrink: 0,
+              }}
+            >
               {editando ? (
                 <EditarInicio
                   widgets={widgets}
@@ -106,72 +147,36 @@ export function InicioPage() {
                   onRestablecer={restablecer}
                   noDisponibles={noDisponibles}
                 />
+              ) : !initialized ? (
+                <Cargando />
               ) : (
-                initialized && (
-                  <View style={estilos.lista} data-testid="inicio-widgets">
-                    {visibles.length === 0 ? (
-                      <EstadoVacio
-                        texto={t(
-                          'Nothing on your home. Tap «Edit» to add widgets.',
-                        )}
-                      />
-                    ) : (
-                      visibles.map(w => {
-                        const Widget = COMPONENTES_WIDGET[w.id];
-                        return (
-                          <Widget key={w.id} tamano={w.tamano} month={month} />
-                        );
-                      })
-                    )}
-                  </View>
-                )
+                <View
+                  style={estilos.lista}
+                  className={claseLista}
+                  data-testid="inicio-widgets"
+                >
+                  {visibles.length === 0 ? (
+                    <EstadoVacio
+                      ilustracion="barquito"
+                      titulo={t('Your home is empty')}
+                      texto={t(
+                        'Nothing on your home. Tap «Edit» to add widgets.',
+                      )}
+                    />
+                  ) : (
+                    visibles.map(w => {
+                      const Widget = COMPONENTES_WIDGET[w.id];
+                      return (
+                        <Widget key={w.id} tamano={w.tamano} month={month} />
+                      );
+                    })
+                  )}
+                </View>
               )}
             </View>
           )}
         </SyncRefresh>
       </SheetNameProvider>
     </Page>
-  );
-}
-
-/** «Octubre» en grande, «día 2 de 31» y el botón «Editar» / «Listo». */
-function Cabecera({
-  month,
-  locale,
-  editando,
-  onEditar,
-}: {
-  month: string;
-  locale: ReturnType<typeof useLocale>;
-  editando: boolean;
-  onEditar: () => void;
-}) {
-  const { t } = useTranslation();
-  const hoy = new Date();
-  const dia = hoy.getDate();
-  const diasMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
-  return (
-    <View style={estilos.cabecera}>
-      <View style={{ minWidth: 0 }}>
-        <Text style={estilos.cabeceraDia}>
-          {t('day {{day}} of {{days}}', { day: dia, days: diasMes })}
-        </Text>
-        <Text style={estilos.cabeceraMes} data-testid="inicio-mes">
-          {monthUtils.format(month, 'MMMM', locale)}
-        </Text>
-      </View>
-      <Button
-        variant={editando ? 'primary' : 'bare'}
-        onPress={onEditar}
-        style={
-          editando
-            ? { ...estilos.botonCabecera, color: undefined }
-            : estilos.botonCabecera
-        }
-        aria-label={editando ? t('Done editing home') : t('Edit home')}
-      >
-        {editando ? <Trans>Done</Trans> : <Trans>Edit</Trans>}
-      </Button>
-    </View>
   );
 }

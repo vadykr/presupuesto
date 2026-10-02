@@ -135,6 +135,9 @@ mes»), teclado de asignar (píldoras Auto · Mover · Detalles · zZ Ignorar, t
 mes (héroe verde con ‹ ›, auto-asignar, filas con barra de 8 px y estado), Objetivo, Cuentas (Wallet,
 préstamos con % pagado y «Libre en», huchas punteadas), lista de movimientos y Gastos, Movimiento
 (importe grande, Gasto/Ingreso, campos en tarjetas, Guardar ancho), Informes (cabecera grande, tarjetas,
-chips, 8 colores del tema), Más. Inicio queda para su agente.
+chips, 8 colores del tema), Más. Inicio (rama `claude/inicio-estetica`): cabecera grande «Octubre» · «día 2
+de 31» con «Editar» y «⋯» (→ `/mas`), cada widget con `TituloSeccion` + `Tarjeta`, Fijadas en baldosas-tarjeta
+con anillo y píldora, Consejos con puntos de paginación, entrada escalonada de tarjetas y modo «Editar inicio»
+con asa de arrastre y botones de 44 px (`inicio-estetica*.png`).
 
 Capturas: `docs-vadym/capturas/estetica-*.png` (390×844, demo; `-claro` en modo claro).

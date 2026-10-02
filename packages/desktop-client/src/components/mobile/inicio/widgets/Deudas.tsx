@@ -7,20 +7,15 @@ import { View } from '@actual-app/components/view';
 
 import { textoMes } from '#components/mobile/deudas/textos';
 import { useDeuda } from '#components/mobile/deudas/useDeuda';
-import {
-  Anillo,
-  BarraProgreso,
-  EstadoVacio,
-  Pildora,
-  Tarjeta,
-} from '#components/mobile/inicio/comunes';
+import { Anillo, Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
-import {
-  coloresEstado,
-  estilos,
-} from '#components/mobile/inicio/inicio.estilos';
+import { estilos } from '#components/mobile/inicio/inicio.estilos';
 import { useCuentasEspeciales } from '#components/mobile/inicio/widgets/useCuentasEspeciales';
 import type { Prestamo } from '#components/mobile/inicio/widgets/useCuentasEspeciales';
+import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
+import { Pildora } from '#components/mobile/ui/Pildora';
+import { color } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFormat } from '#hooks/useFormat';
 import { useLanguage } from '#hooks/useLocale';
@@ -38,22 +33,32 @@ export function Deudas({ tamano }: PropsWidget) {
   const { prestamos, cargando } = useCuentasEspeciales();
 
   return (
-    <Tarjeta titulo={t('Debts')} data-testid="inicio-deudas">
+    <Tarjeta
+      titulo={t('Debts')}
+      data-testid="inicio-deudas"
+      sinTarjeta={prestamos.length === 0}
+      relleno={0}
+    >
       {prestamos.length === 0 ? (
         cargando ? null : (
           <EstadoVacio
+            anchoIlustracion={96}
+            ilustracion="barquito"
+            titulo={t('No loans')}
             texto={t('No loans. Mark an account as a loan from its menu.')}
           />
         )
       ) : (
-        prestamos.map((p, i) => (
-          <FilaDeuda
-            key={p.account.id}
-            prestamo={p}
-            tamano={tamano}
-            separada={i > 0}
-          />
-        ))
+        <View style={{ padding: '4px 14px' }}>
+          {prestamos.map((p, i) => (
+            <FilaDeuda
+              key={p.account.id}
+              prestamo={p}
+              tamano={tamano}
+              separada={i > 0}
+            />
+          ))}
+        </View>
       )}
     </Tarjeta>
   );
@@ -84,21 +89,20 @@ function FilaDeuda({
       style={{
         ...estilos.fila,
         ...(separada ? estilos.filaSeparada : null),
-        justifyContent: 'flex-start',
-        textAlign: 'left',
-        padding: '8px 0',
-        borderRadius: 0,
-        width: '100%',
+        ...estilos.filaBoton,
+        padding: '10px 0',
       }}
     >
       <Anillo
         fraccion={deuda.porcentajePagado}
         estado="bien"
         tamano={tamano === 'compacto' ? 40 : 48}
-        grosor={5}
+        grosor={4.5}
         etiqueta={t('{{percent}} paid', { percent: `${porcentaje} %` })}
       >
-        <Text style={{ fontSize: 12, fontWeight: 800 }}>{porcentaje}%</Text>
+        <Text style={{ fontSize: 12, fontWeight: 800, color: color.ok }}>
+          {porcentaje}%
+        </Text>
       </Anillo>
       <View style={{ ...estilos.filaTexto, gap: 6 }}>
         <View
@@ -118,14 +122,7 @@ function FilaDeuda({
         </View>
         {tamano !== 'compacto' && (
           <>
-            <BarraProgreso
-              partes={[
-                {
-                  fraccion: deuda.porcentajePagado,
-                  color: coloresEstado.bien.color,
-                },
-              ]}
-            />
+            <BarraProgreso valor={deuda.porcentajePagado} color={color.ok} />
             <Text style={estilos.filaSub}>
               {fin
                 ? t('{{percent}} paid · ends {{date}}', {

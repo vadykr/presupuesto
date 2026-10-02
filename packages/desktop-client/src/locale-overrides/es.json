@@ -545,5 +545,11 @@
   "Request Location": "Ubicación",
   "Add a note (optional)": "Añade una nota (opcional)",
   "Select account": "Elige una cuenta",
-  "Presupuesto light": "Presupuesto claro"
+  "Presupuesto light": "Presupuesto claro",
+  "Your home is empty": "Tu inicio está vacío",
+  "Nothing pinned yet": "Nada fijado todavía",
+  "No spending yet": "Aún no hay gasto",
+  "No loans": "Sin préstamos",
+  "No piggy banks": "Sin huchas",
+  "How much to deposit?": "¿Cuánto ingresar?"
 }

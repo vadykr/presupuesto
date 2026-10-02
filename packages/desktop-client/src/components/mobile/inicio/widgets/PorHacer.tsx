@@ -1,9 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { Button } from '@actual-app/components/button';
-import { SvgMoneyBag } from '@actual-app/components/icons/v1';
-import { SvgAlertTriangle } from '@actual-app/components/icons/v2';
 import { Text } from '@actual-app/components/text';
 import { View } from '@actual-app/components/view';
 import { groupById } from '@actual-app/core/shared/util';
@@ -11,19 +8,14 @@ import { groupById } from '@actual-app/core/shared/util';
 import { useBudgetActions } from '#budget';
 import type { ApplyBudgetActionPayload } from '#budget';
 import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
-import {
-  Barquito,
-  CajaIcono,
-  Fila,
-  Pildora,
-  Tarjeta,
-} from '#components/mobile/inicio/comunes';
+import { Fila, Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
-import {
-  colores,
-  coloresEstado,
-  estilos,
-} from '#components/mobile/inicio/inicio.estilos';
+import { estilos } from '#components/mobile/inicio/inicio.estilos';
+import { Barquito } from '#components/mobile/ui/Barquito';
+import { Boton } from '#components/mobile/ui/Boton';
+import { IconoCaja } from '#components/mobile/ui/IconoCaja';
+import { Pildora } from '#components/mobile/ui/Pildora';
+import { color } from '#components/mobile/ui/tokens';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useCategories } from '#hooks/useCategories';
 import { useFormat } from '#hooks/useFormat';
@@ -183,12 +175,16 @@ export function PorHacer({ tamano, month }: PropsWidget) {
   const pendientes = numberOfOverspent + (toBudget !== 0 ? 1 : 0);
   const nothingToDo = pendientes === 0;
   const compacto = tamano === 'compacto';
+  const caja = compacto ? 36 : 44;
 
   const titulo = (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
       <Trans>To do</Trans>
       {pendientes > 0 && (
-        <Pildora estado="neutro" style={{ minHeight: 20, fontSize: 11 }}>
+        <Pildora
+          estado="neutro"
+          style={{ minHeight: 22, padding: '0 8px', fontSize: 12 }}
+        >
           {pendientes}
         </Pildora>
       )}
@@ -198,111 +194,90 @@ export function PorHacer({ tamano, month }: PropsWidget) {
   const nombresEnRojo = overspentCategories.map(c => c.name).join(', ');
 
   return (
-    <Tarjeta titulo={titulo} data-testid="inicio-por-hacer">
-      {nothingToDo && (
-        <Fila>
-          <View style={{ color: coloresEstado.bien.color, flexShrink: 0 }}>
-            <Barquito tamano={compacto ? 36 : 48} />
-          </View>
-          <View style={estilos.filaTexto}>
-            <Text style={{ ...estilos.filaTitulo, color: colores.acento }}>
-              <Trans>All in order</Trans>
-            </Text>
-            {!compacto && (
-              <Text style={estilos.filaSub}>
-                <Trans>Nothing pending this month.</Trans>
+    <Tarjeta titulo={titulo} data-testid="inicio-por-hacer" relleno={0}>
+      <View style={{ padding: '6px 14px' }}>
+        {nothingToDo && (
+          <Fila>
+            <View style={{ color: color.ok, flexShrink: 0 }}>
+              <Barquito width={compacto ? 44 : 64} />
+            </View>
+            <View style={estilos.filaTexto}>
+              <Text style={{ ...estilos.filaTitulo, color: color.ok }}>
+                <Trans>All in order</Trans>
               </Text>
-            )}
-          </View>
-        </Fila>
-      )}
+              {!compacto && (
+                <Text style={estilos.filaSub}>
+                  <Trans>Nothing pending this month.</Trans>
+                </Text>
+              )}
+            </View>
+          </Fila>
+        )}
 
-      {numberOfOverspent > 0 && (
-        <Fila>
-          {!compacto && (
-            <CajaIcono estado="mal">
-              <SvgAlertTriangle width={18} height={18} />
-            </CajaIcono>
-          )}
-          <View style={estilos.filaTexto}>
-            <Text
-              style={{ ...estilos.filaTitulo, color: coloresEstado.mal.color }}
-            >
-              {t('{{count}} category in the red', {
-                count: numberOfOverspent,
-              })}
-            </Text>
-            <PrivacyFilter>
-              <Text style={estilos.filaSub}>
-                {tamano === 'grande' && nombresEnRojo
-                  ? `${nombresEnRojo} · ${format(totalOverspending, 'financial')}`
-                  : format(totalOverspending, 'financial')}
-              </Text>
-            </PrivacyFilter>
-          </View>
-          <Button variant="primary" onPress={onCover} style={estilos.boton}>
-            <Trans>Cover</Trans>
-          </Button>
-        </Fila>
-      )}
-
-      {toBudget > 0 && (
-        <Fila separada={numberOfOverspent > 0}>
-          {!compacto && (
-            <CajaIcono estado="bien">
-              <SvgMoneyBag width={18} height={18} />
-            </CajaIcono>
-          )}
-          <View style={estilos.filaTexto}>
-            <PrivacyFilter>
-              <Text style={{ ...estilos.filaTitulo, color: colores.acento }}>
-                {t('{{amount}} ready to assign', {
-                  amount: format(toBudget, 'financial'),
+        {numberOfOverspent > 0 && (
+          <Fila>
+            <IconoCaja icono="alert" tono="rojo" size={caja} />
+            <View style={estilos.filaTexto}>
+              <Text style={estilos.filaTitulo}>
+                {t('{{count}} category in the red', {
+                  count: numberOfOverspent,
                 })}
               </Text>
-            </PrivacyFilter>
-            {!compacto && (
-              <Text style={estilos.filaSub}>
-                <Trans>Give it a job this month</Trans>
-              </Text>
-            )}
-          </View>
-          <Button variant="primary" onPress={onAssign} style={estilos.boton}>
-            <Trans>Assign</Trans>
-          </Button>
-        </Fila>
-      )}
+              <PrivacyFilter>
+                <Text style={estilos.filaSub}>
+                  {tamano === 'grande' && nombresEnRojo
+                    ? `${nombresEnRojo} · ${format(totalOverspending, 'financial')}`
+                    : format(totalOverspending, 'financial')}
+                </Text>
+              </PrivacyFilter>
+            </View>
+            <Boton variante="primario" onPress={onCover}>
+              <Trans>Cover</Trans>
+            </Boton>
+          </Fila>
+        )}
 
-      {toBudget < 0 && (
-        <Fila separada={numberOfOverspent > 0}>
-          {!compacto && (
-            <CajaIcono estado="mal">
-              <SvgAlertTriangle width={18} height={18} />
-            </CajaIcono>
-          )}
-          <View style={estilos.filaTexto}>
-            <PrivacyFilter>
-              <Text
-                style={{
-                  ...estilos.filaTitulo,
-                  color: coloresEstado.mal.color,
-                }}
-              >
-                {t('Overbudgeted by {{amount}}', {
-                  amount: format(-toBudget, 'financial'),
-                })}
-              </Text>
-            </PrivacyFilter>
-          </View>
-          <Button
-            variant="primary"
-            onPress={onFixOverbudgeted}
-            style={estilos.boton}
-          >
-            <Trans>Fix</Trans>
-          </Button>
-        </Fila>
-      )}
+        {toBudget > 0 && (
+          <Fila separada={numberOfOverspent > 0}>
+            <IconoCaja icono="coins" tono="ok" size={caja} />
+            <View style={estilos.filaTexto}>
+              <PrivacyFilter>
+                <Text style={estilos.filaTitulo}>
+                  {t('{{amount}} ready to assign', {
+                    amount: format(toBudget, 'financial'),
+                  })}
+                </Text>
+              </PrivacyFilter>
+              {!compacto && (
+                <Text style={estilos.filaSub}>
+                  <Trans>Give it a job this month</Trans>
+                </Text>
+              )}
+            </View>
+            <Boton variante="primario" onPress={onAssign}>
+              <Trans>Assign</Trans>
+            </Boton>
+          </Fila>
+        )}
+
+        {toBudget < 0 && (
+          <Fila separada={numberOfOverspent > 0}>
+            <IconoCaja icono="alert" tono="rojo" size={caja} />
+            <View style={estilos.filaTexto}>
+              <PrivacyFilter>
+                <Text style={{ ...estilos.filaTitulo, color: color.bad }}>
+                  {t('Overbudgeted by {{amount}}', {
+                    amount: format(-toBudget, 'financial'),
+                  })}
+                </Text>
+              </PrivacyFilter>
+            </View>
+            <Boton variante="primario" onPress={onFixOverbudgeted}>
+              <Trans>Fix</Trans>
+            </Boton>
+          </Fila>
+        )}
+      </View>
     </Tarjeta>
   );
 }
