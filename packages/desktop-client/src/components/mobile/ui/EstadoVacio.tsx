@@ -5,7 +5,7 @@ import { View } from '@actual-app/components/view';
 
 import { Barquito, Sombrero } from './Barquito';
 import { estiloTarjeta } from './Tarjeta';
-import { color } from './tokens';
+import { color, texto as tipografia } from './tokens';
 
 type EstadoVacioProps = {
   titulo: ReactNode;
@@ -49,18 +49,16 @@ export function EstadoVacio({
           <Barquito width={anchoIlustracion} />
         )}
       </View>
-      <Text
-        style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: color.fg }}
-      >
+      <Text style={{ marginTop: 6, ...tipografia.titulo, color: color.fg }}>
         {titulo}
       </Text>
       {texto && (
         <Text
           style={{
-            fontSize: 14,
+            ...tipografia.cuerpo,
             color: color.fg2,
-            maxWidth: '30ch',
-            lineHeight: 1.45,
+            maxWidth: '42ch',
+            textWrap: 'balance',
           }}
         >
           {texto}

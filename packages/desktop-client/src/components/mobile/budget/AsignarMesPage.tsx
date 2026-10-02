@@ -32,6 +32,7 @@ import { separarEmoji } from '#components/mobile/ui/emoji';
 import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
 import { Icono } from '#components/mobile/ui/Icono';
 import { IconoZz } from '#components/mobile/ui/IconoZz';
+import { SelectorMes } from '#components/mobile/ui/SelectorMes';
 import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
 import {
   color,
@@ -92,7 +93,6 @@ type OnBudgetAction = (month: string, type: string, args?: unknown) => void;
  */
 export function AsignarMesPage() {
   const { t } = useTranslation();
-  const locale = useLocale();
   const dispatch = useDispatch();
   const spreadsheet = useSpreadsheet();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
@@ -154,9 +154,6 @@ export function AsignarMesPage() {
     [setSearchParams],
   );
 
-  const prevEnabled = month > monthBounds.start;
-  const nextEnabled = month < monthUtils.subMonths(monthBounds.end, 1);
-
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -203,17 +200,13 @@ export function AsignarMesPage() {
             >
               <Trans>Assign the month</Trans>
             </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: color.fg3,
-                textTransform: 'capitalize',
-              }}
-              data-month={month}
-            >
-              {monthUtils.format(month, 'MMMM yyyy', locale)}
-            </Text>
+            <SelectorMes
+              mes={month}
+              minimo={monthBounds.start}
+              maximo={monthUtils.subMonths(monthBounds.end, 1)}
+              onChange={setMonth}
+              style={{ marginLeft: -6, minHeight: 32, alignSelf: 'flex-start' }}
+            />
           </View>
           <BotonRedondo
             icono="more"
@@ -249,20 +242,7 @@ export function AsignarMesPage() {
       {initialized ? (
         <SheetNameProvider name={monthUtils.sheetForMonth(month)}>
           <AssignKeypadProvider month={month} onBudgetAction={onBudgetAction}>
-            <Contenido
-              month={month}
-              onBudgetAction={onBudgetAction}
-              onPrev={
-                prevEnabled
-                  ? () => setMonth(monthUtils.subMonths(month, 1))
-                  : undefined
-              }
-              onNext={
-                nextEnabled
-                  ? () => setMonth(monthUtils.addMonths(month, 1))
-                  : undefined
-              }
-            />
+            <Contenido month={month} onBudgetAction={onBudgetAction} />
           </AssignKeypadProvider>
         </SheetNameProvider>
       ) : (
@@ -277,11 +257,9 @@ type GrupoVisible = CategoryGroupEntity & { categories: CategoryEntity[] };
 type ContenidoProps = {
   month: string;
   onBudgetAction: OnBudgetAction;
-  onPrev?: () => void;
-  onNext?: () => void;
 };
 
-function Contenido({ month, onBudgetAction, onPrev, onNext }: ContenidoProps) {
+function Contenido({ month, onBudgetAction }: ContenidoProps) {
   const keypad = useAssignKeypad();
   const {
     data: { grouped: categoryGroups } = {
@@ -357,8 +335,6 @@ function Contenido({ month, onBudgetAction, onPrev, onNext }: ContenidoProps) {
         numInfrafinanciadas={
           [...datos.values()].filter(d => faltante(d) > 0).length
         }
-        onPrev={onPrev}
-        onNext={onNext}
       />
       <AutoAsignar
         month={month}
@@ -431,42 +407,14 @@ function Cabecera({
   toBudget,
   infrafinanciado,
   numInfrafinanciadas,
-  onPrev,
-  onNext,
 }: {
   toBudget: IntegerAmount;
   infrafinanciado: IntegerAmount;
   numInfrafinanciadas: number;
-  onPrev?: () => void;
-  onNext?: () => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
   const sobreasignado = toBudget < 0;
-  const flecha = (
-    icono: 'cl' | 'cr',
-    etiqueta: string,
-    onPress: (() => void) | undefined,
-  ) => (
-    <Button
-      variant="bare"
-      aria-label={etiqueta}
-      isDisabled={!onPress}
-      onPress={onPress}
-      style={{
-        width: 44,
-        height: 44,
-        padding: 0,
-        borderRadius: '50%',
-        color: 'inherit',
-        backgroundColor: 'rgba(0, 0, 0, 0.14)',
-        opacity: onPress ? 1 : 0.35,
-      }}
-    >
-      <Icono nombre={icono} size={20} />
-    </Button>
-  );
-
   return (
     <View
       data-testid="asignar-cabecera"
@@ -489,20 +437,16 @@ function Cabecera({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignSelf: 'stretch',
           gap: 8,
         }}
       >
-        {flecha('cl', t('Previous month'), onPrev)}
         <PrivacyFilter>
           <Text
             style={{
               ...num,
-              fontSize: 40,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              lineHeight: 1.05,
+              ...texto.heroe,
               color: 'inherit',
               whiteSpace: 'nowrap',
             }}
@@ -511,7 +455,6 @@ function Cabecera({
             {format(Math.abs(toBudget), 'financial')}
           </Text>
         </PrivacyFilter>
-        {flecha('cr', t('Next month'), onNext)}
       </View>
       <Text style={{ fontWeight: 700, opacity: 0.92, color: 'inherit' }}>
         {sobreasignado ? t('Overbudgeted') : t('ready to assign')}

@@ -9,7 +9,7 @@ import * as monthUtils from '@actual-app/core/shared/months';
 
 import { TarjetaConsejosInforme } from '#components/mobile/analisis/TarjetaConsejos';
 import { BotonRedondo } from '#components/mobile/ui/Cabecera';
-import { color } from '#components/mobile/ui/tokens';
+import { color, texto } from '#components/mobile/ui/tokens';
 import { createAgeOfMoneySpreadsheet } from '#components/reports/spreadsheets/age-of-money-spreadsheet';
 import type { AgeOfMoneyData } from '#components/reports/spreadsheets/age-of-money-spreadsheet';
 import { createSpreadsheet as netWorthSpreadsheet } from '#components/reports/spreadsheets/net-worth-spreadsheet';
@@ -81,7 +81,6 @@ export function InformesPage() {
   const fmt = (v: number) => format(v, 'financial');
 
   const { excluidas } = useCategoriasExcluidas();
-  const { colorDe } = useColoresCategorias();
   const { movimientos, categorias, meses, isLoading } = useTotalesMensuales({
     meses: 13,
     categoriasExcluidas: excluidas,
@@ -136,6 +135,13 @@ export function InformesPage() {
       .slice(0, 2),
     ...ranking.filter(f => f.tipo === 'baja').slice(-2),
   ].slice(0, 4);
+  // Una sola vista: la misma categoría lleva el mismo color en todas las
+  // tarjetas y no se repiten colores entre las que se ven.
+  const { colorDe } = useColoresCategorias([
+    ...desglose.filas.map(f => f.categoria),
+    catEvolucion,
+    ...destacadas.map(f => f.categoria),
+  ]);
 
   // e. Patrimonio
   const { data: cuentas = [] } = useAccounts();
@@ -196,7 +202,7 @@ export function InformesPage() {
       }
     >
       <View style={{ paddingLeft: GUTTER + 4, paddingRight: GUTTER }}>
-        <Text style={{ fontSize: 14, fontWeight: 600, color: color.fg2 }}>
+        <Text style={{ ...texto.secundario, color: color.fg2 }}>
           {t('How you are doing, at a glance.')}
         </Text>
       </View>
@@ -214,17 +220,12 @@ export function InformesPage() {
             ? ''
             : desglose.total === 0
               ? t('Nothing spent yet in {{month}}.', { month: nombreMes })
-              : t(
-                  'Spent so far in {{month}}. The biggest: {{category}} ({{pct}}).',
-                  {
-                    month: nombreMes,
-                    category: nombreDe(mayor.categoria),
-                    pct: formatPorcentaje(
-                      mayor.importe / desglose.total,
-                      false,
-                    ),
-                  },
-                )
+              : t('{{month}}: {{amount}}, mostly {{category}} ({{pct}})', {
+                  month: nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1),
+                  amount: fmt(desglose.total),
+                  category: nombreDe(mayor.categoria),
+                  pct: formatPorcentaje(mayor.importe / desglose.total, false),
+                })
         }
         onPress={() => void navigate('/reports/gasto')}
       >

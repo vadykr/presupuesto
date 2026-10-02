@@ -97,7 +97,7 @@ export const estilos = {
     color: color.fg,
   },
   cifra: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 800,
     letterSpacing: '-0.02em',
     lineHeight: 1.1,
@@ -183,10 +183,8 @@ export const estilos = {
   },
   // --- Consejos ---
   consejoTexto: {
-    fontSize: 14,
-    fontWeight: 500,
+    ...texto.cuerpo,
     color: color.fg2,
-    lineHeight: 1.45,
   },
   // --- modo «Editar inicio» ---
   editarSeccion: {

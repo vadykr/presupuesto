@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { styles } from '@actual-app/components/styles';
@@ -11,7 +10,7 @@ import * as monthUtils from '@actual-app/core/shared/months';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
-import { BotonRedondo, Cabecera } from '#components/mobile/ui/Cabecera';
+import { Cabecera } from '#components/mobile/ui/Cabecera';
 import { Cargando as CargandoBarquito } from '#components/mobile/ui/Cargando';
 import { Icono } from '#components/mobile/ui/Icono';
 import { estiloTarjeta } from '#components/mobile/ui/Tarjeta';
@@ -21,6 +20,7 @@ import {
   num,
   radio,
   sombra,
+  texto,
 } from '#components/mobile/ui/tokens';
 import { MobilePageHeader, Page } from '#components/Page';
 import { PrivacyFilter } from '#components/PrivacyFilter';
@@ -147,10 +147,8 @@ export function Hero({
         <Text
           style={{
             ...num,
-            fontSize: tamano === 'grande' ? 42 : 28,
-            lineHeight: 1.05,
-            fontWeight: 800,
-            letterSpacing: '-0.035em',
+            ...texto.heroe,
+            fontSize: tamano === 'grande' ? texto.heroe.fontSize : 24,
             color: colorDeTono(tono),
           }}
           data-testid="hero-valor"
@@ -160,11 +158,15 @@ export function Hero({
       </PrivacyFilter>
       <Text
         style={{
-          fontSize: 14.5,
-          fontWeight: 500,
+          ...texto.cuerpo,
           color: color.fg2,
-          lineHeight: 1.45,
           marginTop: 4,
+          // Máximo dos líneas: la frase explica el número, no lo sustituye.
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          textWrap: 'pretty',
         }}
         data-testid="hero-frase"
       >
@@ -652,54 +654,6 @@ export function Pildoras<T extends string>({
           </Button>
         );
       })}
-    </View>
-  );
-}
-
-/** «← septiembre 2026 →» */
-export function SelectorMes({
-  mes,
-  onChange,
-  maximo = monthUtils.currentMonth(),
-}: {
-  mes: string;
-  onChange: (mes: string) => void;
-  maximo?: string;
-}) {
-  const { t } = useTranslation();
-  const locale = useLocale();
-  const puedeAvanzar = mes < maximo;
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingLeft: GUTTER,
-        paddingRight: GUTTER,
-      }}
-    >
-      <BotonRedondo
-        icono="cl"
-        aria-label={t('Previous month')}
-        onPress={() => onChange(monthUtils.prevMonth(mes))}
-      />
-      <Text
-        style={{
-          fontSize: 18,
-          fontWeight: 800,
-          textTransform: 'capitalize',
-        }}
-        data-testid="selector-mes"
-      >
-        {monthUtils.format(mes, 'MMMM yyyy', locale)}
-      </Text>
-      <BotonRedondo
-        icono="cr"
-        aria-label={t('Next month')}
-        isDisabled={!puedeAvanzar}
-        onPress={() => onChange(monthUtils.nextMonth(mes))}
-      />
     </View>
   );
 }

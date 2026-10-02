@@ -300,9 +300,7 @@ function TarjetaConsejo({
             )}
           </View>
         </View>
-        <Text
-          style={{ ...styles.mediumText, fontWeight: 400, lineHeight: 1.4 }}
-        >
+        <Text style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.25 }}>
           {texto}
         </Text>
         <View

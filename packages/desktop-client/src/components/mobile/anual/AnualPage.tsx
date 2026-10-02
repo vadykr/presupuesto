@@ -218,9 +218,7 @@ function Cabecera({
       <Text
         style={{
           ...num,
-          fontSize: 30,
-          fontWeight: 800,
-          letterSpacing: '-0.02em',
+          ...texto.cifra,
           lineHeight: 1.1,
           color: 'inherit',
         }}

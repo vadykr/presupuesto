@@ -69,10 +69,12 @@ export type SyncedPrefs = Partial<
     | `show-hidden-tags`
     // Presupuesto: ids de categorías fijadas en la pantalla de inicio (JSON array)
     | 'pinned-categories'
-    // Presupuesto · Informes: hueco de color por categoría (JSON { id: 0..7 })
+    // Presupuesto · Informes: hueco de color por categoría (JSON { id: 0..11 })
     | 'category-colors'
     // Presupuesto · Informes: ids de categorías que no cuentan (JSON array)
     | 'informes-excluidas'
+    // Presupuesto · Informes: último periodo elegido ('mes', 'mes:2026-10', '3', '6', '12', 'ano', 'ano-pasado', 'todo')
+    | 'informes-periodo'
     // Presupuesto · Inicio: widgets en orden (JSON [{ id, tamano }])
     | 'inicio-widgets'
     // Presupuesto · Inicio: categorías de la cuenta común (JSON array de ids)

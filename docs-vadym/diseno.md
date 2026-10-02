@@ -17,16 +17,16 @@ está en la rama `claude/estetica`.
 
 ### Tokens CSS (`--p-*`)
 
-| Grupo          | Variables                                                                                                                                                                                                              |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Superficies    | `--p-bg` (fondo de página), `--p-surface` (tarjeta), `--p-surface-2` (relleno de controles, barra de pestañas, teclado), `--p-surface-3` (pista de barras, teclas de operador)                                         |
-| Líneas         | `--p-line` (separadores), `--p-line-2` (bordes punteados, asa de hojas)                                                                                                                                                |
-| Texto          | `--p-fg`, `--p-fg-2` (secundario), `--p-fg-3` (etiquetas, apagado)                                                                                                                                                     |
-| Acento         | `--p-accent`, `--p-accent-2`, `--p-accent-ink` (texto sobre acento), `--p-accent-soft`                                                                                                                                 |
-| Estados        | `--p-ok`/`-soft` (cubierta), `--p-warn`/`-soft` (le falta), `--p-bad`/`-soft` (en rojo), `--p-mute-soft` (nada pendiente)                                                                                              |
-| Héroe y Wallet | `--p-hero-a/b/fg` (cabecera verde de Asignar), `--p-card-a..d` (degradados de tarjetas de cuenta)                                                                                                                      |
-| Sombras        | `--p-shadow` (tarjeta), `--p-shadow-sheet` (hojas y teclado)                                                                                                                                                           |
-| Categorías     | `--p-k0..k7`: los 8 huecos de `useColoresCategorias` (azul, violeta, naranja, rosa, amarillo, cian, magenta, lima). `PaletaInformes` los usa para `--informes-c0..7`, así que las gráficas toman los colores del tema. |
+| Grupo          | Variables                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Superficies    | `--p-bg` (fondo de página), `--p-surface` (tarjeta), `--p-surface-2` (relleno de controles, barra de pestañas, teclado), `--p-surface-3` (pista de barras, teclas de operador)                                                                                                                                                                                                                                      |
+| Líneas         | `--p-line` (separadores), `--p-line-2` (bordes punteados, asa de hojas)                                                                                                                                                                                                                                                                                                                                             |
+| Texto          | `--p-fg`, `--p-fg-2` (secundario), `--p-fg-3` (etiquetas, apagado)                                                                                                                                                                                                                                                                                                                                                  |
+| Acento         | `--p-accent`, `--p-accent-2`, `--p-accent-ink` (texto sobre acento), `--p-accent-soft`                                                                                                                                                                                                                                                                                                                              |
+| Estados        | `--p-ok`/`-soft` (cubierta), `--p-warn`/`-soft` (le falta), `--p-bad`/`-soft` (en rojo), `--p-mute-soft` (nada pendiente)                                                                                                                                                                                                                                                                                           |
+| Héroe y Wallet | `--p-hero-a/b/fg` (cabecera verde de Asignar), `--p-card-a..d` (degradados de tarjetas de cuenta)                                                                                                                                                                                                                                                                                                                   |
+| Sombras        | `--p-shadow` (tarjeta), `--p-shadow-sheet` (hojas y teclado)                                                                                                                                                                                                                                                                                                                                                        |
+| Categorías     | `--p-k0..k11`: los 12 huecos de `useColoresCategorias` (azul, naranja, turquesa, granate, azul petróleo, ámbar, orquídea, verde agua, lavanda, verde hoja, rosa, oliva), validados con dataviz en claro y oscuro. `PaletaInformes` los usa para `--informes-c0..11`. En un informe, `useColoresCategorias(idsVista)` reparte huecos distintos por importe (`asignarColoresVista`); la pref `category-colors` manda. |
 
 Los colores de Actual (`--color-pageBackground`, `--color-cardBackground`, `--color-buttonPrimary*`,
 `--color-mobileHeader*`, `--color-numberPositive`…) están remapeados a estos tokens: las pantallas
@@ -50,10 +50,10 @@ import {
 ```
 
 - `color.*` → `var(--p-*, reserva)` (`color.surface`, `color.fg3`, `color.badSoft`…).
-- `colorCategoria(hueco)` → color del hueco 0..7; `suave(color, 18)` → fondo suave con `color-mix`.
+- `colorCategoria(hueco)` → color del hueco 0..11; `suave(color, 18)` → fondo suave con `color-mix`.
 - `radio`: `sm` 12 · `boton` 14 (botones y teclas) · `tarjeta` 20 · `heroe` 24 (héroe, hojas, barra de pestañas) · `pildora` 999.
 - `espacio`: `fila` 8 · `icono` 12 · `tarjetas` 14 · `margen` 16 (margen y relleno de tarjeta) · `seccion` 24.
-- `texto`: `display` 34/800 · `cifra` 30/800 · `titulo` 18/800 · `fila` 15/700 · `cuerpo` 14/500 · `pequeno` 12.5/700 · `etiqueta` 11/800 mayúsculas.
+- `texto` (escala contenida, oct-2026): `display` 28/800 · `heroe` 32/800 · `cifra` 26/800 · `titulo` 16/800 · `seccion` 15/800 · `fila` 15/700 · `cuerpo` 14/500 · `secundario` 13/500 · `pequeno` 12.5/700 · `etiqueta` 11/800 mayúsculas; `INTERLINEADO` 1,25. Frases explicativas: 2 líneas como máximo (`Hero` las recorta), sin justificar.
 - `num` → `font-variant-numeric: tabular-nums` (los temas Presupuesto ya lo ponen en `body`).
 - `movimiento`: `muelle` `cubic-bezier(.2,.9,.3,1.15)`, `tarjeta` 380 ms, `hoja` 320 ms, `fondo` 200 ms, `pildora` 180 ms, `cifra` 400 ms, `pulsar` 90 ms.
 - `TACTIL` = 44: ninguna zona táctil por debajo.
@@ -66,24 +66,24 @@ Manrope variable (200–800, OFL 1.1) autoalojada en `packages/desktop-client/pu
 
 ## 2. Componentes (`components/mobile/ui/`)
 
-| Componente                  | Uso                                                                                                                                                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Tarjeta`                   | Superficie elevada (radio 20, sombra, relleno 16). `onPress` la hace tocable (baja a 0,97). `variante="punteada"` para huchas o huecos. `estiloTarjeta()` da el mismo estilo para usarlo en un `View` propio. |
-| `Pildora`                   | Estado relleno: `ok`, `aviso`, `rojo`, `neutro`, `ignorada` (antepone zZ). `coloresPildora(estado)` devuelve fondo y texto.                                                                                   |
-| `PildoraCategoria`          | Emoji + nombre de categoría sobre su color de categoría (`hueco` de `useColoresCategorias().huecoDe`).                                                                                                        |
-| `BarraProgreso`             | 8 px, redonda, pista visible, se llena al aparecer (quieta con «reducir movimiento»). `valor` 0..1, `color`.                                                                                                  |
-| `Cabecera`                  | Cabecera grande tipo iOS: `subtitulo` 12/700 encima y `titulo` 34/800; `derecha` para botones. Úsala como `header` de `Page` en las pestañas raíz.                                                            |
-| `BotonRedondo`              | Botón circular de 44 px con relieve y icono Lucide (navegación de mes, «+», «⋯»).                                                                                                                             |
-| `TituloSeccion`             | Título 13/800 sobre un grupo de tarjetas, con acción opcional a la derecha.                                                                                                                                   |
-| `Boton`                     | Botón del sistema: `variante` `primario` · `tonal` (rojo) · `aviso` · `fantasma`; `bloque` = ancho completo, 54 px, radio 18.                                                                                 |
-| `IconoCaja`                 | Icono Lucide (`icono="wallet"`) o emoji (`children`) en una cajita de color suave de 32–44 px; `tono` o `colorPropio`.                                                                                        |
-| `Icono`                     | Iconos Lucide inline, trazo 2 px (`nombre`: home, plan, receipt, wallet, pie, zap, move, info, piggy, bank, car, cal, tag, user, note, more, plus, cl, cr, cd, x, bksp, sliders, store, refresh, settings…).  |
-| `Importe`                   | Importe en céntimos con el formato del presupuesto (es-ES vía `useFormat`), tabular y con `PrivacyFilter`. `tono="auto"` pinta en rojo los negativos.                                                         |
-| `NavegadorMes`              | ‹ mes › con la brújula «Log Pose» de B (la aguja gira 30° por mes; si no es el mes actual, tocarla vuelve a hoy).                                                                                             |
-| `EstadoVacio`               | Tarjeta con ilustración de línea de un color (`ilustracion="sombrero"` o `"barquito"`), título, frase y acción.                                                                                               |
-| `Cargando`                  | «Zarpando…» con el barquito meciéndose (2,4 s; quieto con «reducir movimiento»). `pantalla` para pantalla completa.                                                                                           |
-| `IconoZz`                   | «zZ» tipográfico para lo ignorado este mes.                                                                                                                                                                   |
-| `separarEmoji` (`emoji.ts`) | Separa el emoji inicial de un nombre («🏠 Hipoteca» → «🏠» + «Hipoteca»).                                                                                                                                     |
+| Componente                  | Uso                                                                                                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Tarjeta`                   | Superficie elevada (radio 20, sombra, relleno 16). `onPress` la hace tocable (baja a 0,97). `variante="punteada"` para huchas o huecos. `estiloTarjeta()` da el mismo estilo para usarlo en un `View` propio.                                |
+| `Pildora`                   | Estado relleno: `ok`, `aviso`, `rojo`, `neutro`, `ignorada` (antepone zZ). `coloresPildora(estado)` devuelve fondo y texto.                                                                                                                  |
+| `PildoraCategoria`          | Emoji + nombre de categoría sobre su color de categoría (`hueco` de `useColoresCategorias().huecoDe`).                                                                                                                                       |
+| `BarraProgreso`             | 8 px, redonda, pista visible, se llena al aparecer (quieta con «reducir movimiento»). `valor` 0..1, `color`.                                                                                                                                 |
+| `Cabecera`                  | Cabecera grande tipo iOS: `subtitulo` 12/700 encima y `titulo` 28/800; `derecha` para botones. Úsala como `header` de `Page` en las pestañas raíz.                                                                                           |
+| `BotonRedondo`              | Botón circular de 44 px con relieve y icono Lucide (navegación de mes, «+», «⋯»).                                                                                                                                                            |
+| `TituloSeccion`             | Título 13/800 sobre un grupo de tarjetas, con acción opcional a la derecha.                                                                                                                                                                  |
+| `Boton`                     | Botón del sistema: `variante` `primario` · `tonal` (rojo) · `aviso` · `fantasma`; `bloque` = ancho completo, 54 px, radio 18.                                                                                                                |
+| `IconoCaja`                 | Icono Lucide (`icono="wallet"`) o emoji (`children`) en una cajita de color suave de 32–44 px; `tono` o `colorPropio`.                                                                                                                       |
+| `Icono`                     | Iconos Lucide inline, trazo 2 px (`nombre`: home, plan, receipt, wallet, pie, zap, move, info, piggy, bank, car, cal, tag, user, note, more, plus, cl, cr, cd, x, bksp, sliders, store, refresh, settings…).                                 |
+| `Importe`                   | Importe en céntimos con el formato del presupuesto (es-ES vía `useFormat`), tabular y con `PrivacyFilter`. `tono="auto"` pinta en rojo los negativos.                                                                                        |
+| `SelectorMes`               | Botón con el mes (`variante` `titulo` o `compacto`, `logPose` decorativo) que abre `HojaSelectorMes`: ‹ año › y rejilla 4×3 Ene–Dic, elegido en acento, futuros atenuados, «Hoy» y `accion` opcional («Opciones del mes…»). Sin flechas ‹ ›. |
+| `EstadoVacio`               | Tarjeta con ilustración de línea de un color (`ilustracion="sombrero"` o `"barquito"`), título, frase y acción.                                                                                                                              |
+| `Cargando`                  | «Zarpando…» con el barquito meciéndose (2,4 s; quieto con «reducir movimiento»). `pantalla` para pantalla completa.                                                                                                                          |
+| `IconoZz`                   | «zZ» tipográfico para lo ignorado este mes.                                                                                                                                                                                                  |
+| `separarEmoji` (`emoji.ts`) | Separa el emoji inicial de un nombre («🏠 Hipoteca» → «🏠» + «Hipoteca»).                                                                                                                                                                    |
 
 Formularios (`mobile/MobileForms.tsx`): `TapField` e `InputField` aceptan `etiqueta` para pintarse como
 fila del sistema A (icono en cajita, etiqueta a la izquierda, valor a la derecha, 54 px). Agrúpalas en un
@@ -141,3 +141,12 @@ con anillo y píldora, Consejos con puntos de paginación, entrada escalonada de
 con asa de arrastre y botones de 44 px (`inicio-estetica*.png`).
 
 Capturas: `docs-vadym/capturas/estetica-*.png` (390×844, demo; `-claro` en modo claro).
+
+## 7. Pulido (rama `claude/pulido`)
+
+- Selector de mes como YNAB en Plan y Asignar el mes; Informes · Gasto con botón de periodo (Mes…, Últimos
+  3/6/12 meses, Año en curso, Año pasado, Todo) recordado en la pref sincronizada `informes-periodo`.
+- 12 colores de categoría y asignación por vista: sin repeticiones con ≤ 12 categorías.
+- Tipografía más contenida y frases de Informes e Inicio en una línea.
+
+Capturas: `docs-vadym/capturas/pulido-*.png`.

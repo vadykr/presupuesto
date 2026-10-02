@@ -42,13 +42,19 @@ export const color = {
   cardD: v('card-d', 'var(--color-tableHeaderBackground)'),
 } as const;
 
-/** Los 8 colores de categoría (los mismos huecos que `useColoresCategorias`). */
-export const COLORES_CATEGORIA = [0, 1, 2, 3, 4, 5, 6, 7].map(
-  i => `var(--p-k${i}, var(--informes-c${i}, var(--color-chartQual${i + 1})))`,
+/** Huecos de la paleta categórica (`--p-k0..k11`). */
+export const NUM_COLORES_CATEGORIA = 12;
+
+/** Los 12 colores de categoría (los mismos huecos que `useColoresCategorias`). */
+export const COLORES_CATEGORIA = Array.from(
+  { length: NUM_COLORES_CATEGORIA },
+  (_, i) =>
+    `var(--p-k${i}, var(--informes-c${i}, var(--color-chartQual${(i % 8) + 1})))`,
 );
 
 export function colorCategoria(hueco: number): string {
-  return COLORES_CATEGORIA[((hueco % 8) + 8) % 8];
+  const n = NUM_COLORES_CATEGORIA;
+  return COLORES_CATEGORIA[((hueco % n) + n) % n];
 }
 
 /** Mezcla un color con transparente (fondo suave de píldoras y cajitas). */
@@ -89,13 +95,30 @@ export const sombra = {
   hoja: v('shadow-sheet', '0 -8px 24px rgba(0, 0, 0, 0.2)'),
 } as const;
 
-/** Tamaños tipográficos (Manrope, pesos altos). */
+/** Interlineado general del texto corrido. */
+export const INTERLINEADO = 1.25;
+
+/**
+ * Tamaños tipográficos (Manrope, pesos altos). Escala contenida (pulido,
+ * oct-2026): cabecera 28, héroe 32, títulos 15-16, cuerpo 14-15, secundario 13.
+ */
 export const texto = {
-  display: { fontSize: 34, fontWeight: 800, letterSpacing: '-0.03em' },
-  cifra: { fontSize: 30, fontWeight: 800, letterSpacing: '-0.03em' },
-  titulo: { fontSize: 18, fontWeight: 800 },
+  display: { fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em' },
+  /** Número héroe (Asignar, detalle de informe). */
+  heroe: {
+    fontSize: 32,
+    fontWeight: 800,
+    letterSpacing: '-0.03em',
+    lineHeight: 1.05,
+  },
+  cifra: { fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em' },
+  titulo: { fontSize: 16, fontWeight: 800 },
+  /** Título de sección sobre un grupo de tarjetas. */
+  seccion: { fontSize: 15, fontWeight: 800 },
   fila: { fontSize: 15, fontWeight: 700 },
-  cuerpo: { fontSize: 14, fontWeight: 500 },
+  cuerpo: { fontSize: 14, fontWeight: 500, lineHeight: INTERLINEADO },
+  /** Texto secundario (frases bajo un número, detalles). */
+  secundario: { fontSize: 13, fontWeight: 500, lineHeight: INTERLINEADO },
   pequeno: { fontSize: 12.5, fontWeight: 700 },
   etiqueta: {
     fontSize: 11,

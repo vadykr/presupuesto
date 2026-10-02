@@ -51,6 +51,7 @@ import {
   num,
   radio,
   sombra,
+  texto,
 } from '#components/mobile/ui/tokens';
 import { Page } from '#components/Page';
 import { CellValue, CellValueText } from '#components/spreadsheet/CellValue';
@@ -693,9 +694,7 @@ function TotalCuentas({
             {...props}
             style={{
               ...num,
-              fontSize: 30,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
+              ...texto.cifra,
               lineHeight: 1.1,
             }}
             data-testid="total-presupuesto"
@@ -801,9 +800,7 @@ function Cartera({
                   {...props}
                   style={{
                     ...num,
-                    fontSize: 30,
-                    fontWeight: 800,
-                    letterSpacing: '-0.03em',
+                    ...texto.cifra,
                     color: '#fff',
                   }}
                   data-testid="account-balance"

@@ -1,39 +1,55 @@
 /**
- * Color fijo por categoría para todas las gráficas de «Informes».
+ * Colores de categoría para las gráficas de «Informes».
  *
- * La paleta categórica tiene 8 huecos (orden fijo, validado para daltonismo en
- * claro y oscuro con el método `dataviz`). Cada categoría toma un hueco de
- * forma estable a partir de su id (hash FNV-1a), así el color no cambia al
- * filtrar ni al reordenar. La preferencia sincronizada `category-colors`
- * guarda las personalizaciones (JSON `{ [idCategoria]: hueco }`).
+ * La paleta categórica tiene 12 huecos (orden fijo, validado para daltonismo
+ * en claro y oscuro con el método `dataviz`, vecinos incluido el 12.º con el
+ * 1.º). Dentro de una vista (`asignarColoresVista`) las categorías visibles,
+ * ordenadas por importe, toman huecos distintos en orden: con ≤ 12 no se
+ * repite ningún color. Fuera de una vista (píldoras, movimientos) cada
+ * categoría usa un hueco estable por hash de su id. La preferencia
+ * sincronizada `category-colors` (JSON `{ [idCategoria]: hueco }`) manda
+ * siempre sobre ambas.
  */
 
-export const NUM_HUECOS = 8;
+export const NUM_HUECOS = 12;
 
-/** Paleta categórica (dataviz, referencia): la misma tonalidad en claro y oscuro. */
+/**
+ * Paleta categórica de 12 huecos (dataviz, validada con `validate_palette.js`
+ * sobre la superficie de tarjeta de cada tema, vecinos y el par 12.º↔1.º:
+ * oscuro ΔE CVD ≥ 14,0 y normal ≥ 26,3; claro ΔE CVD ≥ 14,0 y normal ≥ 26,5).
+ * Mismo tono por hueco en claro y oscuro, con la luminosidad de cada modo.
+ */
 export const PALETA_CLARA = [
-  '#2a78d6', // azul
-  '#eb6834', // naranja
-  '#1baf7a', // aguamarina
-  '#eda100', // amarillo
-  '#e87ba4', // magenta
-  '#008300', // verde
-  '#4a3aa7', // violeta
-  '#e34948', // rojo
+  '#0061be', // azul
+  '#e36927', // naranja
+  '#12a7a7', // turquesa
+  '#af2843', // granate
+  '#00a1cb', // azul petróleo
+  '#865901', // ámbar
+  '#b96dd8', // orquídea
+  '#15ac7d', // verde agua
+  '#8a7ff4', // lavanda
+  '#3b7402', // verde hoja
+  '#d861aa', // rosa
+  '#a09600', // oliva
 ] as const;
 
 export const PALETA_OSCURA = [
-  '#3987e5',
-  '#d95926',
-  '#199e70',
-  '#c98500',
-  '#d55181',
-  '#008300',
-  '#9085e9',
-  '#e66767',
+  '#0267c7',
+  '#a94608',
+  '#12a7a7',
+  '#b52f48',
+  '#00779e',
+  '#c28412',
+  '#b96dd8',
+  '#15ac7d',
+  '#8a7ff4',
+  '#3f7b04',
+  '#d861aa',
+  '#736c01',
 ] as const;
 
-/** Variable CSS del hueco `n` (0..7), definida por `<PaletaInformes />`. */
+/** Variable CSS del hueco `n` (0..11), definida por `<PaletaInformes />`. */
 export function variableDeHueco(hueco: number): string {
   return `var(--informes-c${((hueco % NUM_HUECOS) + NUM_HUECOS) % NUM_HUECOS})`;
 }
@@ -100,4 +116,44 @@ export function colorDeCategoria(
     return COLOR_SIN_CATEGORIA;
   }
   return variableDeHueco(huecoDeCategoria(idCategoria, asignacion));
+}
+
+/**
+ * Huecos de color de las categorías de una vista. `ids` va en orden de
+ * importancia (de más a menos importe): la primera toma el hueco 0, la
+ * siguiente el 1… Las que tienen color propio en `asignacion` lo conservan y
+ * su hueco se salta para las demás. Con más categorías que huecos se vuelve a
+ * empezar (cíclico). Los ids repetidos o `null` se ignoran.
+ */
+export function asignarColoresVista(
+  ids: ReadonlyArray<string | null | undefined>,
+  asignacion: AsignacionColores = {},
+): Map<string, number> {
+  const resultado = new Map<string, number>();
+  const unicos = [...new Set(ids.filter((id): id is string => id != null))];
+  let usados = new Set<number>();
+  for (const id of unicos) {
+    const propio = asignacion[id];
+    if (propio !== undefined) {
+      resultado.set(id, propio);
+      usados.add(propio);
+    }
+  }
+  let siguiente = 0;
+  for (const id of unicos) {
+    if (resultado.has(id)) {
+      continue;
+    }
+    if (usados.size >= NUM_HUECOS) {
+      usados = new Set();
+    }
+    while (usados.has(siguiente % NUM_HUECOS)) {
+      siguiente++;
+    }
+    const hueco = siguiente % NUM_HUECOS;
+    resultado.set(id, hueco);
+    usados.add(hueco);
+    siguiente++;
+  }
+  return resultado;
 }
