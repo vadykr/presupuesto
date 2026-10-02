@@ -23,6 +23,8 @@ type NavegadorMesProps = {
   onToday?: () => void;
   /** Botón extra a la izquierda (p. ej. el menú de la página). */
   izquierda?: ReactNode;
+  /** Botón extra a la derecha (p. ej. un acceso a otra pantalla). */
+  derecha?: ReactNode;
 };
 
 /**
@@ -39,6 +41,7 @@ export function NavegadorMes({
   onPressMonth,
   onToday,
   izquierda,
+  derecha,
 }: NavegadorMesProps) {
   const { t } = useTranslation();
   const locale = useLocale();
@@ -128,6 +131,7 @@ export function NavegadorMes({
         onPress={onNext}
         isDisabled={!nextEnabled}
       />
+      {derecha}
     </View>
   );
 }

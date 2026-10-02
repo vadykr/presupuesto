@@ -37,6 +37,8 @@
     "#components/forms": "./src/components/forms/index.tsx",
     "#components/banksync": "./src/components/banksync/index.tsx",
     "#components/banksync/bankSyncUtils": "./src/components/banksync/bankSyncUtils.ts",
+    "#components/mobile/anual/anual": "./src/components/mobile/anual/anual.ts",
+    "#components/mobile/anual/useAnual": "./src/components/mobile/anual/useAnual.ts",
     "#components/mobile/budget/objetivos": "./src/components/mobile/budget/objetivos.ts",
     "#components/mobile/budget/useIgnorarMes": "./src/components/mobile/budget/useIgnorarMes.ts",
     "#components/mobile/budget/useDatosObjetivos": "./src/components/mobile/budget/useDatosObjetivos.ts",
