@@ -4,7 +4,9 @@ import { useSyncedPref } from './useSyncedPref';
 
 const DEFAULT_FEATURE_FLAG_STATE: Record<FeatureFlag, boolean> = {
   newSidebarUI: false,
-  goalTemplatesEnabled: false,
+  // Presupuesto: los objetivos importados de YNAB son plantillas, así que la
+  // columna de objetivo/infrafinanciado se ve sin pasar por «Experimental».
+  goalTemplatesEnabled: true,
   goalTemplatesUIEnabled: false,
   actionTemplating: false,
   formulaMode: false,
