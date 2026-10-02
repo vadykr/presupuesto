@@ -11,6 +11,7 @@ import { t } from 'i18next';
 import { resetApp, setAppState } from '#app/appSlice';
 import { closeModal, pushModal } from '#modals/modalsSlice';
 import { loadGlobalPrefs, loadPrefs } from '#prefs/prefsSlice';
+import { solicitarListaDePresupuestos } from '#presupuesto';
 import { createAppAsyncThunk } from '#redux';
 import { signOut } from '#users/usersSlice';
 import { getDownloadError, getSyncError, getUnsafeZipError } from '#util/error';
@@ -107,6 +108,19 @@ export const closeBudget = createAppAsyncThunk(
       await send('close-budget');
       dispatch(setAppState({ loadingText: null }));
       if (localStorage.getItem('SharedArrayBufferOverride')) {
+        // Presupuesto: el borrado de «lastBudget» en IndexedDB no se espera
+        // en asyncStorage.setItem; si recargamos antes de que se escriba, la
+        // app vuelve a abrir el mismo archivo. Esperamos a que quede vacío.
+        for (let i = 0; i < 20; i++) {
+          if (!(await send('get-last-opened-backup'))) {
+            break;
+          }
+          await new Promise(r => setTimeout(r, 100));
+        }
+        // Tras recargar, la lista de archivos debe seguir visible (modo «un
+        // solo presupuesto»). Se marca justo antes de recargar, sin ningún
+        // await por medio, para que ManagementApp no la consuma antes.
+        solicitarListaDePresupuestos();
         window.location.reload();
       }
     }
