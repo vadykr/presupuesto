@@ -240,11 +240,9 @@ export class MobileBudgetPage {
     const budgetedButton = await this.getButtonForBudgeted(categoryName);
     await budgetedButton.click();
 
-    return new BudgetMenuModal(
-      this.page.getByRole('dialog', {
-        name: 'Modal dialog',
-      }),
-    );
+    // En el móvil la celda abre el teclado de asignación inline (panel
+    // inferior), no un modal.
+    return new BudgetMenuModal(this.page.getByTestId('assign-keypad'));
   }
 
   async openSpentPage(categoryName: string) {

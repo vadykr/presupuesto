@@ -3,8 +3,11 @@ import type { ComponentPropsWithoutRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
+import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
+import { theme } from '@actual-app/components/theme';
+import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
 import type { CategoryEntity } from '@actual-app/core/types/models';
@@ -22,6 +25,8 @@ import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
 import type { SheetFields } from '#spreadsheet';
 
+import { describe as describeExpression } from './assignExpression';
+import { useAssignKeypad } from './AssignKeypadContext';
 import { getColumnWidth, PILL_STYLE } from './BudgetTable';
 
 type BudgetCellProps<
@@ -52,6 +57,12 @@ export function BudgetCell<
   const { showUndoNotification } = useUndo();
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
   const categoryNotes = useNotes(category.id);
+  const { isNarrowWidth } = useResponsive();
+  const keypad = useAssignKeypad();
+  // En el móvil la celda abre el teclado inline (panel inferior); el modal
+  // antiguo queda para pantallas anchas o cuando no hay proveedor.
+  const useKeypad = isNarrowWidth && keypad != null;
+  const isSelected = keypad?.selectedCategory?.id === category.id;
 
   const onSaveNotes = useCallback(async (id: string, notes: string) => {
     await send('notes-save', { id, note: notes });
@@ -79,6 +90,10 @@ export function BudgetCell<
   );
 
   const onOpenCategoryBudgetMenu = useCallback(() => {
+    if (useKeypad) {
+      keypad.select(category);
+      return;
+    }
     const sharedOptions = {
       categoryId: category.id,
       month,
@@ -159,17 +174,25 @@ export function BudgetCell<
     }
   }, [
     budgetType,
-    category.id,
-    category.name,
+    category,
     categoryNotes,
     dispatch,
+    keypad,
     month,
     onBudgetAction,
     showUndoNotification,
     onEditNotes,
     format,
     t,
+    useKeypad,
   ]);
+
+  // Mientras se teclea, la celda enseña la expresión: «246,72 €» y debajo,
+  // en color, «+13,00 €».
+  const display =
+    isSelected && keypad
+      ? describeExpression(keypad.expression, keypad.liveBudgeted)
+      : null;
 
   return (
     <CellValue
@@ -192,28 +215,70 @@ export function BudgetCell<
               ...PILL_STYLE,
               maxWidth: columnWidth,
               ...makeAmountGrey(value),
+              ...(isSelected && {
+                backgroundColor: theme.pillBackgroundSelected,
+                color: theme.pillTextSelected,
+                outline: `2px solid ${theme.pillBorderSelected}`,
+              }),
             }}
             onPress={onOpenCategoryBudgetMenu}
             aria-label={t('Open budget menu for {{categoryName}} category', {
               categoryName: category.name,
             })}
+            data-testid={isSelected ? 'budget-cell-selected' : undefined}
           >
             <PrivacyFilter>
-              <AutoTextSize
-                key={value}
-                as={Text}
-                minFontSizePx={6}
-                maxFontSizePx={12}
-                mode="oneline"
-                style={{
-                  ...styles.tnum,
-                  maxWidth: columnWidth,
-                  textAlign: 'right',
-                  fontSize: 12,
-                }}
-              >
-                {format(value, type)}
-              </AutoTextSize>
+              {display ? (
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text
+                    style={{
+                      ...styles.tnum,
+                      maxWidth: columnWidth,
+                      textAlign: 'right',
+                      fontSize: 12,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {format(display.primary, type)}
+                  </Text>
+                  {display.secondary && (
+                    <Text
+                      style={{
+                        ...styles.tnum,
+                        maxWidth: columnWidth,
+                        textAlign: 'right',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        color:
+                          display.secondary.op === '-'
+                            ? theme.errorText
+                            : theme.noticeText,
+                      }}
+                      data-testid="budget-cell-expression"
+                    >
+                      {display.secondary.op === '-' ? '−' : '+'}
+                      {format(display.secondary.amount, type)}
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <AutoTextSize
+                  key={value}
+                  as={Text}
+                  minFontSizePx={6}
+                  maxFontSizePx={12}
+                  mode="oneline"
+                  style={{
+                    ...styles.tnum,
+                    maxWidth: columnWidth,
+                    textAlign: 'right',
+                    fontSize: 12,
+                  }}
+                >
+                  {format(value, type)}
+                </AutoTextSize>
+              )}
             </PrivacyFilter>
           </Button>
         )

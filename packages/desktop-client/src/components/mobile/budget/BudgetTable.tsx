@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
@@ -31,6 +31,8 @@ import { useSyncedPref } from '#hooks/useSyncedPref';
 import type { Binding } from '#spreadsheet';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
+import { AssignKeypad } from './AssignKeypad';
+import { AssignKeypadProvider, useAssignKeypad } from './AssignKeypadContext';
 import { ExpenseGroupList } from './ExpenseGroupList';
 import { IncomeGroup } from './IncomeGroup';
 
@@ -367,7 +369,7 @@ export function BudgetTable({
   const schedulesQuery = useMemo(() => q('schedules').select('*'), []);
 
   return (
-    <>
+    <AssignKeypadProvider month={month} onBudgetAction={onBudgetAction}>
       <BudgetTableHeader
         month={month}
         show3Columns={show3Columns}
@@ -376,14 +378,7 @@ export function BudgetTable({
         onShowBudgetSummary={onShowBudgetSummary}
       />
       <PullToRefresh onRefresh={onRefresh}>
-        <View
-          data-testid="budget-table"
-          style={{
-            backgroundColor: theme.pageBackground,
-            minHeight: '100vh',
-            paddingBottom: MOBILE_NAV_HEIGHT,
-          }}
-        >
+        <BudgetTableBody>
           <SchedulesProvider query={schedulesQuery}>
             <BudgetGroups
               type={budgetType}
@@ -397,9 +392,32 @@ export function BudgetTable({
               onBudgetAction={onBudgetAction}
             />
           </SchedulesProvider>
-        </View>
+        </BudgetTableBody>
       </PullToRefresh>
-    </>
+      <AssignKeypad onEditCategory={onEditCategory} />
+    </AssignKeypadProvider>
+  );
+}
+
+/**
+ * Cuerpo de la tabla: deja sitio al final para la barra de pestañas o, con
+ * el teclado de asignación abierto, para el panel inferior, de modo que la
+ * última fila también se pueda seleccionar y ver.
+ */
+function BudgetTableBody({ children }: { children: ReactNode }) {
+  const keypad = useAssignKeypad();
+  const panelHeight = keypad?.panelHeight ?? 0;
+  return (
+    <View
+      data-testid="budget-table"
+      style={{
+        backgroundColor: theme.pageBackground,
+        minHeight: '100vh',
+        paddingBottom: Math.max(MOBILE_NAV_HEIGHT, panelHeight + 10),
+      }}
+    >
+      {children}
+    </View>
   );
 }
 

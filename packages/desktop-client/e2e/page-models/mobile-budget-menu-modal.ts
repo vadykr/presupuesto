@@ -1,79 +1,69 @@
 import type { Locator, Page } from '@playwright/test';
 
+/**
+ * Teclado de asignación inline (panel inferior) que sustituye al modal del
+ * presupuesto de una categoría en el móvil. Conserva el nombre y la API del
+ * antiguo modelo de página para no tocar los tests que lo usan.
+ */
 export class BudgetMenuModal {
   readonly page: Page;
   readonly locator: Locator;
-  readonly heading: Locator;
-  readonly budgetAmountInput: Locator;
-  readonly actionsButton: Locator;
-  readonly copyLastMonthBudgetButton: Locator;
-  readonly setTo3MonthAverageButton: Locator;
-  readonly setTo6MonthAverageButton: Locator;
-  readonly setToYearlyAverageButton: Locator;
-  readonly applyBudgetTemplateButton: Locator;
+  readonly autoAssignButton: Locator;
+  readonly doneButton: Locator;
+  readonly cancelButton: Locator;
 
   constructor(locator: Locator) {
     this.locator = locator;
     this.page = locator.page();
 
-    this.heading = locator.getByRole('heading');
-    this.budgetAmountInput = locator.getByTestId('amount-input');
-    this.actionsButton = locator.getByRole('button', {
-      name: 'Actions',
-    });
-    this.copyLastMonthBudgetButton = locator.getByRole('button', {
-      name: "Copy last month's budget",
-    });
-    this.setTo3MonthAverageButton = locator.getByRole('button', {
-      name: 'Set to 3 month average',
-    });
-    this.setTo6MonthAverageButton = locator.getByRole('button', {
-      name: 'Set to 6 month average',
-    });
-    this.setToYearlyAverageButton = locator.getByRole('button', {
-      name: 'Set to yearly average',
-    });
-    this.applyBudgetTemplateButton = locator.getByRole('button', {
-      name: 'Overwrite with template',
-    });
+    this.autoAssignButton = locator.getByTestId('keypad-auto-assign');
+    this.doneButton = locator.getByTestId('keypad-done');
+    this.cancelButton = locator.getByTestId('keypad-cancel');
   }
 
   async close() {
-    await this.heading.getByRole('button', { name: 'Close' }).click();
+    if (await this.locator.isVisible()) {
+      await this.doneButton.click();
+    }
   }
 
   async showActions() {
-    await this.actionsButton.click();
+    await this.autoAssignButton.click();
   }
 
+  /** Teclea los dígitos tal cual (céntimos, como YNAB: «12300» = 123,00) y pulsa Hecho. */
   async setBudgetAmount(newAmount: string) {
-    await this.budgetAmountInput.fill(newAmount);
-    await this.budgetAmountInput.blur();
-    await this.close();
+    for (const digit of newAmount.replace(/\D/g, '')) {
+      await this.locator.getByTestId(`keypad-${digit}`).click();
+    }
+    await this.doneButton.click();
+  }
+
+  async #selectAutoAssign(name: string) {
+    await this.showActions();
+    await this.page
+      .getByRole('menu')
+      .getByRole('button', { name, exact: true })
+      .click();
   }
 
   async copyLastMonthBudget() {
-    await this.showActions();
-    await this.copyLastMonthBudgetButton.click();
+    await this.#selectAutoAssign("Copy last month's budget");
   }
 
   async setTo3MonthAverage() {
-    await this.showActions();
-    await this.setTo3MonthAverageButton.click();
+    await this.#selectAutoAssign('Set to 3 month average');
   }
 
   async setTo6MonthAverage() {
-    await this.showActions();
-    await this.setTo6MonthAverageButton.click();
+    await this.#selectAutoAssign('Set to 6 month average');
   }
 
   async setToYearlyAverage() {
-    await this.showActions();
-    await this.setToYearlyAverageButton.click();
+    await this.#selectAutoAssign('Set to yearly average');
   }
 
   async applyBudgetTemplate() {
-    await this.showActions();
-    await this.applyBudgetTemplateButton.click();
+    await this.#selectAutoAssign('Overwrite with template');
   }
 }
