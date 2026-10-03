@@ -2,6 +2,11 @@ import { integerToAmount } from '@actual-app/core/shared/util';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type { AccountEntity } from '@actual-app/core/types/models';
 
+import {
+  recortarInicioSinDatos,
+  referenciaHabitual,
+} from '#components/mobile/informes/estadisticaRobusta';
+
 /**
  * «Cuánto ingresar a la cuenta común» (la vista «Ingrés comuna» de YNAB):
  * la suma de lo ASIGNADO este mes en las categorías elegidas, guardadas en la
@@ -102,4 +107,121 @@ export function enlaceTraspaso({
     params.set('notes', nota);
   }
   return `/transactions/new?${params.toString()}`;
+}
+
+/** Meses completos que entran en el gasto previsto. */
+export const MESES_PREVISTO = 12;
+
+/** Tolerancia al reconocer un traspaso ya hecho: ±5 % del importe a ingresar. */
+export const TOLERANCIA_TRASPASO = 0.05;
+
+/** Día del mes anterior desde el que se busca el traspaso. */
+export const DIA_INICIO_BUSQUEDA = 20;
+
+/**
+ * Estado «Traspasado» por mes: pref sincronizada `cuenta-comun-traspasado`
+ * (JSON `{ "2026-10": true }`).
+ */
+export function leerTraspasados(
+  raw: string | undefined | null,
+): Record<string, boolean> {
+  if (!raw) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    const resultado: Record<string, boolean> = {};
+    for (const [mes, valor] of Object.entries(parsed)) {
+      if (valor === true) {
+        resultado[mes] = true;
+      }
+    }
+    return resultado;
+  } catch {
+    return {};
+  }
+}
+
+/** Devuelve el JSON de la pref con el mes marcado o desmarcado. */
+export function marcarTraspasado(
+  raw: string | undefined | null,
+  mes: string,
+  traspasado: boolean,
+): string {
+  const actual = leerTraspasados(raw);
+  if (traspasado) {
+    actual[mes] = true;
+  } else {
+    delete actual[mes];
+  }
+  return JSON.stringify(actual);
+}
+
+/**
+ * Gasto previsto al mes: mediana robusta (sin atípicos) de las salidas
+ * mensuales de la cuenta en los `meses` meses completos anteriores a `mes`.
+ * `salidas` da, por mes 'yyyy-MM', el total de salidas en positivo y en
+ * céntimos (sin traspasos entre cuentas propias). Los meses iniciales sin
+ * movimientos no cuentan (la cuenta aún no se usaba).
+ */
+export function gastoPrevisto(
+  salidas: Readonly<Record<string, number>>,
+  mesesAnteriores: readonly string[],
+): { previsto: IntegerAmount; meses: number } {
+  const serie = recortarInicioSinDatos(
+    mesesAnteriores.map(mes => Math.abs(salidas[mes] ?? 0)),
+  );
+  if (serie.length === 0) {
+    return { previsto: 0, meses: 0 };
+  }
+  return {
+    previsto: referenciaHabitual(serie).referencia,
+    meses: serie.length,
+  };
+}
+
+/** Cobertura = saldo / previsto (0 si no hay previsto). */
+export function cobertura(saldo: IntegerAmount, previsto: IntegerAmount) {
+  const fraccion = previsto > 0 ? Math.max(0, saldo) / previsto : 0;
+  return { fraccion, cubre: previsto > 0 && saldo >= previsto };
+}
+
+export type EntradaCuenta = { date: string; amount: IntegerAmount };
+
+/**
+ * Busca un traspaso hacia la cuenta común entre el día 20 del mes anterior y
+ * hoy por un importe dentro de ±5 % de lo que toca ingresar. Si hay varios,
+ * el más cercano al importe (y el más reciente en empate).
+ */
+export function sugerirTraspaso(
+  entradas: readonly EntradaCuenta[],
+  importe: IntegerAmount,
+  hoy: string,
+  mesAnterior: string,
+): EntradaCuenta | null {
+  if (importe <= 0) {
+    return null;
+  }
+  const desde = `${mesAnterior}-${String(DIA_INICIO_BUSQUEDA).padStart(2, '0')}`;
+  let mejor: EntradaCuenta | null = null;
+  for (const e of entradas) {
+    if (e.date < desde || e.date > hoy || e.amount <= 0) {
+      continue;
+    }
+    const diferencia = Math.abs(e.amount - importe);
+    if (diferencia > importe * TOLERANCIA_TRASPASO) {
+      continue;
+    }
+    if (
+      !mejor ||
+      diferencia < Math.abs(mejor.amount - importe) ||
+      (diferencia === Math.abs(mejor.amount - importe) && e.date > mejor.date)
+    ) {
+      mejor = e;
+    }
+  }
+  return mejor;
 }
