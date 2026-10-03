@@ -465,8 +465,10 @@ export function BudgetPage() {
         >
           {({ onRefresh }) => (
             <>
-              <Banners month={startMonth} onBudgetAction={onBudgetAction} />
               <BudgetTable
+                banners={
+                  <Banners month={startMonth} onBudgetAction={onBudgetAction} />
+                }
                 // This key forces the whole table rerender when the number
                 // format changes
                 key={`${numberFormat}${hideFraction}`}

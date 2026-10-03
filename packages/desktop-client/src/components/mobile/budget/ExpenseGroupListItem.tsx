@@ -194,8 +194,8 @@ function ExpenseGroupName({
           overflow: 'hidden',
         }}
       />
-      {/* Tocar el nombre pliega o despliega el grupo; mantener pulsado o
-          el icono ⋮ abren el menú del grupo (notas, nueva categoría…). */}
+      {/* Tocar el nombre pliega o despliega el grupo (sin menú: Vadym no
+          lo usa; mantener pulsado no hace nada). */}
       <RowName
         name={group.name}
         width={sidebarColumnWidth}
@@ -205,11 +205,6 @@ function ExpenseGroupName({
         textStyle={{ ...densidad.grupo, lineHeight: '18px', color: color.fg }}
         data-testid="category-group-name"
         onPress={() => onToggleCollapse(group.id)}
-        onHold={() => onEditCategoryGroup(group.id)}
-        onOpenMenu={() => onEditCategoryGroup(group.id)}
-        menuLabel={t('Open menu for {{groupName}} group', {
-          groupName: group.name,
-        })}
         leading={
           <Icono
             nombre="cd"

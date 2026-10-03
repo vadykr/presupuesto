@@ -182,8 +182,6 @@ function IncomeGroupName({
       textStyle={{ ...densidad.grupo, lineHeight: '18px', color: color.fg }}
       data-testid="category-group-name"
       onPress={() => onToggleCollapse(group.id)}
-      onHold={() => onEdit(group.id)}
-      onOpenMenu={() => onEdit(group.id)}
       menuLabel={t('Open menu for {{groupName}} group', {
         groupName: group.name,
       })}
