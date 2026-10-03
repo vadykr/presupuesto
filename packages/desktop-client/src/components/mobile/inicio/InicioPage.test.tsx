@@ -1,3 +1,4 @@
+import * as monthUtils from '@actual-app/core/shared/months';
 import type {
   AccountEntity,
   CategoryEntity,
@@ -15,6 +16,7 @@ import { usePinnedCategories } from '#hooks/usePinnedCategories';
 import { useSheetValue } from '#hooks/useSheetValue';
 import { TestProviders } from '#mocks';
 import { useDispatch } from '#redux';
+import { accountBalance } from '#spreadsheet/bindings';
 
 import { InicioPage } from './InicioPage';
 
@@ -37,6 +39,27 @@ vi.mock('#hooks/usePinnedCategories');
 vi.mock('#hooks/useNavigate');
 vi.mock('#hooks/useAccounts');
 vi.mock('#components/mobile/budget/useDatosObjetivos');
+vi.mock('#components/mobile/inicio/widgets/useDatosCuentaComun', () => ({
+  useDatosCuentaComun: (_cuenta: string | undefined, mes: string) => {
+    // 12 meses completos anteriores a `mes` (céntimos) con un mes atípico de
+    // 4.800 € y el mes en curso a 310 €.
+    const habituales = [
+      1000, 1020, 980, 1050, 4800, 1010, 1030, 990, 1020, 1040, 1000, 1020,
+    ];
+    const salidas: Record<string, number> = { [mes]: 310_00 };
+    habituales.forEach((euros, i) => {
+      salidas[monthUtils.subMonths(mes, 12 - i)] = euros * 100;
+    });
+    return {
+      data: {
+        salidas,
+        entradas: [
+          { date: `${monthUtils.subMonths(mes, 1)}-30`, amount: 145_00 },
+        ],
+      },
+    };
+  },
+}));
 vi.mock('#hooks/useSpreadsheet', () => ({
   useSpreadsheet: () => ({}),
 }));
@@ -409,26 +432,54 @@ describe('InicioPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('cuenta común: suma lo asignado y abre el traspaso rellenado', async () => {
+  it('cuenta común: tres cifras y conmutador «Traspasado» por mes', async () => {
     prefs.valores['cuenta-comun-categorias'] = JSON.stringify([
       'cat-comida',
       'cat-llum',
       'cat-borrada',
     ]);
+    mockHoja({ [accountBalance('a2').name]: 1217_63 });
     const user = userEvent.setup();
     renderInicio();
 
     expect(await screen.findByTestId('cuenta-comun-importe')).toHaveTextContent(
       '145.50',
     );
-    await user.click(screen.getByRole('button', { name: 'Record transfer' }));
+    expect(screen.getByTestId('cuenta-comun-saldo')).toHaveTextContent(
+      '1,217.63',
+    );
+    // Mediana robusta: el mes atípico no cuenta.
+    expect(screen.getByTestId('cuenta-comun-previsto')).toHaveTextContent(
+      '1,020.00',
+    );
+    expect(screen.getByTestId('cuenta-comun-llevas')).toHaveTextContent(
+      'So far 310.00 of 1,020.00',
+    );
+    expect(screen.getByTestId('cuenta-comun-sugerencia')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Record transfer' }),
+    ).not.toBeInTheDocument();
 
-    const url = navigate.mock.calls.at(-1)?.[0] as string;
-    const params = new URLSearchParams(url.split('?')[1]);
-    expect(url.startsWith('/transactions/new?')).toBe(true);
-    expect(params.get('account')).toBe('Cuenta Personal');
-    expect(params.get('payee')).toBe('Conte conjunt');
-    expect(params.get('amount')).toBe('145.5');
+    await user.click(screen.getByRole('button', { name: 'Transferred' }));
+    expect(prefs.guardar).toHaveBeenLastCalledWith(
+      'cuenta-comun-traspasado',
+      JSON.stringify({ [monthUtils.currentMonth()]: true }),
+    );
+  });
+
+  it('cuenta común: con el mes marcado enseña «✓ Transferred»', async () => {
+    prefs.valores['cuenta-comun-categorias'] = '["cat-llum"]';
+    prefs.valores['cuenta-comun-traspasado'] = JSON.stringify({
+      [monthUtils.currentMonth()]: true,
+    });
+    renderInicio();
+
+    const boton = await screen.findByTestId('cuenta-comun-traspasado');
+    expect(boton).toHaveTextContent('✓ Transferred');
+    expect(boton).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.queryByTestId('cuenta-comun-sugerencia'),
+    ).not.toBeInTheDocument();
   });
 
   it('cuenta común sin categorías invita a elegirlas', async () => {

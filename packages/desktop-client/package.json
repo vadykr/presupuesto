@@ -55,6 +55,7 @@
     "#components/mobile/inicio/useInicioWidgets": "./src/components/mobile/inicio/useInicioWidgets.ts",
     "#components/mobile/inicio/widgets/registro": "./src/components/mobile/inicio/widgets/registro.ts",
     "#components/mobile/inicio/widgets/useCuentasEspeciales": "./src/components/mobile/inicio/widgets/useCuentasEspeciales.ts",
+    "#components/mobile/inicio/widgets/useDatosCuentaComun": "./src/components/mobile/inicio/widgets/useDatosCuentaComun.ts",
     "#components/mobile/informes/estadisticaRobusta": "./src/components/mobile/informes/estadisticaRobusta.ts",
     "#components/mobile/informes/usePresupuestado": "./src/components/mobile/informes/usePresupuestado.ts",
     "#components/mobile/analisis/useConsejos": "./src/components/mobile/analisis/useConsejos.ts",

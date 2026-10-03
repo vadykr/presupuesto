@@ -79,6 +79,8 @@ export type SyncedPrefs = Partial<
     | 'inicio-widgets'
     // Presupuesto · Inicio: categorías de la cuenta común (JSON array de ids)
     | 'cuenta-comun-categorias'
+    // Presupuesto · Inicio: meses con el traspaso a la cuenta común hecho (JSON { "2026-10": true })
+    | 'cuenta-comun-traspasado'
     // Presupuesto · Análisis: consejos descartados (JSON array de «id@mes»)
     | 'analisis-descartados'
     // Presupuesto · Gasto anual: ids de grupos marcados (JSON array)
