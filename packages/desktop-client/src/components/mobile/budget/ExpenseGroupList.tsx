@@ -11,6 +11,7 @@ import { css } from '@emotion/css';
 
 import { useMoveCategoryGroupMutation } from '#budget';
 
+import { useSinArrastre } from './ArrastreContext';
 import {
   ExpenseGroupHeader,
   ExpenseGroupListItem,
@@ -42,9 +43,11 @@ export function ExpenseGroupList({
   onToggleCollapse,
 }: ExpenseGroupListProps) {
   const { t } = useTranslation();
+  const sinArrastre = useSinArrastre();
   const moveCategoryGroup = useMoveCategoryGroupMutation();
 
   const { dragAndDropHooks } = useDragAndDrop({
+    isDisabled: sinArrastre,
     getItems: keys =>
       [...keys].map(
         key =>

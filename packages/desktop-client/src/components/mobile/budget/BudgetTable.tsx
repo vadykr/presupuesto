@@ -19,6 +19,7 @@ import { AnualPlegado } from '#components/mobile/anual/AnualPlegado';
 import { useAnual, useOcultarEnPlan } from '#components/mobile/anual/useAnual';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { PullToRefresh } from '#components/mobile/PullToRefresh';
+import { EstadoVacio } from '#components/mobile/ui/EstadoVacio';
 import { Icono } from '#components/mobile/ui/Icono';
 import {
   color,
@@ -38,10 +39,17 @@ import { useSyncedPref } from '#hooks/useSyncedPref';
 import type { Binding } from '#spreadsheet';
 import { envelopeBudget, trackingBudget } from '#spreadsheet/bindings';
 
+import { SinArrastreContext } from './ArrastreContext';
 import { AssignKeypad } from './AssignKeypad';
 import { AssignKeypadProvider, useAssignKeypad } from './AssignKeypadContext';
 import { ExpenseGroupList } from './ExpenseGroupList';
+import {
+  ChipsFiltros,
+  EditorFiltro,
+  useFiltrosCategorias,
+} from './FiltrosCategorias';
 import { IncomeGroup } from './IncomeGroup';
+import { useDatosObjetivos } from './useDatosObjetivos';
 
 export const ROW_HEIGHT = 50;
 
@@ -324,7 +332,18 @@ type BudgetTableProps = {
   onEditCategory: (id: CategoryEntity['id']) => void;
 };
 
-export function BudgetTable({
+export function BudgetTable(props: BudgetTableProps) {
+  return (
+    <AssignKeypadProvider
+      month={props.month}
+      onBudgetAction={props.onBudgetAction}
+    >
+      <BudgetTableContenido {...props} />
+    </AssignKeypadProvider>
+  );
+}
+
+function BudgetTableContenido({
   categoryGroups,
   month,
   onShowBudgetSummary,
@@ -349,24 +368,71 @@ export function BudgetTable({
   // cubierto se pliega en un bloque al final (las atrasadas siguen en su sitio).
   const { ocultar: ocultarAnual } = useOcultarEnPlan();
   const anual = useAnual(ocultarAnual);
+
+  // Filtros de categorías (los mismos que «Asignar el mes»): empiezan en
+  // «Todas» y, activos, ocultan lo que no cumple y desactivan el arrastre.
+  const keypad = useAssignKeypad();
+  const cancelarTeclado = useCallback(() => keypad?.cancel(), [keypad]);
+  const categorias = useMemo(
+    () =>
+      categoryGroups.filter(g => !g.is_income).flatMap(g => g.categories ?? []),
+    [categoryGroups],
+  );
+  const datos = useDatosObjetivos(month, categorias);
+  const gruposConCategorias = useMemo(
+    () => categoryGroups.map(g => ({ ...g, categories: g.categories ?? [] })),
+    [categoryGroups],
+  );
+  const {
+    filtro,
+    setFiltro,
+    propios,
+    conteos,
+    gruposFiltrados,
+    editando,
+    setEditando,
+    onGuardar,
+    onBorrar,
+  } = useFiltrosCategorias({
+    grupos: gruposConCategorias,
+    datos,
+    onCambio: cancelarTeclado,
+  });
+  const filtrando = filtro !== 'todas';
+  const gruposEditor = useMemo(
+    () => gruposConCategorias.filter(g => !g.is_income && !g.hidden),
+    [gruposConCategorias],
+  );
+
   const anualPlegadas = useMemo(
     () =>
-      ocultarAnual && !anual.cargando ? anual.filas.filter(esPlegable) : [],
-    [ocultarAnual, anual.cargando, anual.filas],
+      ocultarAnual && !anual.cargando && !filtrando
+        ? anual.filas.filter(esPlegable)
+        : [],
+    [ocultarAnual, anual.cargando, anual.filas, filtrando],
   );
 
   return (
-    <AssignKeypadProvider month={month} onBudgetAction={onBudgetAction}>
+    <SinArrastreContext.Provider value={filtrando}>
       <BudgetTableHeader
         month={month}
         onShowBudgetSummary={onShowBudgetSummary}
+      />
+      <ChipsFiltros
+        denso
+        activo={filtro}
+        onChange={setFiltro}
+        conteos={conteos}
+        propios={propios}
+        onNuevo={() => setEditando('nuevo')}
+        onEditar={f => setEditando(f)}
       />
       <PullToRefresh onRefresh={onRefresh}>
         <BudgetTableBody>
           <SchedulesProvider query={schedulesQuery}>
             <BudgetGroups
               type={budgetType}
-              categoryGroups={categoryGroups}
+              categoryGroups={gruposFiltrados}
               showBudgetedColumn
               show3Columns={show3Columns}
               showHiddenCategories={showHiddenCategories}
@@ -376,11 +442,26 @@ export function BudgetTable({
               onEditCategory={onEditCategory}
               onBudgetAction={onBudgetAction}
             />
+            {filtrando && gruposFiltrados.length === 0 && (
+              <EstadoVacio
+                style={{ margin: espacio.margen }}
+                titulo={<Trans>No categories in this filter.</Trans>}
+              />
+            )}
           </SchedulesProvider>
         </BudgetTableBody>
       </PullToRefresh>
+      {editando && (
+        <EditorFiltro
+          filtro={editando === 'nuevo' ? null : editando}
+          grupos={gruposEditor}
+          onGuardar={onGuardar}
+          onBorrar={onBorrar}
+          onCerrar={() => setEditando(null)}
+        />
+      )}
       <AssignKeypad onEditCategory={onEditCategory} />
-    </AssignKeypadProvider>
+    </SinArrastreContext.Provider>
   );
 }
 

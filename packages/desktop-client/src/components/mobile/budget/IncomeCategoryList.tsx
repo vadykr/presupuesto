@@ -8,6 +8,7 @@ import { css } from '@emotion/css';
 
 import { useMoveCategoryMutation } from '#budget';
 
+import { useSinArrastre } from './ArrastreContext';
 import { IncomeCategoryListItem } from './IncomeCategoryListItem';
 
 type IncomeCategoryListProps = {
@@ -24,9 +25,11 @@ export function IncomeCategoryList({
   onBudgetAction,
 }: IncomeCategoryListProps) {
   const { t } = useTranslation();
+  const sinArrastre = useSinArrastre();
   const moveCategory = useMoveCategoryMutation();
 
   const { dragAndDropHooks } = useDragAndDrop({
+    isDisabled: sinArrastre,
     getItems: keys =>
       [...keys].map(
         key =>

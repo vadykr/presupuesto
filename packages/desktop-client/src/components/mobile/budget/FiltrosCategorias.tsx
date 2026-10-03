@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Trans, useTranslation } from 'react-i18next';
@@ -25,11 +25,20 @@ import {
   sombra,
   texto,
 } from '#components/mobile/ui/tokens';
+import { useSyncedPref } from '#hooks/useSyncedPref';
 
 import { KEYPAD_Z_INDEX } from './AssignKeypad';
-import { alternarCategoria } from './filtrosCategorias';
+import {
+  alternarCategoria,
+  borrarFiltro,
+  escribirFiltros,
+  filtrarGrupos,
+  guardarFiltro,
+  leerFiltros,
+} from './filtrosCategorias';
 import type { FiltroPropio } from './filtrosCategorias';
-import type { FiltroEstado } from './objetivos';
+import { cumpleFiltro } from './objetivos';
+import type { DatosCategoriaMes, FiltroEstado } from './objetivos';
 
 /** `todas`, un filtro de estado o `propio:<id>`. */
 export type FiltroActivo = 'todas' | FiltroEstado | `propio:${string}`;
@@ -44,12 +53,14 @@ function Chip({
   children,
   testId,
   punteado = false,
+  denso = false,
 }: {
   activo: boolean;
   onPress: () => void;
   children: ReactNode;
   testId?: string;
   punteado?: boolean;
+  denso?: boolean;
 }) {
   return (
     <Button
@@ -59,7 +70,7 @@ function Chip({
       data-testid={testId}
       style={{
         flexShrink: 0,
-        minHeight: 44,
+        minHeight: denso ? 32 : 44,
         padding: 0,
         backgroundColor: 'transparent',
       }}
@@ -69,10 +80,10 @@ function Chip({
           display: 'inline-flex',
           alignItems: 'center',
           gap: 4,
-          height: 30,
-          padding: '0 12px',
+          height: denso ? 24 : 30,
+          padding: denso ? '0 10px' : '0 12px',
           borderRadius: radio.pildora,
-          fontSize: 13,
+          ...(denso ? densidad.pequeno : { fontSize: 13, fontWeight: 700 }),
           fontWeight: 700,
           whiteSpace: 'nowrap',
           backgroundColor: activo ? color.accent : color.surface2,
@@ -98,6 +109,8 @@ type ChipsFiltrosProps = {
   propios: FiltroPropio[];
   onNuevo: () => void;
   onEditar: (filtro: FiltroPropio) => void;
+  /** Versión compacta para el Plan. */
+  denso?: boolean;
 };
 
 /**
@@ -112,6 +125,7 @@ export function ChipsFiltros({
   propios,
   onNuevo,
   onEditar,
+  denso = false,
 }: ChipsFiltrosProps) {
   const { t } = useTranslation();
   const propioActivo = activo.startsWith('propio:')
@@ -132,11 +146,12 @@ export function ChipsFiltros({
         flexDirection: 'row',
         gap: 6,
         overflowX: 'auto',
-        padding: `0 ${espacio.margen}px 4px`,
+        padding: denso ? `0 ${espacio.margen}px` : `0 ${espacio.margen}px 4px`,
         scrollbarWidth: 'none',
       }}
     >
       <Chip
+        denso={denso}
         activo={activo === 'todas'}
         onPress={() => onChange('todas')}
         testId="filtro-todas"
@@ -145,6 +160,7 @@ export function ChipsFiltros({
       </Chip>
       {estados.map(e => (
         <Chip
+          denso={denso}
           key={e.id}
           activo={activo === e.id}
           onPress={() => onChange(activo === e.id ? 'todas' : e.id)}
@@ -156,6 +172,7 @@ export function ChipsFiltros({
       ))}
       {propios.map(f => (
         <Chip
+          denso={denso}
           key={f.id}
           activo={activo === `propio:${f.id}`}
           onPress={() =>
@@ -168,6 +185,7 @@ export function ChipsFiltros({
       ))}
       {propioActivo && (
         <Chip
+          denso={denso}
           activo={false}
           onPress={() => onEditar(propioActivo)}
           testId="filtro-editar"
@@ -175,12 +193,106 @@ export function ChipsFiltros({
           <Trans>Edit</Trans>
         </Chip>
       )}
-      <Chip activo={false} onPress={onNuevo} testId="filtro-nuevo" punteado>
+      <Chip
+        denso={denso}
+        activo={false}
+        onPress={onNuevo}
+        testId="filtro-nuevo"
+        punteado
+      >
         <Icono nombre="plus" size={14} />
         <Trans>New filter</Trans>
       </Chip>
     </View>
   );
+}
+
+type FiltrosCategoriasArgs<G extends { categories: { id: string }[] }> = {
+  grupos: readonly G[];
+  datos: ReadonlyMap<string, DatosCategoriaMes>;
+  /** Se llama al cambiar de filtro (p. ej. para cerrar el teclado). */
+  onCambio?: () => void;
+};
+
+/**
+ * Estado de los filtros de categorías, compartido por «Asignar el mes» y el
+ * Plan: filtro activo (empieza en «Todas»), filtros propios (pref sincronizada
+ * `asignar-filtros`), conteos por estado, grupos filtrados y editor.
+ */
+export function useFiltrosCategorias<
+  G extends { categories: { id: string }[] },
+>({ grupos, datos, onCambio }: FiltrosCategoriasArgs<G>) {
+  const [filtrosRaw, setFiltrosRaw] = useSyncedPref('asignar-filtros');
+  const propios = useMemo(() => leerFiltros(filtrosRaw), [filtrosRaw]);
+  const [filtro, setFiltroState] = useState<FiltroActivo>('todas');
+  const [editando, setEditando] = useState<FiltroPropio | 'nuevo' | null>(null);
+  const setFiltro = useCallback(
+    (nuevo: FiltroActivo) => {
+      onCambio?.();
+      setFiltroState(nuevo);
+    },
+    [onCambio],
+  );
+  const conteos = useMemo(() => {
+    const c: Record<FiltroEstado, number> = {
+      infrafinanciadas: 0,
+      sobrefinanciadas: 0,
+      'gastado-de-mas': 0,
+    };
+    for (const d of datos.values()) {
+      for (const k of Object.keys(c) as FiltroEstado[]) {
+        if (cumpleFiltro(k, d)) {
+          c[k] += 1;
+        }
+      }
+    }
+    return c;
+  }, [datos]);
+  // Un filtro propio borrado (en otro dispositivo) vuelve a «Todas».
+  const filtroValido: FiltroActivo =
+    filtro.startsWith('propio:') &&
+    !propios.some(f => `propio:${f.id}` === filtro)
+      ? 'todas'
+      : filtro;
+  const gruposFiltrados = useMemo(() => {
+    if (filtroValido === 'todas') {
+      return [...grupos];
+    }
+    if (filtroValido.startsWith('propio:')) {
+      const ids = new Set(
+        propios.find(f => `propio:${f.id}` === filtroValido)?.categorias ?? [],
+      );
+      return filtrarGrupos(grupos, c => ids.has(c.id));
+    }
+    const estado = filtroValido as FiltroEstado;
+    return filtrarGrupos(grupos, c => {
+      const d = datos.get(c.id);
+      return d ? cumpleFiltro(estado, d) : false;
+    });
+  }, [datos, filtroValido, grupos, propios]);
+
+  const onGuardar = (f: FiltroPropio) => {
+    setFiltrosRaw(escribirFiltros(guardarFiltro(propios, f)));
+    setEditando(null);
+    setFiltro(`propio:${f.id}`);
+  };
+  const onBorrar = (id: string) => {
+    setFiltrosRaw(escribirFiltros(borrarFiltro(propios, id)));
+    setEditando(null);
+    setFiltro('todas');
+  };
+
+  return {
+    filtro: filtroValido,
+    setFiltro,
+    propios,
+    conteos,
+    gruposFiltrados,
+    editando,
+    setEditando,
+    onGuardar,
+    onBorrar,
+  };
 }
 
 type EditorFiltroProps = {

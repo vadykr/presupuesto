@@ -67,20 +67,14 @@ import {
   useMoveMoneyModal,
 } from './AssignKeypad';
 import { AssignKeypadProvider, useAssignKeypad } from './AssignKeypadContext';
-import { ChipsFiltros, EditorFiltro } from './FiltrosAsignar';
-import type { FiltroActivo } from './FiltrosAsignar';
 import {
-  borrarFiltro,
-  escribirFiltros,
-  filtrarGrupos,
-  guardarFiltro,
-  leerFiltros,
-} from './filtrosCategorias';
-import type { FiltroPropio } from './filtrosCategorias';
+  ChipsFiltros,
+  EditorFiltro,
+  useFiltrosCategorias,
+} from './FiltrosCategorias';
 import {
   asignarGastadoMesPasado,
   asignarInfrafinanciadas,
-  cumpleFiltro,
   estadoFila,
   faltante,
   mediaPorCategoria,
@@ -91,7 +85,6 @@ import {
 import type {
   DatosCategoriaMes,
   EstadoFila,
-  FiltroEstado,
   ImporteCategoria,
 } from './objetivos';
 import { RowName } from './RowName';
@@ -305,65 +298,22 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
   const infrafinanciado = totalInfrafinanciado(datos.values());
 
   // Filtros: chips de estado y filtros propios (pref sincronizada).
-  const [filtrosRaw, setFiltrosRaw] = useSyncedPref('asignar-filtros');
-  const propios = useMemo(() => leerFiltros(filtrosRaw), [filtrosRaw]);
-  const [filtro, setFiltroState] = useState<FiltroActivo>('todas');
-  const [editando, setEditando] = useState<FiltroPropio | 'nuevo' | null>(null);
-  const setFiltro = useCallback(
-    (nuevo: FiltroActivo) => {
-      keypad?.cancel();
-      setFiltroState(nuevo);
-    },
-    [keypad],
-  );
-  const conteos = useMemo(() => {
-    const c: Record<FiltroEstado, number> = {
-      infrafinanciadas: 0,
-      sobrefinanciadas: 0,
-      'gastado-de-mas': 0,
-    };
-    for (const d of datos.values()) {
-      for (const k of Object.keys(c) as FiltroEstado[]) {
-        if (cumpleFiltro(k, d)) {
-          c[k] += 1;
-        }
-      }
-    }
-    return c;
-  }, [datos]);
-  // Un filtro propio borrado (en otro dispositivo) vuelve a «Todas».
-  const filtroValido =
-    filtro.startsWith('propio:') &&
-    !propios.some(f => `propio:${f.id}` === filtro)
-      ? 'todas'
-      : filtro;
-  const gruposFiltrados = useMemo(() => {
-    if (filtroValido === 'todas') {
-      return grupos;
-    }
-    if (filtroValido.startsWith('propio:')) {
-      const ids = new Set(
-        propios.find(f => `propio:${f.id}` === filtroValido)?.categorias ?? [],
-      );
-      return filtrarGrupos(grupos, c => ids.has(c.id));
-    }
-    const estado = filtroValido as FiltroEstado;
-    return filtrarGrupos(grupos, c => {
-      const d = datos.get(c.id);
-      return d ? cumpleFiltro(estado, d) : false;
-    });
-  }, [datos, filtroValido, grupos, propios]);
-
-  const onGuardarFiltro = (f: FiltroPropio) => {
-    setFiltrosRaw(escribirFiltros(guardarFiltro(propios, f)));
-    setEditando(null);
-    setFiltro(`propio:${f.id}`);
-  };
-  const onBorrarFiltro = (id: string) => {
-    setFiltrosRaw(escribirFiltros(borrarFiltro(propios, id)));
-    setEditando(null);
-    setFiltro('todas');
-  };
+  const cancelarTeclado = useCallback(() => keypad?.cancel(), [keypad]);
+  const {
+    filtro: filtroValido,
+    setFiltro,
+    propios,
+    conteos,
+    gruposFiltrados,
+    editando,
+    setEditando,
+    onGuardar: onGuardarFiltro,
+    onBorrar: onBorrarFiltro,
+  } = useFiltrosCategorias({
+    grupos,
+    datos,
+    onCambio: cancelarTeclado,
+  });
 
   const [collapsedGroupIds = [], setCollapsedGroupIdsPref] =
     useLocalPref('budget.collapsed');

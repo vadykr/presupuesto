@@ -11,6 +11,7 @@ import { css } from '@emotion/css';
 
 import { useMoveCategoryMutation } from '#budget';
 
+import { useSinArrastre } from './ArrastreContext';
 import { ExpenseCategoryListItem } from './ExpenseCategoryListItem';
 
 type ExpenseCategoryListProps = {
@@ -35,9 +36,11 @@ export function ExpenseCategoryList({
   shouldHideCategory,
 }: ExpenseCategoryListProps) {
   const { t } = useTranslation();
+  const sinArrastre = useSinArrastre();
   const moveCategory = useMoveCategoryMutation();
 
   const { dragAndDropHooks } = useDragAndDrop({
+    isDisabled: sinArrastre,
     getItems: keys =>
       [...keys].map(
         key =>
