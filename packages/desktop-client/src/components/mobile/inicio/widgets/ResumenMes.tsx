@@ -5,6 +5,7 @@ import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
 import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
+import { useIngresoNoContado } from '#components/mobile/informes/useIngresoNoContado';
 import { BarraPartes, Fila, Tarjeta } from '#components/mobile/inicio/comunes';
 import type { PropsWidget } from '#components/mobile/inicio/comunes';
 import { estilos } from '#components/mobile/inicio/inicio.estilos';
@@ -34,7 +35,12 @@ export function ResumenMes({ tamano, month }: PropsWidget) {
   const totalBudgeted =
     useEnvelopeSheetValue(envelopeBudget.totalBudgeted) ?? 0;
   const totalSpent = useEnvelopeSheetValue(envelopeBudget.totalSpent) ?? 0;
-  const totalIncome = useEnvelopeSheetValue(envelopeBudget.totalIncome) ?? 0;
+  const ingresoPresupuesto =
+    useEnvelopeSheetValue(envelopeBudget.totalIncome) ?? 0;
+  // Los traspasos desde cuentas propias y lo marcado «No contar como
+  // ingreso» suman a Listo para asignar, pero no son ingresos.
+  const noContado = useIngresoNoContado(month);
+  const totalIncome = ingresoPresupuesto - noContado;
 
   // La hoja guarda lo asignado y lo gastado en negativo; se enseñan en
   // positivo, igual que la cabecera de la pestaña Presupuesto.

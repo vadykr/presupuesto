@@ -202,3 +202,26 @@ a su derecha. La ficha oculta las líneas `#template` / `#goal` / `#objetivo` de
 
 Capturas: `plan-denso.png`, `plan-denso-teclado.png`, `plan-denso-ficha.png`, `plan-denso-asignar.png`,
 `plan-denso-anual.png`.
+
+## 9. Movimiento y traspasos (rama `claude/traspasos`)
+
+- Pantalla de movimiento densa: importe 30 px/800 con el símbolo de moneda al lado (no 46), selector
+  **Gasto · Ingreso · Traspaso** de 44 px, filas de formulario de 48 px (valor 15/500 como
+  `densidad.nombre`, icono en cajita de 28), tarjetas de radio 16 y botón Guardar de 48.
+- Beneficiario (móvil): arriba «PAGOS Y TRASPASOS → Traspaso entre cuentas» abre la lista de cuentas
+  abiertas (sin cerradas ni la del propio movimiento; primero las del presupuesto). Elegir una guarda el
+  beneficiario de traspaso de Actual (`payee.transfer_acct`): Actual crea el movimiento espejo
+  (`transfer_id`). «Traspaso» en el selector abre la misma lista directamente.
+- Traspaso: «Desde ↓ Hacia» (el ↓ invierte el sentido, es el signo del importe). Desde una cuenta fuera
+  de presupuesto a una dentro → categoría de ingreso (la llamada Ready to Assign/Income/Ingresos o la
+  primera que no sea de saldos iniciales), que se enseña como **Listo para asignar**. Entre dos cuentas
+  del presupuesto, sin fila de categoría.
+- **No contar como ingreso**: etiqueta `#noingreso` en la nota del movimiento (aditiva, sincroniza sin
+  migraciones; Actual la pinta como etiqueta). El interruptor la pone o la quita. Un movimiento con
+  beneficiario de traspaso **nunca** cuenta como ingreso (interruptor fijo). Lógica en
+  `mobile/informes/noIngreso.ts`: `consultaMovimientos` saca aparte lo excluido y `descontarNoIngresos`
+  lo resta de las categorías de ingreso, así que Nóminas, Ingresos vs gastos, tasa de ahorro, reglas
+  del análisis e Inicio (Gasto del mes; Resumen del mes vía `useIngresoNoContado`) lo ignoran. Sigue
+  sumando a Listo para asignar.
+
+Capturas: `traspasos-*.png` (scratchpad de la sesión).

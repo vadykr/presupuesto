@@ -10,6 +10,7 @@ import { useCategories } from '#hooks/useCategories';
 import { aqlQuery } from '#queries/aqlQuery';
 
 import type { CategoriaInfo, Categorias, Movimiento } from './calculos';
+import { condicionNoIngreso, descontarNoIngresos } from './noIngreso';
 
 type FilaConsulta = {
   date: string; // 'yyyy-MM'
@@ -21,21 +22,29 @@ type FilaConsulta = {
 /** Caducidad de la caché de movimientos (reutilizada entre páginas). */
 const CADUCIDAD_MS = 30_000;
 
-export function consultaMovimientos(desde: string, hasta: string) {
-  return q('transactions')
-    .filter({
-      $and: [
-        { date: { $transform: '$month', $gte: desde } },
-        { date: { $transform: '$month', $lte: hasta } },
-      ],
-      // Solo cuentas del presupuesto…
-      'account.offbudget': false,
-      // …y sin traspasos entre cuentas del presupuesto (dinero que no sale).
-      $or: [
-        { 'payee.transfer_acct': null },
-        { 'payee.transfer_acct.offbudget': true },
-      ],
-    })
+export function consultaMovimientos(
+  desde: string,
+  hasta: string,
+  soloNoIngreso = false,
+) {
+  let consulta = q('transactions').filter({
+    $and: [
+      { date: { $transform: '$month', $gte: desde } },
+      { date: { $transform: '$month', $lte: hasta } },
+    ],
+    // Solo cuentas del presupuesto…
+    'account.offbudget': false,
+    // …y sin traspasos entre cuentas del presupuesto (dinero que no sale).
+    $or: [
+      { 'payee.transfer_acct': null },
+      { 'payee.transfer_acct.offbudget': true },
+    ],
+  });
+  if (soloNoIngreso) {
+    // Lo que no cuenta como ingreso (traspasos y `#noingreso`).
+    consulta = consulta.filter(condicionNoIngreso);
+  }
+  return consulta
     .groupBy([{ $month: '$date' }, { $id: '$category' }, { $id: '$payee' }])
     .select([
       { date: { $month: '$date' } },
@@ -45,17 +54,31 @@ export function consultaMovimientos(desde: string, hasta: string) {
     ]);
 }
 
+function aMovimientos(filas: FilaConsulta[]): Movimiento[] {
+  return filas.map<Movimiento>(fila => ({
+    mes: fila.date,
+    categoria: fila.category,
+    payee: fila.payee,
+    importe: fila.amount,
+  }));
+}
+
+/**
+ * Movimientos del periodo y, aparte, la parte que no cuenta como ingreso
+ * (`excluidos`, ver `noIngreso.ts`). Quien los use debe descontarlos.
+ */
 export function useMovimientosMensuales(desde: string, hasta: string) {
   return useQuery({
-    queryKey: ['informes', 'movimientos', desde, hasta],
+    queryKey: ['informes', 'movimientos', desde, hasta, 'noingreso'],
     queryFn: async () => {
-      const { data } = await aqlQuery(consultaMovimientos(desde, hasta));
-      return (data as FilaConsulta[]).map<Movimiento>(fila => ({
-        mes: fila.date,
-        categoria: fila.category,
-        payee: fila.payee,
-        importe: fila.amount,
-      }));
+      const [{ data }, { data: excluidos }] = await Promise.all([
+        aqlQuery(consultaMovimientos(desde, hasta)),
+        aqlQuery(consultaMovimientos(desde, hasta, true)),
+      ]);
+      return {
+        movimientos: aMovimientos(data as FilaConsulta[]),
+        excluidos: aMovimientos(excluidos as FilaConsulta[]),
+      };
     },
     staleTime: CADUCIDAD_MS,
   });
@@ -102,7 +125,8 @@ export type TotalesMensuales = {
 
 /**
  * Movimientos agrupados por mes × categoría × beneficiario para el periodo
- * pedido, sin traspasos ni cuentas fuera de presupuesto, con las categorías
+ * pedido, sin traspasos ni cuentas fuera de presupuesto, sin lo que no cuenta
+ * como ingreso (`noIngreso.ts`), con las categorías
  * ocultas y las excluidas ya filtradas. Con caché compartida entre páginas.
  */
 export function useTotalesMensuales({
@@ -119,7 +143,12 @@ export function useTotalesMensuales({
     if (!data) {
       return [];
     }
-    return data.filter(m => {
+    const contables = descontarNoIngresos(
+      data.movimientos,
+      data.excluidos,
+      categorias,
+    );
+    return contables.filter(m => {
       if (m.categoria == null) {
         return true;
       }

@@ -48,6 +48,8 @@
     "#components/mobile/informes/useCategoriasExcluidas": "./src/components/mobile/informes/useCategoriasExcluidas.ts",
     "#components/mobile/informes/useColoresCategorias": "./src/components/mobile/informes/useColoresCategorias.ts",
     "#components/mobile/informes/useTotalesMensuales": "./src/components/mobile/informes/useTotalesMensuales.ts",
+    "#components/mobile/informes/noIngreso": "./src/components/mobile/informes/noIngreso.ts",
+    "#components/mobile/informes/useIngresoNoContado": "./src/components/mobile/informes/useIngresoNoContado.ts",
     "#components/mobile/inicio/avance": "./src/components/mobile/inicio/avance.ts",
     "#components/mobile/inicio/cuentaComun": "./src/components/mobile/inicio/cuentaComun.ts",
     "#components/mobile/inicio/inicio.estilos": "./src/components/mobile/inicio/inicio.estilos.ts",

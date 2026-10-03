@@ -36,6 +36,7 @@ import { Toggle } from '@actual-app/components/toggle';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import { DEFAULT_MAX_DISTANCE_METERS } from '@actual-app/core/shared/constants';
+import { getCurrency } from '@actual-app/core/shared/currencies';
 import { calculateDistance } from '@actual-app/core/shared/location-utils';
 import * as monthUtils from '@actual-app/core/shared/months';
 import { q } from '@actual-app/core/shared/query';
@@ -74,17 +75,32 @@ import {
 
 import { NoteInsertHashButton } from '#components/autocomplete/NoteInsertHashButton';
 import { NoteTagAutocomplete } from '#components/autocomplete/NoteTagAutocomplete';
+import {
+  conEtiquetaNoIngreso,
+  tieneEtiquetaNoIngreso,
+} from '#components/mobile/informes/noIngreso';
 import { useColoresCategorias } from '#components/mobile/informes/useColoresCategorias';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
 import {
+  CajaIconoFila,
+  EtiquetaFila,
   FieldLabel,
+  filaFormularioClassName,
   InputField,
   TapField,
   tarjetaFormularioStyle,
   ToggleField,
 } from '#components/mobile/MobileForms';
+import { Icono } from '#components/mobile/ui/Icono';
+import { Pildora } from '#components/mobile/ui/Pildora';
 import { PildoraCategoria } from '#components/mobile/ui/PildoraCategoria';
-import { color, movimiento, radio, sombra } from '#components/mobile/ui/tokens';
+import {
+  color,
+  densidad,
+  movimiento,
+  radio,
+  sombra,
+} from '#components/mobile/ui/tokens';
 import { getPrettyPayee } from '#components/mobile/utils';
 import { MobilePageHeader, Page } from '#components/Page';
 import { shouldApplyRuleChange } from '#components/transactions/table/utils';
@@ -232,40 +248,40 @@ export function Status({
   );
 }
 
-type SelectorGastoIngresoProps = {
-  esIngreso: boolean;
+export type TipoMovimiento = 'gasto' | 'ingreso' | 'traspaso';
+
+type SelectorTipoProps = {
+  tipo: TipoMovimiento;
   isDisabled?: boolean;
-  onChange: (esIngreso: boolean) => void;
+  onChange: (tipo: TipoMovimiento) => void;
 };
 
-/** Selector «Gasto / Ingreso» bajo el importe (concepto A). */
-function SelectorGastoIngreso({
-  esIngreso,
-  isDisabled,
-  onChange,
-}: SelectorGastoIngresoProps) {
+const COLORES_TIPO: Record<TipoMovimiento, { fg: string; bg: string }> = {
+  gasto: { fg: color.bad, bg: color.badSoft },
+  ingreso: { fg: color.ok, bg: color.okSoft },
+  traspaso: { fg: color.accent, bg: color.accentSoft },
+};
+
+/** Selector «Gasto · Ingreso · Traspaso» bajo el importe (como YNAB). */
+function SelectorTipo({ tipo, isDisabled, onChange }: SelectorTipoProps) {
   const { t } = useTranslation();
-  const opcion = (ingreso: boolean, etiqueta: string) => {
-    const activa = esIngreso === ingreso;
+  const opcion = (valor: TipoMovimiento, etiqueta: string) => {
+    const activa = tipo === valor;
     return (
       <Button
         variant="bare"
         aria-pressed={activa}
         isDisabled={isDisabled}
-        onPress={() => onChange(ingreso)}
-        data-testid={ingreso ? 'selector-ingreso' : 'selector-gasto'}
+        onPress={() => onChange(valor)}
+        data-testid={`selector-${valor}`}
         style={{
           flex: 1,
-          minHeight: 44,
-          borderRadius: 11,
-          fontSize: 14,
-          fontWeight: 800,
-          color: activa ? (ingreso ? color.ok : color.bad) : color.fg3,
-          backgroundColor: activa
-            ? ingreso
-              ? color.okSoft
-              : color.badSoft
-            : 'transparent',
+          minHeight: 40,
+          borderRadius: 10,
+          fontSize: 13,
+          fontWeight: 700,
+          color: activa ? COLORES_TIPO[valor].fg : color.fg3,
+          backgroundColor: activa ? COLORES_TIPO[valor].bg : 'transparent',
           transition: `background-color ${movimiento.pildora}ms, color ${movimiento.pildora}ms`,
         }}
       >
@@ -280,14 +296,136 @@ function SelectorGastoIngreso({
       style={{
         flexDirection: 'row',
         alignSelf: 'stretch',
-        padding: 4,
-        gap: 4,
-        borderRadius: radio.boton,
+        padding: 2,
+        gap: 2,
+        borderRadius: 12,
         backgroundColor: color.surface2,
       }}
     >
-      {opcion(false, t('Spending (sign)'))}
-      {opcion(true, t('Income (sign)'))}
+      {opcion('gasto', t('Spending (sign)'))}
+      {opcion('ingreso', t('Income (sign)'))}
+      {opcion('traspaso', t('Transfer (type)'))}
+    </View>
+  );
+}
+
+/** Fila «Desde» / «Hacia» de un traspaso (48 px, tocable). */
+function FilaCuentaTraspaso({
+  etiqueta,
+  cuenta,
+  isDisabled,
+  onPress,
+  testId,
+}: {
+  etiqueta: string;
+  cuenta?: AccountEntity;
+  isDisabled?: boolean;
+  onPress: () => void;
+  testId: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Button
+      variant="bare"
+      bounce={false}
+      isDisabled={isDisabled}
+      onPress={onPress}
+      data-testid={testId}
+      className={filaFormularioClassName}
+    >
+      <CajaIconoFila>
+        {cuenta?.offbudget ? (
+          <SvgPiggyBank width={15} height={15} />
+        ) : (
+          <SvgWallet width={15} height={15} />
+        )}
+      </CajaIconoFila>
+      <EtiquetaFila>{etiqueta}</EtiquetaFila>
+      <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end' }}>
+        <Text
+          style={{
+            ...densidad.nombre,
+            color: cuenta ? color.fg : color.fg3,
+            maxWidth: '100%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {cuenta?.name ?? t('Select an account')}
+        </Text>
+        {!!cuenta?.offbudget && (
+          <Text style={{ ...densidad.pequeno, color: color.fg3 }}>
+            <Trans>Off budget</Trans>
+          </Text>
+        )}
+      </View>
+      {!isDisabled && dropdownChevron}
+    </Button>
+  );
+}
+
+const botonUbicacion = {
+  backgroundColor: theme.buttonNormalBackground,
+  border: `1px solid ${theme.buttonNormalBorder}`,
+  color: theme.buttonNormalText,
+  fontSize: '11px',
+  padding: '4px 8px',
+  borderRadius: 3,
+  height: 'auto',
+  minHeight: 'auto',
+} as const;
+
+const botonSecundario = {
+  height: 44,
+  padding: '0 14px',
+  borderWidth: 0,
+  borderRadius: radio.boton,
+  backgroundColor: 'transparent',
+  color: color.fg3,
+  fontSize: 13,
+  fontWeight: 600,
+} as const;
+
+/** Fila con interruptor (48 px) dentro de una tarjeta de formulario. */
+function FilaInterruptor({
+  icono,
+  etiqueta,
+  detalle,
+  children,
+  testId,
+}: {
+  icono: ReactNode;
+  etiqueta: string;
+  detalle?: string;
+  children: ReactNode;
+  testId?: string;
+}) {
+  return (
+    <View
+      data-testid={testId}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        minHeight: 48,
+        padding: '6px 14px',
+      }}
+    >
+      <CajaIconoFila>{icono}</CajaIconoFila>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={{ fontSize: 13, fontWeight: 600, color: color.fg3 }}>
+          {etiqueta}
+        </Text>
+        {detalle && (
+          <Text
+            style={{ ...densidad.pequeno, fontWeight: 500, color: color.fg3 }}
+          >
+            {detalle}
+          </Text>
+        )}
+      </View>
+      {children}
     </View>
   );
 }
@@ -342,19 +480,19 @@ function Footer({
       style={{
         paddingLeft: 16,
         paddingRight: 16,
-        paddingTop: 12,
-        paddingBottom: 'calc(12px + env(safe-area-inset-bottom))',
+        paddingTop: 10,
+        paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
         background: `linear-gradient(to top, ${color.bg} 70%, transparent)`,
         gap: 8,
         '& button': {
-          minHeight: 54,
-          height: 54,
-          borderRadius: 18,
-          fontWeight: 800,
-          fontSize: 16,
+          minHeight: 48,
+          height: 48,
+          borderRadius: radio.boton,
+          fontWeight: 700,
+          fontSize: 15,
           border: 0,
         },
-        '& button span': { fontWeight: 800, fontSize: 16 },
+        '& button span': { fontWeight: 700, fontSize: 15 },
       }}
     >
       {isFuture && (
@@ -792,7 +930,7 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
         if (isOffBudget) {
           return t('Off budget');
         } else if (isBudgetTransfer(trans)) {
-          return t('Transfer');
+          return t('Transfer (type)');
         } else {
           return lookupName(categories, trans.category) ?? '';
         }
@@ -1088,6 +1226,8 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
                   modal: {
                     name: 'payee-autocomplete',
                     options: {
+                      mostrarTraspasos: !unserializedTransaction.is_child,
+                      cuentaMovimiento: unserializedTransaction.account,
                       onSelect: payeeId => {
                         void onUpdateInner(transactionToEdit, name, payeeId);
                       },
@@ -1248,28 +1388,163 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
 
     const account = getAccount(transaction);
     const isOffBudget = account ? !!account.offbudget : false;
+    const transferAccount = getTransferAccount(transaction);
+    const esTraspaso = !!transferAccount && !transaction.is_parent;
     const title = getPrettyPayee({
       t,
       transaction,
       payee: getPayee(transaction),
-      transferAccount: getTransferAccount(transaction),
+      transferAccount,
     });
+
+    // Traspaso: el signo dice el sentido. Negativo = sale de esta cuenta.
+    const cuentaDesde = esIngreso ? transferAccount : account;
+    const cuentaHacia = esIngreso ? account : transferAccount;
+    // De una cuenta fuera de presupuesto a una del presupuesto: el dinero
+    // entra en «Listo para asignar» (categoría de ingreso en Actual).
+    const traspasoAlPresupuesto =
+      esTraspaso && !!cuentaDesde?.offbudget && !cuentaHacia?.offbudget;
+    const categoriaActual = categories.find(c => c.id === transaction.category);
+    // Categoría de ingreso para «Listo para asignar»: la que se llame así (o
+    // «Income»/«Ingresos»); si no, la primera visible que no sea la de saldos
+    // iniciales.
+    const categoriaIngreso = useMemo(() => {
+      const ingresos = categories.filter(c => c.is_income && !c.hidden);
+      return (
+        ingresos.find(c =>
+          /ready to assign|listo para asignar|^(income|ingresos?)$/i.test(
+            c.name.trim(),
+          ),
+        ) ??
+        ingresos.find(
+          c => !/starting balances|saldos? inicial/i.test(c.name),
+        ) ??
+        ingresos[0] ??
+        null
+      );
+    }, [categories]);
+    useEffect(() => {
+      if (
+        traspasoAlPresupuesto &&
+        !isOffBudget &&
+        !transaction.category &&
+        categoriaIngreso
+      ) {
+        void onUpdateInner(transaction, 'category', categoriaIngreso.id);
+      }
+    }, [
+      traspasoAlPresupuesto,
+      isOffBudget,
+      transaction,
+      categoriaIngreso,
+      onUpdateInner,
+    ]);
+
+    const [codigoMoneda] = useSyncedPref('defaultCurrencyCode');
+    const simbolo = getCurrency(codigoMoneda || '').symbol || '€';
+
+    // «No contar como ingreso»: etiqueta `#noingreso` en la nota (ver
+    // `informes/noIngreso.ts`). Los traspasos nunca cuentan.
+    const noIngreso = esTraspaso || tieneEtiquetaNoIngreso(transaction.notes);
+    const [versionNota, setVersionNota] = useState(0);
+    const verNoIngreso =
+      !transaction.is_parent &&
+      !isOffBudget &&
+      (esTraspaso ? traspasoAlPresupuesto : esIngreso);
+
+    const tipo: TipoMovimiento = esTraspaso
+      ? 'traspaso'
+      : esIngreso
+        ? 'ingreso'
+        : 'gasto';
+
+    const abrirTraspaso = useCallback(() => {
+      onRequestActiveEdit?.(getFieldName(transaction.id, 'payee'), () => {
+        dispatch(
+          pushModal({
+            modal: {
+              name: 'payee-autocomplete',
+              options: {
+                mostrarTraspasos: true,
+                empezarEnTraspaso: true,
+                cuentaMovimiento: transaction.account,
+                onSelect: payeeId => {
+                  void onUpdateInner(transaction, 'payee', payeeId);
+                },
+                onClose: () => {
+                  onClearActiveEdit();
+                },
+              },
+            },
+          }),
+        );
+      });
+    }, [
+      dispatch,
+      onClearActiveEdit,
+      onRequestActiveEdit,
+      onUpdateInner,
+      transaction,
+    ]);
+
+    const onCambiarTipo = useCallback(
+      (nuevo: TipoMovimiento) => {
+        if (nuevo === 'traspaso') {
+          if (!esTraspaso) {
+            abrirTraspaso();
+          }
+          return;
+        }
+        if (esTraspaso) {
+          // Deja de ser traspaso: sin beneficiario de cuenta.
+          void onUpdateInner(transaction, 'payee', null);
+        }
+        onCambiarSigno(nuevo === 'ingreso');
+      },
+      [abrirTraspaso, esTraspaso, onCambiarSigno, onUpdateInner, transaction],
+    );
 
     const transactionDate = parseDate(transaction.date, dateFormat, new Date());
     const dateDefaultValue = monthUtils.dayFromDate(transactionDate);
 
     const remaining = transaction.error?.difference ?? 0;
 
+    const categoriaNodo = (() => {
+      if (isOffBudget || isBudgetTransfer(transaction)) {
+        return undefined;
+      }
+      if (esTraspaso && categoriaActual?.is_income) {
+        return (
+          <Pildora estado="ok" data-testid="listo-para-asignar">
+            {t('Ready to Assign')}
+          </Pildora>
+        );
+      }
+      return (
+        <PildoraCategoria
+          nombre={getCategory(transaction, isOffBudget) ?? ''}
+          hueco={transaction.category ? huecoDe(transaction.category) : null}
+        />
+      );
+    })();
+    // Entre dos cuentas del presupuesto (o desde una cuenta fuera de él) el
+    // traspaso no lleva categoría: no se pinta la fila.
+    const verCategoria =
+      !transaction.is_parent &&
+      !(esTraspaso && (isOffBudget || isBudgetTransfer(transaction)));
+
     return (
       <Page
         header={
           <MobilePageHeader
             title={
-              transaction.payee == null
-                ? isAdding
-                  ? t('New Transaction')
-                  : t('Transaction')
-                : title
+              esTraspaso
+                ? t('Transfer (type)')
+                : transaction.payee == null
+                  ? isAdding
+                    ? t('New Transaction')
+                    : t('Transaction')
+                  : title
             }
             leftContent={<MobileBackButton />}
           />
@@ -1293,195 +1568,262 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
       >
         <View
           data-testid="transaction-form"
-          style={{ flexShrink: 0, marginTop: 8, marginBottom: 20, gap: 14 }}
+          style={{ flexShrink: 0, marginTop: 8, marginBottom: 16, gap: 12 }}
         >
           <View
             data-testid="importe-movimiento"
             data-ingreso={esIngreso || undefined}
+            data-tipo={tipo}
             style={{
               alignItems: 'center',
-              gap: 14,
+              gap: 10,
               margin: '0 16px',
-              padding: '18px 16px 16px',
-              borderRadius: radio.heroe,
+              padding: '12px 12px 12px',
+              borderRadius: 16,
               boxShadow: sombra.tarjeta,
-              backgroundColor: esIngreso
-                ? `color-mix(in srgb, ${color.ok} 16%, ${color.surface})`
-                : color.surface,
-              transition: `background-color ${movimiento.pildora}ms`,
+              backgroundColor: color.surface,
             }}
           >
-            <FieldLabel
-              title={t('Amount')}
-              flush
+            <View
               style={{
-                marginBottom: -8,
-                fontSize: 12,
-                fontWeight: 800,
-                color: color.fg3,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                maxWidth: '100%',
               }}
-            />
-            <AmountInput
-              value={transaction.amount}
-              disabled={
-                !!editingField &&
-                editingField !== getFieldName(transaction.id, 'amount')
-              }
-              autoFocus={isAdding}
-              disableNativeAutoFocusOnIOS
-              onFocus={() => {
-                onRequestActiveEdit(getFieldName(transaction.id, 'amount'));
-              }}
-              onBlur={() => onClearActiveEdit()}
-              onChange={onTotalAmountUpdate}
-              negate={!esIngreso}
-              variant="large"
-            />
-            <SelectorGastoIngreso
-              esIngreso={esIngreso}
-              isDisabled={!!editingField}
-              onChange={onCambiarSigno}
+            >
+              <AmountInput
+                value={transaction.amount}
+                disabled={
+                  !!editingField &&
+                  editingField !== getFieldName(transaction.id, 'amount')
+                }
+                autoFocus={isAdding}
+                disableNativeAutoFocusOnIOS
+                onFocus={() => {
+                  onRequestActiveEdit(getFieldName(transaction.id, 'amount'));
+                }}
+                onBlur={() => onClearActiveEdit()}
+                onChange={onTotalAmountUpdate}
+                negate={!esIngreso}
+                variant="large"
+                tamanoGrande={30}
+              />
+              <Text
+                aria-hidden
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: color.fg3,
+                  userSelect: 'none',
+                }}
+              >
+                {simbolo}
+              </Text>
+            </View>
+            <SelectorTipo
+              tipo={tipo}
+              isDisabled={!!editingField || !!transaction.is_parent}
+              onChange={onCambiarTipo}
             />
           </View>
 
-          <View style={tarjetaFormularioStyle}>
-            <TapField
-              etiqueta={t('Payee')}
-              icon={<SvgUser width={17} height={17} />}
-              placeholder={
-                transaction.amount > 0
-                  ? t('Who paid you?')
-                  : t('Who did you pay?')
-              }
-              textStyle={{
-                ...(transaction.is_parent && {
-                  fontStyle: 'italic',
-                  fontWeight: 300,
-                }),
-              }}
-              value={title}
-              isDisabled={
-                !!editingField &&
-                editingField !== getFieldName(transaction.id, 'payee')
-              }
-              onPress={() => onEditFieldInner(transaction.id, 'payee')}
-              data-testid="payee-field"
-              alwaysShowRightContent={
-                (!!nearestPayee || !!onRequestLocation) &&
-                !transaction.payee &&
-                !shouldShowSaveLocation
-              }
-              rightContent={
-                shouldShowSaveLocation ? (
-                  <Button
-                    variant="bare"
-                    onPress={onSaveLocation}
-                    style={{
-                      backgroundColor: theme.buttonNormalBackground,
-                      border: `1px solid ${theme.buttonNormalBorder}`,
-                      color: theme.buttonNormalText,
-                      fontSize: '11px',
-                      padding: '4px 8px',
-                      borderRadius: 3,
-                      height: 'auto',
-                      minHeight: 'auto',
-                    }}
-                  >
-                    <Trans>Save</Trans>
-                    <SvgLocation
-                      width={10}
-                      height={10}
-                      style={{ marginLeft: 4 }}
-                    />
-                  </Button>
-                ) : nearestPayee && !transaction.payee ? (
-                  <Button
-                    variant="bare"
-                    onPress={onSelectNearestPayee}
-                    style={{
-                      backgroundColor: theme.buttonNormalBackground,
-                      border: `1px solid ${theme.buttonNormalBorder}`,
-                      color: theme.buttonNormalText,
-                      fontSize: '11px',
-                      padding: '4px 8px',
-                      borderRadius: 3,
-                      height: 'auto',
-                      minHeight: 'auto',
-                    }}
-                  >
-                    <Trans>Nearby</Trans>
-                    <SvgLocation
-                      width={10}
-                      height={10}
-                      style={{ marginLeft: 4 }}
-                    />
-                  </Button>
-                ) : onRequestLocation && !transaction.payee ? (
-                  <Button
-                    variant="bare"
-                    onPress={onRequestLocation}
-                    style={{
-                      backgroundColor: theme.buttonNormalBackground,
-                      border: `1px solid ${theme.buttonNormalBorder}`,
-                      color: theme.buttonNormalText,
-                      fontSize: '11px',
-                      padding: '4px 8px',
-                      borderRadius: 3,
-                      height: 'auto',
-                      minHeight: 'auto',
-                    }}
-                  >
-                    <Trans>Request Location</Trans>
-                    <SvgLocation
-                      width={10}
-                      height={10}
-                      style={{ marginLeft: 4 }}
-                    />
-                  </Button>
-                ) : (
-                  dropdownChevron
-                )
-              }
-            />
-
-            {!transaction.is_parent && (
-              <TapField
-                etiqueta={t('Category')}
-                valorNodo={
-                  isOffBudget || isBudgetTransfer(transaction) ? undefined : (
-                    <PildoraCategoria
-                      nombre={getCategory(transaction, isOffBudget) ?? ''}
-                      hueco={
-                        transaction.category
-                          ? huecoDe(transaction.category)
-                          : null
-                      }
-                    />
-                  )
+          {esTraspaso ? (
+            <View
+              data-testid="traspaso"
+              style={{ ...tarjetaFormularioStyle, position: 'relative' }}
+            >
+              <FilaCuentaTraspaso
+                etiqueta={t('From (transfer)')}
+                cuenta={cuentaDesde}
+                testId="traspaso-desde"
+                isDisabled={!!editingField}
+                onPress={() =>
+                  esIngreso
+                    ? abrirTraspaso()
+                    : onEditFieldInner(transaction.id, 'account')
                 }
-                icon={<SvgTag width={17} height={17} />}
-                placeholder={t('Select a category')}
-                rightContent={dropdownChevron}
+              />
+              <FilaCuentaTraspaso
+                etiqueta={t('To (transfer)')}
+                cuenta={cuentaHacia}
+                testId="traspaso-hacia"
+                isDisabled={!!editingField}
+                onPress={() =>
+                  esIngreso
+                    ? onEditFieldInner(transaction.id, 'account')
+                    : abrirTraspaso()
+                }
+              />
+              <Button
+                variant="bare"
+                aria-label={t('Swap direction')}
+                data-testid="traspaso-invertir"
+                isDisabled={!!editingField}
+                onPress={() => onCambiarSigno(!esIngreso)}
                 style={{
-                  ...((isOffBudget || isBudgetTransfer(transaction)) && {
+                  position: 'absolute',
+                  // Sobre la línea entre «Desde» y «Hacia», tras la etiqueta;
+                  // zona táctil de 44 px con un círculo de 28 dentro.
+                  left: 14 + 28 + 12 + 40,
+                  top: 48 - 22,
+                  width: 44,
+                  height: 44,
+                  minHeight: 44,
+                  padding: 0,
+                  border: 0,
+                  backgroundColor: 'transparent',
+                  zIndex: 1,
+                }}
+              >
+                <View
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    border: `1px solid ${color.line2}`,
+                    backgroundColor: color.surface,
+                    color: color.accent,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Icono nombre="arrowdown" size={15} />
+                </View>
+              </Button>
+              {verCategoria && (
+                <TapField
+                  etiqueta={t('Category')}
+                  valorNodo={categoriaNodo}
+                  icon={<SvgTag width={15} height={15} />}
+                  placeholder={t('Select a category')}
+                  rightContent={dropdownChevron}
+                  value={getCategory(transaction, isOffBudget)}
+                  isDisabled={
+                    !!editingField &&
+                    editingField !== getFieldName(transaction.id, 'category')
+                  }
+                  onPress={() => onEditFieldInner(transaction.id, 'category')}
+                  data-testid="category-field"
+                />
+              )}
+            </View>
+          ) : (
+            <View style={tarjetaFormularioStyle}>
+              <TapField
+                etiqueta={t('Payee')}
+                icon={<SvgUser width={15} height={15} />}
+                placeholder={
+                  transaction.amount > 0
+                    ? t('Who paid you?')
+                    : t('Who did you pay?')
+                }
+                textStyle={{
+                  ...(transaction.is_parent && {
                     fontStyle: 'italic',
-                    color: theme.pageTextSubdued,
                     fontWeight: 300,
                   }),
                 }}
-                value={getCategory(transaction, isOffBudget)}
+                value={title}
                 isDisabled={
-                  (!!editingField &&
-                    editingField !==
-                      getFieldName(transaction.id, 'category')) ||
-                  isOffBudget ||
-                  isBudgetTransfer(transaction)
+                  !!editingField &&
+                  editingField !== getFieldName(transaction.id, 'payee')
                 }
-                onPress={() => onEditFieldInner(transaction.id, 'category')}
-                data-testid="category-field"
+                onPress={() => onEditFieldInner(transaction.id, 'payee')}
+                data-testid="payee-field"
+                alwaysShowRightContent={
+                  (!!nearestPayee || !!onRequestLocation) &&
+                  !transaction.payee &&
+                  !shouldShowSaveLocation
+                }
+                rightContent={
+                  shouldShowSaveLocation ? (
+                    <Button
+                      variant="bare"
+                      onPress={onSaveLocation}
+                      style={botonUbicacion}
+                    >
+                      <Trans>Save</Trans>
+                      <SvgLocation
+                        width={10}
+                        height={10}
+                        style={{ marginLeft: 4 }}
+                      />
+                    </Button>
+                  ) : nearestPayee && !transaction.payee ? (
+                    <Button
+                      variant="bare"
+                      onPress={onSelectNearestPayee}
+                      style={botonUbicacion}
+                    >
+                      <Trans>Nearby</Trans>
+                      <SvgLocation
+                        width={10}
+                        height={10}
+                        style={{ marginLeft: 4 }}
+                      />
+                    </Button>
+                  ) : onRequestLocation && !transaction.payee ? (
+                    <Button
+                      variant="bare"
+                      onPress={onRequestLocation}
+                      style={botonUbicacion}
+                    >
+                      <Trans>Request Location</Trans>
+                      <SvgLocation
+                        width={10}
+                        height={10}
+                        style={{ marginLeft: 4 }}
+                      />
+                    </Button>
+                  ) : (
+                    dropdownChevron
+                  )
+                }
               />
-            )}
-          </View>
+
+              {verCategoria && (
+                <TapField
+                  etiqueta={t('Category')}
+                  valorNodo={categoriaNodo}
+                  icon={<SvgTag width={15} height={15} />}
+                  placeholder={t('Select a category')}
+                  rightContent={dropdownChevron}
+                  style={{
+                    ...(isOffBudget && {
+                      fontStyle: 'italic',
+                      color: theme.pageTextSubdued,
+                      fontWeight: 300,
+                    }),
+                  }}
+                  value={getCategory(transaction, isOffBudget)}
+                  isDisabled={
+                    (!!editingField &&
+                      editingField !==
+                        getFieldName(transaction.id, 'category')) ||
+                    isOffBudget
+                  }
+                  onPress={() => onEditFieldInner(transaction.id, 'category')}
+                  data-testid="category-field"
+                />
+              )}
+
+              <TapField
+                etiqueta={t('Account')}
+                icon={<SvgWallet width={15} height={15} />}
+                placeholder={t('Select an account')}
+                rightContent={dropdownChevron}
+                isDisabled={
+                  !!editingField &&
+                  editingField !== getFieldName(transaction.id, 'account')
+                }
+                value={account?.name}
+                onPress={() => onEditFieldInner(transaction.id, 'account')}
+                data-testid="account-field"
+              />
+            </View>
+          )}
 
           {childTransactions.map((childTrans, i, arr) => (
             <ChildTransactionEdit
@@ -1518,58 +1860,11 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
             />
           ))}
 
-          {transaction.amount !== 0 && childTransactions.length === 0 && (
-            <View style={{ alignItems: 'center' }}>
-              <Button
-                variant="bare"
-                isDisabled={!!editingField}
-                style={{
-                  height: 40,
-                  borderWidth: 0,
-                  marginLeft: styles.mobileEditingPadding,
-                  marginRight: styles.mobileEditingPadding,
-                  marginTop: 10,
-                  backgroundColor: 'transparent',
-                }}
-                onPress={() => onSplit(transaction.id)}
-              >
-                <SvgSplit
-                  width={17}
-                  height={17}
-                  style={{ color: theme.formLabelText }}
-                />
-                <Text
-                  style={{
-                    marginLeft: 5,
-                    userSelect: 'none',
-                    color: theme.formLabelText,
-                  }}
-                >
-                  <Trans>Split</Trans>
-                </Text>
-              </Button>
-            </View>
-          )}
-
           <View style={tarjetaFormularioStyle}>
-            <TapField
-              etiqueta={t('Account')}
-              icon={<SvgWallet width={17} height={17} />}
-              placeholder={t('Select an account')}
-              rightContent={dropdownChevron}
-              isDisabled={
-                !!editingField &&
-                editingField !== getFieldName(transaction.id, 'account')
-              }
-              value={account?.name}
-              onPress={() => onEditFieldInner(transaction.id, 'account')}
-              data-testid="account-field"
-            />
-
             <InputField
               etiqueta={t('Date')}
               type="date"
-              iconStart={<SvgCalendar width={17} height={17} />}
+              iconStart={<SvgCalendar width={15} height={15} />}
               disabled={
                 !!editingField &&
                 editingField !== getFieldName(transaction.id, 'date')
@@ -1592,38 +1887,10 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
                 )
               }
             />
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                minHeight: 54,
-                padding: '0 14px',
-              }}
+            <FilaInterruptor
+              icono={<SvgCheckCircle1 width={15} height={15} />}
+              etiqueta={transaction.reconciled ? t('Reconciled') : t('Cleared')}
             >
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
-              >
-                <View
-                  aria-hidden
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 10,
-                    backgroundColor: color.surface2,
-                    color: color.fg2,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <SvgCheckCircle1 width={17} height={17} />
-                </View>
-                <Text
-                  style={{ fontSize: 13, fontWeight: 700, color: color.fg3 }}
-                >
-                  {transaction.reconciled ? t('Reconciled') : t('Cleared')}
-                </Text>
-              </View>
               {transaction.reconciled ? (
                 <Toggle id="Reconciled" isOn isDisabled />
               ) : (
@@ -1633,12 +1900,39 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
                   onToggle={on => onUpdateInner(transaction, 'cleared', on)}
                 />
               )}
-            </View>
+            </FilaInterruptor>
+            {verNoIngreso && (
+              <FilaInterruptor
+                icono={<Icono nombre="coins" size={15} />}
+                etiqueta={t("Don't count as income")}
+                detalle={
+                  esTraspaso
+                    ? t('Transfers between your accounts never count.')
+                    : t('Still adds to Ready to Assign.')
+                }
+                testId="no-contar-ingreso"
+              >
+                <ToggleField
+                  id="no-ingreso"
+                  isOn={noIngreso}
+                  isDisabled={esTraspaso || !!editingField}
+                  onToggle={on => {
+                    void onUpdateInner(
+                      transaction,
+                      'notes',
+                      conEtiquetaNoIngreso(transaction.notes, on),
+                    );
+                    setVersionNota(v => v + 1);
+                  }}
+                />
+              </FilaInterruptor>
+            )}
 
             <InputField
+              key={versionNota}
               etiqueta={t('Notes')}
               ref={noteRef}
-              iconStart={<SvgNotesPaper width={17} height={17} />}
+              iconStart={<SvgNotesPaper width={15} height={15} />}
               iconEnd={<NoteInsertHashButton inputRef={noteRef} />}
               placeholder={t('Add a note (optional)')}
               disabled={
@@ -1655,39 +1949,43 @@ const TransactionEditInner = memo<TransactionEditInnerProps>(
               }
             />
           </View>
-          <NoteTagAutocomplete inputRef={noteRef} />
 
-          {!isAdding && (
-            <View style={{ alignItems: 'center' }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            {transaction.amount !== 0 &&
+              childTransactions.length === 0 &&
+              !esTraspaso && (
+                <Button
+                  variant="bare"
+                  isDisabled={!!editingField}
+                  style={botonSecundario}
+                  onPress={() => onSplit(transaction.id)}
+                >
+                  <SvgSplit width={15} height={15} />
+                  <Text style={{ marginLeft: 6, userSelect: 'none' }}>
+                    <Trans>Split</Trans>
+                  </Text>
+                </Button>
+              )}
+            {!isAdding && (
               <Button
                 variant="bare"
                 onPress={() => onDeleteInner(transaction.id)}
-                style={{
-                  height: 40,
-                  borderWidth: 0,
-                  marginLeft: styles.mobileEditingPadding,
-                  marginRight: styles.mobileEditingPadding,
-                  marginTop: 10,
-                  backgroundColor: 'transparent',
-                }}
+                style={{ ...botonSecundario, color: color.bad }}
               >
-                <SvgTrash
-                  width={17}
-                  height={17}
-                  style={{ color: theme.errorText }}
-                />
-                <Text
-                  style={{
-                    color: theme.errorText,
-                    marginLeft: 5,
-                    userSelect: 'none',
-                  }}
-                >
+                <SvgTrash width={15} height={15} />
+                <Text style={{ marginLeft: 6, userSelect: 'none' }}>
                   <Trans>Delete transaction</Trans>
                 </Text>
               </Button>
-            </View>
-          )}
+            )}
+          </View>
+          <NoteTagAutocomplete inputRef={noteRef} />
         </View>
       </Page>
     );
