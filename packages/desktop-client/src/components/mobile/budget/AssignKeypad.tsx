@@ -119,6 +119,12 @@ export function AssignKeypad({
     document.body.dataset.tecladoAbierto = '1';
     return () => {
       delete document.body.dataset.tecladoAbierto;
+      // Red de seguridad: si algo desplazó el documento (el body no tiene
+      // scroll), devolverlo arriba para que no quede la pantalla cortada.
+      const doc = document.scrollingElement;
+      if (doc && doc.scrollTop !== 0) {
+        doc.scrollTop = 0;
+      }
     };
   }, [panelHeight]);
 
@@ -160,10 +166,7 @@ export function AssignKeypad({
         panel.offsetTop > 0
           ? panel.offsetTop
           : window.innerHeight - panelHeight;
-      const scrollerTop =
-        scroller === document.scrollingElement
-          ? 0
-          : scroller.getBoundingClientRect().top;
+      const scrollerTop = scroller.getBoundingClientRect().top;
       const margin = 8;
       if (rowRect.bottom > panelTop - margin) {
         scroller.scrollBy({
@@ -737,16 +740,17 @@ export function useMoveMoneyModal(category: CategoryEntity) {
 }
 
 function getScrollParent(element: HTMLElement): HTMLElement | null {
+  // Solo contenedores con scroll propio, aunque ahora quepa todo (el relleno
+  // del teclado se aplica en este mismo fotograma). Nunca el documento: con
+  // `body { overflow: hidden }` un scroll programático del documento no se
+  // puede deshacer a mano y deja la pantalla cortada con un hueco abajo.
   let node: HTMLElement | null = element.parentElement;
-  while (node) {
+  while (node && node !== document.body) {
     const { overflowY } = getComputedStyle(node);
-    if (
-      (overflowY === 'auto' || overflowY === 'scroll') &&
-      node.scrollHeight > node.clientHeight
-    ) {
+    if (overflowY === 'auto' || overflowY === 'scroll') {
       return node;
     }
     node = node.parentElement;
   }
-  return document.scrollingElement as HTMLElement | null;
+  return null;
 }
