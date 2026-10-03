@@ -177,6 +177,26 @@
         user-select: none;
         outline: none;
       }
+      /* Presupuesto: en pantallas anchas (PC) la app se ve como en el móvil,
+         en una columna centrada de 480 px (useResponsive mide esa columna).
+         El transform hace que lo fijo (teclado, hojas, avisos) quede dentro
+         de la columna; solo en pantallas anchas, nunca en el móvil. */
+      @media (min-width: 600px) {
+        html {
+          background: #d9dde4;
+        }
+        body {
+          max-width: 480px;
+          margin: 0 auto;
+          transform: translateZ(0);
+          box-shadow: 0 0 48px rgba(15, 23, 42, 0.18);
+        }
+      }
+      @media (min-width: 600px) and (prefers-color-scheme: dark) {
+        html {
+          background: #05070a;
+        }
+      }
       #root {
         position: fixed;
         inset: 0;

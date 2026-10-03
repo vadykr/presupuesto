@@ -525,7 +525,7 @@ function Banner({ type = 'info', children }) {
       data-testid="banner"
       style={{
         minHeight: 48,
-        margin: `2px ${espacio.margen}px 8px`,
+        margin: 0,
         padding: '6px 6px 6px 14px',
         borderRadius: radio.boton,
         justifyContent: 'center',
