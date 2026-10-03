@@ -740,17 +740,21 @@ export function useMoveMoneyModal(category: CategoryEntity) {
 }
 
 function getScrollParent(element: HTMLElement): HTMLElement | null {
-  // Solo contenedores con scroll propio, aunque ahora quepa todo (el relleno
-  // del teclado se aplica en este mismo fotograma). Nunca el documento: con
-  // `body { overflow: hidden }` un scroll programático del documento no se
-  // puede deshacer a mano y deja la pantalla cortada con un hueco abajo.
+  // El contenedor con scroll más cercano que de verdad se pueda desplazar; si
+  // ninguno puede (todo cabe), el más cercano con scroll propio. Nunca el
+  // documento: con `body { overflow: hidden }` un scroll programático del
+  // documento no se puede deshacer a mano y deja un hueco abajo.
+  let primero: HTMLElement | null = null;
   let node: HTMLElement | null = element.parentElement;
   while (node && node !== document.body) {
     const { overflowY } = getComputedStyle(node);
     if (overflowY === 'auto' || overflowY === 'scroll') {
-      return node;
+      if (node.scrollHeight > node.clientHeight) {
+        return node;
+      }
+      primero ??= node;
     }
     node = node.parentElement;
   }
-  return null;
+  return primero;
 }
