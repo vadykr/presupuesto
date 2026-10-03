@@ -22,12 +22,12 @@ import { useSheetValue } from '#hooks/useSheetValue';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
 import {
-  consejoAdelanto,
   consejoAsigna,
   consejoNoSeguidos,
   consejoSobrante,
   mesDeAccion,
   nivelActual,
+  sugerenciaDormir,
 } from './fichaCalculos';
 import type { ResumenObjetivoFicha } from './fichaCalculos';
 
@@ -169,41 +169,39 @@ function ListaAsesor({
         ),
       });
     }
-    const adelanto = consejoAdelanto(
-      resumen?.adelanto ?? 0,
-      resumen?.cuotaNormal ?? null,
-    );
-    if (adelanto) {
+    // Ir por delante ya baja la cuota; si sobra margen, se puede dormir N
+    // meses y la cuota de después sigue siendo razonable.
+    const dormirN =
+      resumen && resumen.falta > 0
+        ? sugerenciaDormir({
+            falta: resumen.falta,
+            meses: resumen.meses,
+            cuotaNormal: resumen.cuotaNormal,
+          })
+        : null;
+    if (dormirN) {
       lista.push({
-        id: 'ficha-adelanto',
+        id: 'ficha-dormir',
         gravedad: 'info',
-        titulo: t('{{amount}} ahead of schedule', {
-          amount: fmt(adelanto.importe),
+        titulo: t('You can let it sleep {{count}} months', {
+          count: dormirN.meses,
         }),
-        texto:
-          adelanto.meses > 0
-            ? t(
-                'You could assign nothing for {{count}} months and still be on pace. It is usable, but it would have to be put back before the date.',
-                { count: adelanto.meses },
-              )
-            : t(
-                'Slightly ahead of the pace for this point of the cycle. It is usable, but it would have to be put back before the date.',
-              ),
-        boton:
-          onDormir && adelanto.meses > 0
-            ? {
-                etiqueta: t('Sleep {{count}} months', {
-                  count: adelanto.meses,
-                }),
-                alPulsar: () => onDormir(adelanto.meses),
-              }
-            : undefined,
+        texto: t(
+          'Afterwards the payment would rise to about {{amount}}/month until the date.',
+          { amount: fmt(dormirN.cuotaDespues) },
+        ),
+        boton: onDormir
+          ? {
+              etiqueta: t('Sleep {{count}} months', { count: dormirN.meses }),
+              alPulsar: () => onDormir(dormirN.meses),
+            }
+          : undefined,
       });
     }
 
     // (a) Una sola cifra por categoría: si el motor ya propone una (cambio
     // de nivel, estacionalidad, infrapresupuestada…), manda el motor.
-    if (!motorPropone && !sobrante && !adelanto) {
+    if (!motorPropone && !sobrante && !dormirN) {
       if (tieneObjetivo) {
         const a = consejoAsigna(gasto12, resumen?.cuota ?? null, 'objetivo');
         if (a) {

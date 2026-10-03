@@ -28,7 +28,7 @@ import {
 // Objetivo
 // ---------------------------------------------------------------------------
 
-export type EstadoObjetivo = 'rumbo' | 'adelantado' | 'atrasado' | 'cumplido';
+export type EstadoObjetivo = 'rumbo' | 'atrasado' | 'cumplido';
 
 export type ResumenObjetivoFicha = {
   /** Avance 0..1 (anillo y barra). */
@@ -107,7 +107,10 @@ export function resumenObjetivo({
     const fecha = proximoVencimiento(objetivo, `${month}-01`);
     // `fromLastMonth` de Actual: lo que traía la categoría del mes pasado.
     const delMesPasado = Math.max(0, saldo - asignado - actividad);
-    const cuota = cuotaMensual(meta, delMesPasado, fecha, month);
+    // Un solo modelo (el de YNAB / `runBy`): la cuota del mes es la que
+    // calcula Actual (`goal-<id>`, recién refrescada con `refresh-goals`);
+    // si aún no está, la misma fórmula: (meta − lo traído) / meses.
+    const cuota = goal ?? cuotaMensual(meta, delMesPasado, fecha, month);
     const meses = Math.max(
       0,
       monthUtils.differenceInCalendarMonths(fecha.slice(0, 7), month) + 1,
@@ -127,14 +130,9 @@ export function resumenObjetivo({
       cuotaNormal = Math.round(meta / ciclo);
     }
     const adelanto = ritmo != null ? Math.max(0, saldo - ritmo) : 0;
+    // Ir por delante del calendario ya baja la cuota: no es otro estado.
     const estado: EstadoObjetivo =
-      falta === 0
-        ? 'cumplido'
-        : adelanto > 0
-          ? 'adelantado'
-          : asignado >= cuota
-            ? 'rumbo'
-            : 'atrasado';
+      falta === 0 ? 'cumplido' : asignado >= cuota ? 'rumbo' : 'atrasado';
     return {
       progreso: fraccion(saldo, meta),
       falta,
@@ -451,20 +449,36 @@ export function consejoSobrante(
   return sobrante > 0 ? { tipo: 'sobrante', importe: sobrante } : null;
 }
 
+/** Cuánto puede subir la cuota tras dormir (× la cuota normal). */
+export const FACTOR_CUOTA_DORMIR = 1.5;
+
 /**
- * «Vas Y por delante del calendario: podrías no asignar nada durante N
- * meses» (N = adelanto / cuota normal, meta / meses del ciclo).
+ * «Puedes dormirla N meses: después la cuota subiría a unos X €/mes». Ir
+ * por delante ya baja la cuota; dormir N meses (sin asignar) la sube a
+ * X = (meta − saldo) / (meses que quedan tras este − N). Se propone el mayor
+ * N con X ≤ 1,5 × la cuota normal; `null` si ni un mes cabe.
  */
-export function consejoAdelanto(
-  adelanto: IntegerAmount,
-  cuotaNormal: IntegerAmount | null,
-): { tipo: 'adelanto'; importe: IntegerAmount; meses: number } | null {
-  if (adelanto <= 0 || !cuotaNormal || cuotaNormal <= 0) {
+export function sugerenciaDormir({
+  falta,
+  meses,
+  cuotaNormal,
+}: {
+  /** Lo que falta hasta la meta (meta − saldo). */
+  falta: IntegerAmount;
+  /** Meses hasta la fecha, incluido el actual. */
+  meses: number | null;
+  cuotaNormal: IntegerAmount | null;
+}): { meses: number; cuotaDespues: IntegerAmount } | null {
+  if (!meses || !cuotaNormal || cuotaNormal <= 0) {
     return null;
   }
-  return {
-    tipo: 'adelanto',
-    importe: adelanto,
-    meses: Math.floor(adelanto / cuotaNormal),
-  };
+  const quedan = meses - 1;
+  const tope = cuotaNormal * FACTOR_CUOTA_DORMIR;
+  for (let n = quedan - 1; n >= 1; n--) {
+    const cuotaDespues = Math.round(falta / (quedan - n));
+    if (cuotaDespues <= tope) {
+      return { meses: n, cuotaDespues };
+    }
+  }
+  return null;
 }

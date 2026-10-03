@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
 import { q } from '@actual-app/core/shared/query';
 import type { CategoryEntity, NoteEntity } from '@actual-app/core/types/models';
@@ -123,4 +124,27 @@ export function useDatosObjetivos(
     }
     return datos;
   }, [celdas, ids, ignoradas, metas]);
+}
+
+const refrescosEnCurso = new Map<string, Promise<unknown>>();
+
+/**
+ * Recalcula el objetivo del mes (`goal-<id>`) con `budget/refresh-goals`.
+ * Actual lo guarda en la hoja y solo lo recalcula al aplicar o refrescar
+ * plantillas: si después cambia el mes anterior (lo que se trae, el
+ * `fromLastMonth` de `runBy`), el valor guardado queda viejo (IBI: 30 €
+ * en vez de 20,67 → «faltan 5»). Lo llaman el Plan, la ficha y el Inicio
+ * al abrirse (como ya hacía «Asignar el mes»); las llamadas simultáneas
+ * del mismo mes se juntan en una.
+ */
+export function useRefrescarObjetivos(month: string) {
+  useEffect(() => {
+    if (refrescosEnCurso.has(month)) {
+      return;
+    }
+    const promesa = send('budget/refresh-goals', { month }).finally(() =>
+      refrescosEnCurso.delete(month),
+    );
+    refrescosEnCurso.set(month, promesa);
+  }, [month]);
 }

@@ -54,6 +54,7 @@ import { useDispatch } from '#redux';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
 import { BudgetTable } from './BudgetTable';
+import { useRefrescarObjetivos } from './useDatosObjetivos';
 import { useFichaCategoria } from './useFichaCategoria';
 
 function isBudgetType(input?: string): input is 'envelope' | 'tracking' {
@@ -76,6 +77,8 @@ export function BudgetPage() {
   const currMonth = monthUtils.currentMonth();
   const [startMonth = currMonth, setStartMonthPref] =
     useLocalPref('budget.startMonth');
+  // Objetivo del mes al día (lo guardado puede ser viejo; ver el hook).
+  useRefrescarObjetivos(startMonth);
   const [monthBounds, setMonthBounds] = useState({
     start: startMonth,
     end: startMonth,

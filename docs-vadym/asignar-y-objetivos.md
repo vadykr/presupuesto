@@ -137,3 +137,19 @@ consejo «Vas Y por delante del calendario»).
   `saldoAlDormir` sin gasto, o lo asignado en `desde` baja de `asignadoAlDormir`. En sobres el saldo positivo
   se arrastra y solo baja por gasto o por quitar dinero (bajar lo asignado, «Mover», «Cubrir»), así que el
   saldo detecta cualquier salida, en cualquier mes, sin recorrer el historial. Tests en `dormir.test.ts`.
+
+### Un solo modelo de cuota (oct-2026, caso IBI)
+
+- La cuota del mes de un objetivo por fecha es la de YNAB / `runBy`: (meta − lo traído del mes pasado) /
+  meses que quedan. La fuente única es `goal-<id>` de Actual; la ficha solo calcula la misma fórmula si aún no
+  está. «Faltan este mes» = max(0, cuota − asignado).
+- Causa del «Faltan 5» de IBI: Actual **guarda** `goal-<id>` y solo lo recalcula al aplicar o refrescar
+  plantillas. Se calculó cuando septiembre aún no traía nada (cuota 30 = 300/10); al entrar después los 93,29
+  de septiembre el valor guardado quedó viejo (debía ser 20,67). Ahora el Plan, la ficha y el Inicio llaman a
+  `budget/refresh-goals` al abrirse (`useRefrescarObjetivos`, como ya hacía «Asignar el mes»), así que
+  cabecera, Asignar, Plan, Inicio y ficha usan la misma cifra.
+- Ir por delante del calendario ya baja la cuota: no es otro estado. Pastilla «⛵ Rumbo fijo» si la cuota del
+  mes está cubierta; nota «Vas por delante del calendario: por eso la cuota baja a X/mes».
+- Asesor: «Puedes dormirla N meses: después la cuota subiría a unos X/mes» (X = falta / (meses que quedan tras
+  este − N)), con «zZ Dormir N meses»; el mayor N con X ≤ 1,5 × la cuota normal (`sugerenciaDormir`). Si ni un
+  mes cabe, no se sugiere.

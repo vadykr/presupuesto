@@ -44,6 +44,7 @@ import type {
   CadenciaMeses,
   Objetivo,
 } from '#components/mobile/budget/objetivos';
+import { useRefrescarObjetivos } from '#components/mobile/budget/useDatosObjetivos';
 import {
   useDespertarAuto,
   useIgnorarMes,
@@ -96,12 +97,12 @@ import {
 import type { VistaEvolucion } from './EvolucionFicha';
 import {
   bandaFicha,
-  consejoAdelanto,
   esObjetivoDeSaldo,
   filasEstacionalidad,
   mesesAnteriores,
   mesesConHistoria,
   resumenObjetivo,
+  sugerenciaDormir,
 } from './fichaCalculos';
 import type { EstadoObjetivo } from './fichaCalculos';
 import { useHistoriaCategoria } from './useDatosFicha';
@@ -253,6 +254,8 @@ function ContenidoFicha({
     useSheetValue<'envelope-budget', 'long-goal'>(
       envelopeBudget.catLongGoal(id),
     ) === 1;
+  // La cuota del mes = `goal-<id>` de Actual, recalculado al abrir.
+  useRefrescarObjetivos(month);
   const sueno = useIgnorarMes(id, month);
   const { ignorada } = sueno;
   // Despertar automático al verla (fecha, gasto o dinero que sale): pop.
@@ -487,11 +490,6 @@ function Cabecera({
             amount: fmt(resumen.sobrante),
           });
         }
-        if (resumen && resumen.adelanto > 0) {
-          return t('Covered · {{amount}} ahead', {
-            amount: fmt(resumen.adelanto),
-          });
-        }
         return t('Covered this month');
       case 'ignorada':
         return t('Ignored this month');
@@ -718,7 +716,6 @@ function Seccion({
 
 const ESTADO_OBJETIVO: Record<EstadoObjetivo, EstadoPildora> = {
   rumbo: 'ok',
-  adelantado: 'ok',
   cumplido: 'ok',
   atrasado: 'aviso',
 };
@@ -777,15 +774,13 @@ function TarjetaObjetivo({
     ? t('Asleep until {{month}}', { month: mesCorto(dormida.hasta) })
     : ignorada
       ? t('Ignored this month')
-      : estado === 'adelantado'
-        ? `⛵ ${t('Ahead')}`
-        : estado === 'rumbo'
-          ? `⛵ ${t('Steady course')}`
-          : estado === 'cumplido'
-            ? t('Reached')
-            : estado === 'atrasado'
-              ? t('Behind')
-              : null;
+      : estado === 'rumbo'
+        ? `⛵ ${t('Steady course')}`
+        : estado === 'cumplido'
+          ? t('Reached')
+          : estado === 'atrasado'
+            ? t('Behind')
+            : null;
 
   // «Devolver X a Listo para asignar» (solo el sobrante sobre la meta, que se
   // puede mover sin riesgo). Si cabe en lo asignado este mes, se baja lo
@@ -832,14 +827,17 @@ function TarjetaObjetivo({
     resumen?.fecha && resumen.fecha.slice(0, 7) > month
       ? resumen.fecha.slice(0, 7)
       : null;
-  const adelanto = consejoAdelanto(
-    resumen?.adelanto ?? 0,
-    resumen?.cuotaNormal ?? null,
-  );
-  const mesAdelanto =
-    adelanto && adelanto.meses > 1
-      ? monthUtils.addMonths(month, adelanto.meses)
+  const dormirN =
+    resumen && resumen.falta > 0
+      ? sugerenciaDormir({
+          falta: resumen.falta,
+          meses: resumen.meses,
+          cuotaNormal: resumen.cuotaNormal,
+        })
       : null;
+  const mesAdelanto = dormirN
+    ? monthUtils.addMonths(month, dormirN.meses)
+    : null;
   const elegirSueno = (opcion: string) => {
     setMenuSueno(false);
     if (opcion === 'mes') {
@@ -1067,22 +1065,22 @@ function TarjetaObjetivo({
                   </Text>
                 </PrivacyFilter>
               </View>
-              {resumen.adelanto > 0 && resumen.ritmo != null && !ignorada && (
-                <PrivacyFilter>
-                  <Text
-                    style={{ ...texto.secundario, color: color.fg2 }}
-                    data-testid="objetivo-adelanto"
-                  >
-                    {t(
-                      "You're ahead: you have {{balance}}; by now about {{pace}} would be enough.",
-                      {
-                        balance: fmt(saldo),
-                        pace: format(resumen.ritmo, 'financial-no-decimals'),
-                      },
-                    )}
-                  </Text>
-                </PrivacyFilter>
-              )}
+              {resumen.adelanto > 0 &&
+                resumen.falta > 0 &&
+                resumen.estado === 'rumbo' &&
+                !ignorada && (
+                  <PrivacyFilter>
+                    <Text
+                      style={{ ...texto.secundario, color: color.fg2 }}
+                      data-testid="objetivo-adelanto"
+                    >
+                      {t(
+                        "You're ahead of schedule: that's why the payment drops to {{amount}}/month.",
+                        { amount: fmt(resumen.cuota) },
+                      )}
+                    </Text>
+                  </PrivacyFilter>
+                )}
             </>
           )}
         </Button>

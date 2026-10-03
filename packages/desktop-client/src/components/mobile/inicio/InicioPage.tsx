@@ -7,6 +7,7 @@ import { css } from '@emotion/css';
 
 import { sync } from '#app/appSlice';
 import { prewarmMonth } from '#components/budget/util';
+import { useRefrescarObjetivos } from '#components/mobile/budget/useDatosObjetivos';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { Boton } from '#components/mobile/ui/Boton';
 import { BotonRedondo, Cabecera } from '#components/mobile/ui/Cabecera';
@@ -48,6 +49,7 @@ export function InicioPage() {
   const [editando, setEditando] = useState(false);
 
   const month = monthUtils.currentMonth();
+  useRefrescarObjetivos(month);
   const sheetName = monthUtils.sheetForMonth(month);
 
   const [initialized, setInitialized] = useState(false);

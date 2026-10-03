@@ -723,5 +723,10 @@
   "until {{month}}": "hasta {{month}}",
   "Sleep {{count}} months": "Dormir {{count}} meses",
   "Sleep {{count}} months_one": "Dormir {{count}} mes",
-  "Sleep {{count}} months_other": "Dormir {{count}} meses"
+  "Sleep {{count}} months_other": "Dormir {{count}} meses",
+  "You can let it sleep {{count}} months": "Puedes dormirla {{count}} meses",
+  "You can let it sleep {{count}} months_one": "Puedes dormirla {{count}} mes",
+  "You can let it sleep {{count}} months_other": "Puedes dormirla {{count}} meses",
+  "Afterwards the payment would rise to about {{amount}}/month until the date.": "Después la cuota subiría a unos {{amount}}/mes hasta la fecha.",
+  "You're ahead of schedule: that's why the payment drops to {{amount}}/month.": "Vas por delante del calendario: por eso la cuota baja a {{amount}}/mes."
 }

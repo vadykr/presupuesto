@@ -1,7 +1,8 @@
+import { estadoFila, faltante } from '#components/mobile/budget/objetivos';
+
 import {
   bandaFicha,
   bandaHabitual,
-  consejoAdelanto,
   consejoAsigna,
   consejoNoSeguidos,
   consejoSobrante,
@@ -14,6 +15,7 @@ import {
   pasoEje,
   rachasConGasto,
   resumenObjetivo,
+  sugerenciaDormir,
 } from './fichaCalculos';
 
 // Vacances (maqueta): gasto de oct-2025 a sep-2026, en céntimos.
@@ -236,7 +238,7 @@ describe('objetivos por fecha que se repiten', () => {
     expect(r.cuotaNormal).toBe(1942);
   });
 
-  test('Basures sin llegar a la meta: adelantado sobre el ritmo', () => {
+  test('Basures sin llegar a la meta: por delante del ritmo, la cuota baja', () => {
     const r = resumenObjetivo({
       objetivo: ANUAL(23300, '2026-02-01'),
       saldo: 20000,
@@ -244,7 +246,10 @@ describe('objetivos por fecha que se repiten', () => {
       goal: null,
       month: '2026-10',
     });
-    expect(r.estado).toBe('adelantado');
+    // Ir por delante solo baja la cuota (a 6,60: (233 − 200) / 5 meses); no
+    // es otro estado: sin asignar nada este mes, aún le falta la cuota.
+    expect(r.cuota).toBe(660);
+    expect(r.estado).toBe('atrasado');
     expect(r.sobrante).toBe(0);
     expect(r.adelanto).toBe(20000 - 15533);
   });
@@ -266,8 +271,8 @@ describe('objetivos por fecha que se repiten', () => {
     expect(r.falta).toBe(30000 - 11829);
     // 3 de 12 meses del ciclo jul 2026 → jul 2027: bastarían 75.
     expect(r.ritmo).toBe(7500);
-    expect(r.estado).toBe('adelantado');
-    expect(r.estado).not.toBe('atrasado');
+    // Con 25 asignados, la cuota de 20,67 está cubierta: rumbo fijo.
+    expect(r.estado).toBe('rumbo');
   });
 
   test('IBI por debajo del ritmo pero con la cuota asignada: en rumbo', () => {
@@ -281,17 +286,9 @@ describe('objetivos por fecha que se repiten', () => {
     expect(r.estado).toBe('rumbo');
   });
 
-  test('reglas de sobrante y adelanto', () => {
+  test('regla de sobrante', () => {
     expect(consejoSobrante(1946)).toEqual({ tipo: 'sobrante', importe: 1946 });
     expect(consejoSobrante(0)).toBeNull();
-    // Basures: 97,13 de adelanto / 19,42 al mes → 5 meses sin asignar.
-    expect(consejoAdelanto(9713, 1942)).toEqual({
-      tipo: 'adelanto',
-      importe: 9713,
-      meses: 5,
-    });
-    expect(consejoAdelanto(0, 1942)).toBeNull();
-    expect(consejoAdelanto(500, null)).toBeNull();
   });
 });
 
@@ -366,5 +363,51 @@ describe('recomendación robusta ante gastos puntuales', () => {
     expect(n.desde).toBeNull();
     expect(n.importe).toBeLessThanOrEqual(5500);
     expect(n.dosMeses).toBe('sube');
+  });
+});
+
+describe('IBI: un solo modelo de cuota (YNAB / runBy)', () => {
+  const IBI = {
+    objetivo: ANUAL(30000, '2026-07-01'),
+    saldo: 11829,
+    asignado: 2500,
+    actividad: 0,
+    month: '2026-10',
+  };
+
+  test('una sola cuota de 20,67, con o sin el goal de la hoja', () => {
+    expect(resumenObjetivo({ ...IBI, goal: null }).cuota).toBe(2067);
+    expect(resumenObjetivo({ ...IBI, goal: 2067 }).cuota).toBe(2067);
+  });
+
+  test('con 25 asignados no falta nada este mes (nada de «faltan 5»)', () => {
+    const datos = {
+      goal: 2067,
+      longGoal: false,
+      budgeted: 2500,
+      balance: 11829,
+      spent: 0,
+    };
+    expect(faltante(datos)).toBe(0);
+    expect(estadoFila(datos).tipo).not.toBe('falta');
+    expect(resumenObjetivo({ ...IBI, goal: 2067 }).estado).toBe('rumbo');
+  });
+
+  test('sugerencia de dormir coherente con la cuota', () => {
+    // Quedan 9 meses tras octubre; tope 1,5 × 25 = 37,50 €/mes.
+    const s = sugerenciaDormir({
+      falta: 30000 - 11829,
+      meses: 10,
+      cuotaNormal: 2500,
+    });
+    expect(s).toEqual({ meses: 4, cuotaDespues: Math.round(18171 / 5) });
+    expect(s!.cuotaDespues).toBeLessThanOrEqual(3750);
+    // Muy justo de saldo: no se propone dormir.
+    expect(
+      sugerenciaDormir({ falta: 34000, meses: 10, cuotaNormal: 2500 }),
+    ).toBeNull();
+    expect(
+      sugerenciaDormir({ falta: 18171, meses: 10, cuotaNormal: null }),
+    ).toBeNull();
   });
 });
