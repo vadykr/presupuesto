@@ -167,6 +167,16 @@
       /* Presupuesto: la app ocupa siempre lo visible. Con alto 100% el
          móvil (Samsung Internet) deja un hueco abajo al esconder sus barras;
          anclada a la ventana crece y encoge con ellas. */
+      /* Sin el resaltado azul del navegador al tocar filas y grupos. */
+      #root {
+        -webkit-tap-highlight-color: transparent;
+      }
+      [role='grid'],
+      [role='row'] {
+        -webkit-user-select: none;
+        user-select: none;
+        outline: none;
+      }
       #root {
         position: fixed;
         inset: 0;

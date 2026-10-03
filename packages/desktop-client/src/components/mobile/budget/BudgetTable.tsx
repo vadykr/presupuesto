@@ -330,6 +330,8 @@ type BudgetTableProps = {
   onRefresh: () => Promise<void>;
   onEditCategoryGroup: (id: CategoryGroupEntity['id']) => void;
   onEditCategory: (id: CategoryEntity['id']) => void;
+  /** Avisos (categorías en rojo…), debajo de «listos para asignar». */
+  banners?: ReactNode;
 };
 
 export function BudgetTable(props: BudgetTableProps) {
@@ -351,6 +353,7 @@ function BudgetTableContenido({
   onRefresh,
   onEditCategoryGroup,
   onEditCategory,
+  banners,
 }: BudgetTableProps) {
   // Dos columnas (Asignado · Disponible) como YNAB; el gasto del mes va en
   // pequeño y en rojo bajo lo asignado (NOTAS.md, «Pestaña Presupuesto»).
@@ -417,6 +420,7 @@ function BudgetTableContenido({
       <BudgetTableHeader
         month={month}
         onShowBudgetSummary={onShowBudgetSummary}
+        banners={banners}
       />
       <ChipsFiltros
         denso
@@ -491,6 +495,7 @@ function BudgetTableBody({ children }: { children: ReactNode }) {
 type BudgetTableHeaderProps = {
   month: string;
   onShowBudgetSummary: () => void;
+  banners?: ReactNode;
 };
 
 /**
@@ -501,6 +506,7 @@ type BudgetTableHeaderProps = {
 function BudgetTableHeader({
   month,
   onShowBudgetSummary,
+  banners,
 }: BudgetTableHeaderProps) {
   const [budgetType = 'envelope'] = useSyncedPref('budgetType');
 
@@ -527,6 +533,7 @@ function BudgetTableHeader({
           show3Columns={false}
         />
       )}
+      {banners}
       <View
         aria-hidden
         data-testid="cabecera-columnas"

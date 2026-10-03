@@ -117,7 +117,8 @@ export function useFormat(): UseFormatResult {
   );
 
   const activeCurrency = useMemo(() => {
-    return getCurrency(defaultCurrencyCodePref || '');
+    // Presupuesto: euros por defecto si el presupuesto no tiene moneda.
+    return getCurrency(defaultCurrencyCodePref || 'EUR');
   }, [defaultCurrencyCodePref]);
 
   const numberFormatConfig = useMemo(
@@ -150,8 +151,9 @@ export function useFormat(): UseFormatResult {
         valueWithoutSign = formattedNumericValue.slice(1);
       }
 
-      const space = spaceEnabledPref === 'true' ? '\u202F' : '';
-      const position = symbolPositionPref || 'before';
+      const space =
+        spaceEnabledPref === 'true' || !spaceEnabledPref ? '\u202F' : '';
+      const position = symbolPositionPref || 'after';
 
       const styledAmount =
         position === 'after'
