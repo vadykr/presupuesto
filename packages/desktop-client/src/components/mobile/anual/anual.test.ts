@@ -4,10 +4,16 @@ import {
   agruparPorMes,
   calcularFila,
   calcularFilas,
+  conmutarCategoria,
+  conmutarGrupo,
+  estadoGrupo,
   idsPlegables,
+  incluida,
   parseGrupos,
+  parseSeleccion,
   proximoVencimiento,
   resumir,
+  seleccionInicial,
   sumarMeses,
 } from './anual';
 import type { EntradaAnual } from './anual';
@@ -311,5 +317,68 @@ describe('idsPlegables y parseGrupos', () => {
     expect(parseGrupos('no es json')).toEqual([]);
     expect(parseGrupos('{"a":1}')).toEqual([]);
     expect(parseGrupos('["a",3]')).toEqual(['a']);
+  });
+});
+
+describe('selección de Gasto anual', () => {
+  const vacia = { grupos: [], categorias: [], excluidas: [] };
+  const g = { id: 'g1', categorias: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] };
+
+  it('parseSeleccion: nulo si falta o es inválida', () => {
+    expect(parseSeleccion(undefined)).toBeNull();
+    expect(parseSeleccion('no json')).toBeNull();
+    expect(parseSeleccion('[]')).toBeNull();
+    expect(parseSeleccion('{"grupos":["g1"],"categorias":[1,"a"]}')).toEqual({
+      grupos: ['g1'],
+      categorias: ['a'],
+      excluidas: [],
+    });
+  });
+
+  it('incluida: grupo menos excluidas, o categoría suelta', () => {
+    const s = { grupos: ['g1'], categorias: ['z'], excluidas: ['b'] };
+    expect(incluida(s, 'a', 'g1')).toBe(true);
+    expect(incluida(s, 'b', 'g1')).toBe(false);
+    expect(incluida(s, 'z', 'g2')).toBe(true);
+    expect(incluida(s, 'y', 'g2')).toBe(false);
+  });
+
+  it('seleccionInicial: grupos marcados y automáticas de otros grupos', () => {
+    expect(
+      seleccionInicial(
+        ['g1'],
+        [
+          { id: 'a', grupoId: 'g1' },
+          { id: 'p', grupoId: 'g2' },
+        ],
+      ),
+    ).toEqual({ grupos: ['g1'], categorias: ['p'], excluidas: [] });
+  });
+
+  it('conmutarGrupo marca todas y desmarca todas', () => {
+    const marcado = conmutarGrupo(vacia, g);
+    expect(estadoGrupo(marcado, g)).toBe('todas');
+    expect(estadoGrupo(conmutarGrupo(marcado, g), g)).toBe('ninguna');
+  });
+
+  it('desmarcar una del grupo deja estado intermedio; el grupo la completa', () => {
+    const marcado = conmutarGrupo(vacia, g);
+    const parcial = conmutarCategoria(marcado, 'b', 'g1');
+    expect(parcial.excluidas).toEqual(['b']);
+    expect(estadoGrupo(parcial, g)).toBe('algunas');
+    expect(estadoGrupo(conmutarGrupo(parcial, g), g)).toBe('todas');
+    expect(conmutarGrupo(parcial, g).excluidas).toEqual([]);
+  });
+
+  it('marcar una suelta de un grupo sin marcar', () => {
+    const s = conmutarCategoria(vacia, 'a', 'g1');
+    expect(s.categorias).toEqual(['a']);
+    expect(estadoGrupo(s, g)).toBe('algunas');
+    expect(conmutarCategoria(s, 'a', 'g1')).toEqual(vacia);
+  });
+
+  it('volver a marcar una excluida la quita de excluidas', () => {
+    const s = { grupos: ['g1'], categorias: [], excluidas: ['b'] };
+    expect(conmutarCategoria(s, 'b', 'g1').excluidas).toEqual([]);
   });
 });

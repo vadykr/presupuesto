@@ -1,15 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import { styles } from '@actual-app/components/styles';
 import { Text } from '@actual-app/components/text';
-import { theme } from '@actual-app/components/theme';
 import { Toggle } from '@actual-app/components/toggle';
 import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
-import { Checkbox } from '#components/forms';
 import { rutaFicha } from '#components/mobile/budget/useFichaCategoria';
 import { ModalLocal } from '#components/mobile/informes/ModalLocal';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
@@ -36,9 +34,21 @@ import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
 import { useNavigate } from '#hooks/useNavigate';
 
-import { agruparPorMes } from './anual';
+import {
+  agruparPorMes,
+  conmutarCategoria,
+  conmutarGrupo,
+  estadoGrupo,
+  incluida,
+  seleccionInicial,
+} from './anual';
 import type { EstadoAnual, FilaAnual } from './anual';
-import { useAnual, useGruposAnuales, useOcultarEnPlan } from './useAnual';
+import {
+  useAnual,
+  useGruposAnuales,
+  useOcultarEnPlan,
+  useSeleccionAnual,
+} from './useAnual';
 
 const COLOR_BARRA: Record<EstadoAnual, string> = {
   'al-dia': color.ok,
@@ -475,7 +485,47 @@ function FilaCategoria({
   );
 }
 
-/** Hoja para marcar qué grupos cuentan como «gasto anual». */
+type Marca = 'todas' | 'algunas' | 'ninguna';
+
+/** Casilla de tres estados (marcada, intermedia, vacía). */
+function Casilla({
+  estado,
+  onPress,
+  etiqueta,
+}: {
+  estado: Marca;
+  onPress: () => void;
+  etiqueta: string;
+}) {
+  const activa = estado !== 'ninguna';
+  return (
+    <Button
+      onPress={onPress}
+      aria-label={etiqueta}
+      aria-pressed={
+        estado === 'todas' ? true : estado === 'algunas' ? 'mixed' : false
+      }
+      style={{
+        width: 18,
+        height: 18,
+        minWidth: 18,
+        padding: 0,
+        borderRadius: radio.sm,
+        border: `1.5px solid ${activa ? color.accent : color.fg3}`,
+        backgroundColor: activa ? color.accent : 'transparent',
+        color: color.accentInk,
+        fontSize: 12,
+        lineHeight: '14px',
+        fontWeight: 700,
+        justifyContent: 'center',
+      }}
+    >
+      {estado === 'todas' ? '✓' : estado === 'algunas' ? '–' : ''}
+    </Button>
+  );
+}
+
+/** Hoja para elegir qué grupos o categorías cuentan como «gasto anual». */
 function SelectorGrupos({
   abierto,
   onClose,
@@ -485,17 +535,33 @@ function SelectorGrupos({
 }) {
   const { t } = useTranslation();
   const { data: { grouped } = { grouped: [] } } = useCategories();
-  const { grupos, guardar } = useGruposAnuales();
-  const marcados = new Set(grupos);
+  const { grupos } = useGruposAnuales();
+  const { seleccion: guardada, guardar } = useSeleccionAnual();
+  const { todas } = useAnual(abierto);
+  const [plegados, setPlegados] = useState<Set<string>>(new Set());
 
-  function alternar(id: string) {
-    const nuevos = new Set(marcados);
-    if (nuevos.has(id)) {
-      nuevos.delete(id);
-    } else {
+  // Primera vez: precarga lo que hoy sale, para que solo haya que desmarcar.
+  useEffect(() => {
+    if (abierto && !guardada && todas.length > 0) {
+      guardar(
+        seleccionInicial(
+          grupos,
+          todas
+            .filter(c => c.automatica)
+            .map(c => ({ id: c.categoria.id, grupoId: c.categoria.group })),
+        ),
+      );
+    }
+  }, [abierto, guardada, todas, grupos, guardar]);
+
+  const seleccion = guardada ?? { grupos: [], categorias: [], excluidas: [] };
+
+  function plegar(id: string) {
+    const nuevos = new Set(plegados);
+    if (!nuevos.delete(id)) {
       nuevos.add(id);
     }
-    guardar(nuevos);
+    setPlegados(nuevos);
   }
 
   return (
@@ -512,44 +578,112 @@ function SelectorGrupos({
     >
       <Text
         style={{
-          ...styles.smallText,
-          color: theme.pageTextSubdued,
-          padding: '0 16px 8px',
+          ...densidad.pequeno,
+          color: color.fg3,
+          padding: `0 ${densidad.margen}px 8px`,
         }}
       >
         <Trans>
-          Every category in a checked group shows up here. Categories with a
-          yearly target appear anyway.
+          Only what you check shows up here. Check a whole group or single
+          categories.
         </Trans>
       </Text>
       {grouped
         .filter(g => !g.is_income && !g.hidden)
-        .map(grupo => (
-          <label
-            key={grupo.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              minHeight: 48,
-              padding: '0 16px',
-              borderTop: `1px solid ${theme.tableBorder}`,
-            }}
-          >
-            <Checkbox
-              checked={marcados.has(grupo.id)}
-              onChange={() => alternar(grupo.id)}
-            />
-            <Text style={{ ...styles.mediumText, fontWeight: 600, flex: 1 }}>
-              {grupo.name}
-            </Text>
-            <Text style={{ ...styles.smallText, color: theme.pageTextSubdued }}>
-              {t('{{count}} categories', {
-                count: grupo.categories?.length ?? 0,
-              })}
-            </Text>
-          </label>
-        ))}
+        .map(grupo => {
+          const cats = (grupo.categories ?? []).filter(c => !c.hidden);
+          const sel = { id: grupo.id, categorias: cats };
+          const estado = estadoGrupo(seleccion, sel);
+          const plegado = plegados.has(grupo.id);
+          const marcadas = cats.filter(c =>
+            incluida(seleccion, c.id, grupo.id),
+          ).length;
+          return (
+            <View
+              key={grupo.id}
+              data-testid="selector-grupo"
+              style={{ borderTop: `1px solid ${color.line}` }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  minHeight: densidad.altoGrupo - 6,
+                  padding: `0 ${densidad.margen}px`,
+                }}
+              >
+                <Casilla
+                  estado={estado}
+                  etiqueta={t('Select group {{group}}', { group: grupo.name })}
+                  onPress={() => guardar(conmutarGrupo(seleccion, sel))}
+                />
+                <Button
+                  onPress={() => plegar(grupo.id)}
+                  aria-expanded={!plegado}
+                  aria-label={t('Expand or collapse {{group}}', {
+                    group: grupo.name,
+                  })}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    justifyContent: 'flex-start',
+                    gap: 8,
+                    padding: 0,
+                    minHeight: densidad.altoGrupo - 6,
+                    backgroundColor: 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{ ...densidad.grupo, flex: 1, textAlign: 'left' }}
+                  >
+                    {grupo.name}
+                  </Text>
+                  <Text style={{ ...densidad.grupoCifra, color: color.fg3 }}>
+                    {t('{{selected}} of {{count}}', {
+                      selected: marcadas,
+                      count: cats.length,
+                    })}
+                  </Text>
+                  <Text style={{ color: color.fg3 }}>
+                    {plegado ? '▸' : '▾'}
+                  </Text>
+                </Button>
+              </View>
+              {!plegado &&
+                cats.map(c => (
+                  <View
+                    key={c.id}
+                    data-testid="selector-categoria"
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                      minHeight: 36,
+                      padding: `0 ${densidad.margen}px 0 ${
+                        densidad.margen + densidad.sangria + 18
+                      }px`,
+                    }}
+                  >
+                    <Casilla
+                      estado={
+                        incluida(seleccion, c.id, grupo.id)
+                          ? 'todas'
+                          : 'ninguna'
+                      }
+                      etiqueta={c.name}
+                      onPress={() =>
+                        guardar(conmutarCategoria(seleccion, c.id, grupo.id))
+                      }
+                    />
+                    <Text style={{ ...densidad.nombre, flex: 1, minWidth: 0 }}>
+                      {c.name}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          );
+        })}
     </ModalLocal>
   );
 }
