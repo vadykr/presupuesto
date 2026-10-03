@@ -290,15 +290,15 @@ type SelectorMesProps = Omit<HojaSelectorMesProps, 'abierto' | 'onClose'> & {
    * `compacto`: «Octubre 2026 ▾» en una línea.
    */
   variante?: 'titulo' | 'compacto';
-  /** Brújula «Log Pose» decorativa junto al mes. */
-  logPose?: boolean;
+  /** Brújula decorativa junto al mes. */
+  brujula?: boolean;
   style?: CSSProperties;
 };
 
 /** Botón con el nombre del mes que abre `HojaSelectorMes`. */
 export function SelectorMes({
   variante = 'compacto',
-  logPose = false,
+  brujula = false,
   style,
   ...hoja
 }: SelectorMesProps) {
@@ -333,8 +333,8 @@ export function SelectorMes({
           ...style,
         }}
       >
-        {logPose && (
-          <LogPose giro={giro} activo={!monthUtils.isCurrentMonth(mes)} />
+        {brujula && (
+          <Brujula giro={giro} activo={!monthUtils.isCurrentMonth(mes)} />
         )}
         {variante === 'titulo' ? (
           <View style={{ alignItems: 'flex-start', minWidth: 0 }}>
@@ -390,8 +390,8 @@ export function SelectorMes({
   );
 }
 
-/** Brújula de cristal minimalista (Log Pose), solo decorativa. */
-export function LogPose({ giro, activo }: { giro: number; activo: boolean }) {
+/** Brújula minimalista, solo decorativa. */
+export function Brujula({ giro, activo }: { giro: number; activo: boolean }) {
   return (
     <svg
       viewBox="0 0 44 44"
@@ -417,20 +417,6 @@ export function LogPose({ giro, activo }: { giro: number; activo: boolean }) {
         strokeWidth=".8"
         strokeDasharray="1.5 3.2"
         opacity=".7"
-      />
-      <path
-        d="M14 38.5h16"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M17 37v-1.5M27 37v-1.5"
-        stroke="currentColor"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        fill="none"
       />
       <g
         style={{

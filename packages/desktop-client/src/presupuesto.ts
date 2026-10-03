@@ -22,7 +22,7 @@ export const SOLO_UN_PRESUPUESTO = true;
 export const MODO_PRESUPUESTO = true;
 
 /** Nombre visible de la app. */
-export const appName = 'Presupuesto';
+export const appName = 'Rumbo Finanzas';
 
 /** Documentación propia (sustituye a actualbudget.org/docs). */
 export const URL_AYUDA =

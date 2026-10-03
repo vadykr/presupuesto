@@ -14,7 +14,7 @@ type BarquitoProps = {
   style?: CSSProperties;
 };
 
-/** Barquito de línea sobre las olas (guiño discreto a One Piece). */
+/** Barquito de línea sobre las olas (dibujo propio). */
 export function Barquito({
   meciendose = false,
   width = 140,
@@ -57,8 +57,8 @@ export function Barquito({
   );
 }
 
-/** Sombrero de paja de línea, con la cinta en el color de acento. */
-export function Sombrero({
+/** Ancla de línea (nada pendiente: «fondeado»), dibujo propio. */
+export function Ancla({
   width = 150,
   style,
 }: {
@@ -78,14 +78,15 @@ export function Sombrero({
       aria-hidden
       style={style}
     >
-      <path d="M48 46c-22 3-36 8-36 14 0 8 28 14 63 14s63-6 63-14c0-6-14-11-36-14" />
-      <path d="M48 47c0-17 12-29 27-29s27 12 27 29" />
+      <circle cx="75" cy="13" r="6" />
+      <path d="M75 19v52" />
+      <path d="M63 29h24" />
       <path
-        d="M48 44c8 3 17 4.5 27 4.5S94 47 102 44"
+        d="M49 50c2 13 13 21 26 21s24-8 26-21"
         stroke="var(--p-accent, currentColor)"
         strokeWidth={3}
       />
-      <path d="M60 26c3-4 8-6 13-6" opacity={0.45} />
+      <path d="M44 55l5-6 6 5M106 55l-5-6-6 5" />
     </svg>
   );
 }

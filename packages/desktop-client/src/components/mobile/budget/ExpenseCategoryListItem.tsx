@@ -33,6 +33,7 @@ import { BalanceCell } from './BalanceCell';
 import { BudgetCell } from './BudgetCell';
 import { getColumnWidth } from './BudgetTable';
 import { useTapAndHold } from './RowName';
+import { SuenoFila } from './SuenoFila';
 import { useIgnorarMes } from './useIgnorarMes';
 
 type ExpenseCategoryNameProps = {
@@ -520,6 +521,7 @@ export function ExpenseCategoryListItem({
             }
             onHold={() => onEditCategory(category.id)}
           />
+          <SuenoFila category={category} month={month} />
           <ExpenseCategoryCells
             key={`${category.id}-${show3Columns}-${showBudgetedColumn}`}
             category={category}

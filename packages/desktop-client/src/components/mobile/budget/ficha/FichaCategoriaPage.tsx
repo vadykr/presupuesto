@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useParams, useSearchParams } from 'react-router';
@@ -44,7 +44,10 @@ import type {
   CadenciaMeses,
   Objetivo,
 } from '#components/mobile/budget/objetivos';
-import { useIgnorarMes } from '#components/mobile/budget/useIgnorarMes';
+import {
+  useDespertarAuto,
+  useIgnorarMes,
+} from '#components/mobile/budget/useIgnorarMes';
 import { evolucionCategoria } from '#components/mobile/informes/calculos';
 import { useTotalesMensuales } from '#components/mobile/informes/useTotalesMensuales';
 import { MobileBackButton } from '#components/mobile/MobileBackButton';
@@ -83,7 +86,7 @@ import { useDispatch } from '#redux';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
 import { AsesorFicha } from './AsesorFicha';
-import { BurbujaLuffy } from './BurbujaLuffy';
+import { BurbujaDormida, BurbujaSueno } from './BurbujaSueno';
 import {
   ChipsEvolucion,
   GraficoGasto,
@@ -93,6 +96,7 @@ import {
 import type { VistaEvolucion } from './EvolucionFicha';
 import {
   bandaFicha,
+  consejoAdelanto,
   esObjetivoDeSaldo,
   filasEstacionalidad,
   mesesAnteriores,
@@ -230,18 +234,18 @@ function ContenidoFicha({
   const id = category.id;
   const nota = useNotes(id);
 
-  const asignado =
-    useSheetValue<'envelope-budget', 'budget'>(
-      envelopeBudget.catBudgeted(id),
-    ) ?? 0;
-  const actividad =
-    useSheetValue<'envelope-budget', 'sum-amount'>(
-      envelopeBudget.catSumAmount(id),
-    ) ?? 0;
-  const saldo =
-    useSheetValue<'envelope-budget', 'leftover'>(
-      envelopeBudget.catBalance(id),
-    ) ?? 0;
+  const asignadoHoja = useSheetValue<'envelope-budget', 'budget'>(
+    envelopeBudget.catBudgeted(id),
+  );
+  const actividadHoja = useSheetValue<'envelope-budget', 'sum-amount'>(
+    envelopeBudget.catSumAmount(id),
+  );
+  const saldoHoja = useSheetValue<'envelope-budget', 'leftover'>(
+    envelopeBudget.catBalance(id),
+  );
+  const asignado = asignadoHoja ?? 0;
+  const actividad = actividadHoja ?? 0;
+  const saldo = saldoHoja ?? 0;
   const goal = useSheetValue<'envelope-budget', 'goal'>(
     envelopeBudget.catGoal(id),
   );
@@ -249,7 +253,18 @@ function ContenidoFicha({
     useSheetValue<'envelope-budget', 'long-goal'>(
       envelopeBudget.catLongGoal(id),
     ) === 1;
-  const { ignorada, setIgnorada } = useIgnorarMes(id, month);
+  const sueno = useIgnorarMes(id, month);
+  const { ignorada } = sueno;
+  // Despertar automático al verla (fecha, gasto o dinero que sale): pop.
+  const [pop, setPop] = useState(0);
+  useDespertarAuto({
+    categoryId: id,
+    month,
+    actividad: actividadHoja,
+    saldo: saldoHoja,
+    asignado: asignadoHoja,
+    onDespierta: () => setPop(Date.now()),
+  });
 
   const objetivo = useMemo(
     () => objetivoDesdePlantillas(plantillasDe(category.goal_def), nota),
@@ -339,8 +354,9 @@ function ContenidoFicha({
         resumen={resumen}
         saldo={saldo}
         asignado={asignado}
-        ignorada={ignorada}
-        setIgnorada={setIgnorada}
+        actividad={actividad}
+        sueno={sueno}
+        pop={pop}
         editarAlAbrir={editarAlAbrir}
       />
 
@@ -387,6 +403,13 @@ function ContenidoFicha({
           asignado={asignado}
           tieneObjetivo={objetivoValido != null}
           resumen={resumen}
+          onDormir={meses =>
+            sueno.dormirHasta(
+              monthUtils.addMonths(month, meses),
+              asignado,
+              saldo,
+            )
+          }
           mesesHistoria={Math.max(mesesConHistoria(gasto36), 12)}
         />
       )}
@@ -708,8 +731,9 @@ function TarjetaObjetivo({
   resumen,
   saldo,
   asignado,
-  ignorada,
-  setIgnorada,
+  actividad,
+  sueno,
+  pop,
   editarAlAbrir,
 }: {
   category: CategoryEntity;
@@ -719,10 +743,16 @@ function TarjetaObjetivo({
   resumen: ReturnType<typeof resumenObjetivo> | null;
   saldo: IntegerAmount;
   asignado: IntegerAmount;
-  ignorada: boolean;
-  setIgnorada: (ignorar: boolean) => Promise<void>;
+  actividad: IntegerAmount;
+  sueno: ReturnType<typeof useIgnorarMes>;
+  /** Marca de tiempo del último despertar automático (0 = ninguno). */
+  pop: number;
   editarAlAbrir: boolean;
 }) {
+  const { ignorada, setIgnorada, dormida, dormirHasta } = sueno;
+  const locale = useLocale();
+  const zzRef = useRef<HTMLButtonElement>(null);
+  const [menuSueno, setMenuSueno] = useState(false);
   const { t } = useTranslation();
   const format = useFormat();
   const resumenTexto = useResumenObjetivo();
@@ -734,19 +764,28 @@ function TarjetaObjetivo({
     clave: number;
   } | null>(null);
   const finBurbuja = useCallback(() => setBurbuja(null), []);
+  useEffect(() => {
+    if (pop) {
+      setBurbuja({ modo: 'despertar', clave: pop });
+    }
+  }, [pop]);
   const fmt = (v: number) => format(v, 'financial');
 
-  const textoEstado = ignorada
-    ? t('Ignored this month')
-    : estado === 'adelantado'
-      ? `⛵ ${t('Ahead')}`
-      : estado === 'rumbo'
-        ? `⛵ ${t('Steady course')}`
-        : estado === 'cumplido'
-          ? t('Reached')
-          : estado === 'atrasado'
-            ? t('Behind')
-            : null;
+  const mesCorto = (mes: string) =>
+    monthUtils.format(mes, 'MMM yyyy', locale).replace('.', '');
+  const textoEstado = dormida
+    ? t('Asleep until {{month}}', { month: mesCorto(dormida.hasta) })
+    : ignorada
+      ? t('Ignored this month')
+      : estado === 'adelantado'
+        ? `⛵ ${t('Ahead')}`
+        : estado === 'rumbo'
+          ? `⛵ ${t('Steady course')}`
+          : estado === 'cumplido'
+            ? t('Reached')
+            : estado === 'atrasado'
+              ? t('Behind')
+              : null;
 
   // «Devolver X a Listo para asignar» (solo el sobrante sobre la meta, que se
   // puede mover sin riesgo). Si cabe en lo asignado este mes, se baja lo
@@ -787,10 +826,42 @@ function TarjetaObjetivo({
     });
   };
 
+  // Opciones de «dormir»: este mes, hasta el cobro (objetivo con fecha) y
+  // hasta <mes> cuando el Asesor ve N meses de adelanto.
+  const mesCobro =
+    resumen?.fecha && resumen.fecha.slice(0, 7) > month
+      ? resumen.fecha.slice(0, 7)
+      : null;
+  const adelanto = consejoAdelanto(
+    resumen?.adelanto ?? 0,
+    resumen?.cuotaNormal ?? null,
+  );
+  const mesAdelanto =
+    adelanto && adelanto.meses > 1
+      ? monthUtils.addMonths(month, adelanto.meses)
+      : null;
+  const elegirSueno = (opcion: string) => {
+    setMenuSueno(false);
+    if (opcion === 'mes') {
+      void setIgnorada(true);
+    } else if (opcion === 'cobro' && mesCobro) {
+      dormirHasta(mesCobro, asignado, saldo, actividad);
+    } else if (opcion === 'adelanto' && mesAdelanto) {
+      dormirHasta(mesAdelanto, asignado, saldo, actividad);
+    } else {
+      return;
+    }
+    setBurbuja({ modo: 'dormir', clave: Date.now() });
+  };
   const alternarIgnorar = () => {
-    const nuevo = !ignorada;
-    void setIgnorada(nuevo);
-    setBurbuja({ modo: nuevo ? 'dormir' : 'despertar', clave: Date.now() });
+    if (ignorada) {
+      void setIgnorada(false);
+      setBurbuja({ modo: 'despertar', clave: Date.now() });
+    } else if (mesCobro || mesAdelanto) {
+      setMenuSueno(true);
+    } else {
+      elegirSueno('mes');
+    }
   };
 
   return (
@@ -814,7 +885,20 @@ function TarjetaObjetivo({
         <View style={{ flex: 1 }} />
         {objetivo !== null && (
           <View style={{ position: 'relative' }}>
+            {ignorada && !burbuja && (
+              <View
+                style={{
+                  position: 'absolute',
+                  right: 30,
+                  top: -8,
+                  pointerEvents: 'none',
+                }}
+              >
+                <BurbujaDormida size={22} data-testid="burbuja-respira" />
+              </View>
+            )}
             <Button
+              ref={zzRef}
               variant="bare"
               onPress={alternarIgnorar}
               aria-pressed={ignorada}
@@ -844,17 +928,56 @@ function TarjetaObjetivo({
               </Text>
             </Button>
             {burbuja && (
-              <BurbujaLuffy
+              <BurbujaSueno
                 key={burbuja.clave}
                 modo={burbuja.modo}
                 onFin={finBurbuja}
               />
             )}
+            <Popover
+              triggerRef={zzRef}
+              isOpen={menuSueno}
+              placement="bottom end"
+              onOpenChange={() => setMenuSueno(false)}
+            >
+              <Menu
+                items={[
+                  { name: 'mes', text: t('This month') },
+                  ...(mesCobro
+                    ? [
+                        {
+                          name: 'cobro',
+                          text: t('Until the charge ({{month}})', {
+                            month: mesCorto(mesCobro),
+                          }),
+                        },
+                      ]
+                    : []),
+                  ...(mesAdelanto
+                    ? [
+                        {
+                          name: 'adelanto',
+                          text: t('Until {{month}}', {
+                            month: mesCorto(mesAdelanto),
+                          }),
+                        },
+                      ]
+                    : []),
+                ]}
+                onMenuSelect={name => elegirSueno(String(name))}
+              />
+            </Popover>
           </View>
         )}
         {textoEstado && objetivo !== null && (
           <Pildora
-            estado={ignorada ? 'ignorada' : ESTADO_OBJETIVO[estado ?? 'rumbo']}
+            estado={
+              dormida
+                ? 'neutro'
+                : ignorada
+                  ? 'ignorada'
+                  : ESTADO_OBJETIVO[estado ?? 'rumbo']
+            }
             data-testid="objetivo-estado"
           >
             {textoEstado}

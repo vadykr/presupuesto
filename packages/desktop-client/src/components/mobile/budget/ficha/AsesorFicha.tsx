@@ -37,6 +37,8 @@ type Item = {
   titulo: string;
   texto: string;
   accion?: { etiqueta: string; accion: Accion };
+  /** Botón propio de la ficha (p. ej. «Dormir N meses»). */
+  boton?: { etiqueta: string; alPulsar: () => void };
 };
 
 const COLOR_PUNTO: Record<Gravedad, string> = {
@@ -63,6 +65,7 @@ export function AsesorFicha({
   tieneObjetivo,
   resumen,
   mesesHistoria,
+  onDormir,
 }: {
   categoryId: string;
   month: string;
@@ -74,6 +77,8 @@ export function AsesorFicha({
   tieneObjetivo: boolean;
   resumen: ResumenObjetivoFicha | null;
   mesesHistoria: number;
+  /** «Dormir N meses» desde el consejo de adelanto. */
+  onDormir?: (meses: number) => void;
 }) {
   const destino = mesDeAccion(month, monthUtils.currentMonth(), asignado);
   return (
@@ -86,6 +91,7 @@ export function AsesorFicha({
         tieneObjetivo={tieneObjetivo}
         resumen={resumen}
         mesesHistoria={mesesHistoria}
+        onDormir={onDormir}
       />
     </SheetNameProvider>
   );
@@ -99,6 +105,7 @@ function ListaAsesor({
   tieneObjetivo,
   resumen,
   mesesHistoria,
+  onDormir,
 }: {
   categoryId: string;
   destino: string;
@@ -107,6 +114,8 @@ function ListaAsesor({
   tieneObjetivo: boolean;
   resumen: ResumenObjetivoFicha | null;
   mesesHistoria: number;
+  /** «Dormir N meses» desde el consejo de adelanto. */
+  onDormir?: (meses: number) => void;
 }) {
   const { t } = useTranslation();
   const format = useFormat();
@@ -180,6 +189,15 @@ function ListaAsesor({
             : t(
                 'Slightly ahead of the pace for this point of the cycle. It is usable, but it would have to be put back before the date.',
               ),
+        boton:
+          onDormir && adelanto.meses > 0
+            ? {
+                etiqueta: t('Sleep {{count}} months', {
+                  count: adelanto.meses,
+                }),
+                alPulsar: () => onDormir(adelanto.meses),
+              }
+            : undefined,
       });
     }
 
@@ -318,6 +336,7 @@ function ListaAsesor({
     t,
     tieneObjetivo,
     visibles,
+    onDormir,
   ]);
 
   const mostrados = verMas ? items : items.slice(0, 1);
@@ -397,6 +416,30 @@ function ListaAsesor({
                   }}
                 >
                   {hecha ? t('Done') : item.accion.etiqueta}
+                </Button>
+              )}
+              {item.boton && (
+                <Button
+                  variant="bare"
+                  isDisabled={hecha}
+                  onPress={() => {
+                    item.boton?.alPulsar();
+                    setHechas(prev => new Set(prev).add(item.id));
+                  }}
+                  data-testid={`consejo-boton-${item.id}`}
+                  style={{
+                    alignSelf: 'flex-start',
+                    minHeight: TACTIL,
+                    marginTop: 4,
+                    padding: '0 14px',
+                    borderRadius: radio.boton,
+                    backgroundColor: color.surface2,
+                    color: color.fg,
+                    fontSize: 14,
+                    fontWeight: 800,
+                  }}
+                >
+                  {hecha ? t('Done') : `zZ ${item.boton.etiqueta}`}
                 </Button>
               )}
             </View>

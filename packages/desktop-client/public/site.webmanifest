@@ -1,7 +1,7 @@
 {
-  "name": "Presupuesto",
-  "short_name": "Presupuesto",
-  "description": "Presupuesto personal, con los datos en tu dispositivo",
+  "name": "Rumbo Finanzas",
+  "short_name": "Rumbo",
+  "description": "Finanzas personales, con los datos en tu dispositivo",
   "icons": [
     {
       "src": "android-chrome-192x192.png",
@@ -70,14 +70,14 @@
     {
       "src": "screenshot_wide.png",
       "form_factor": "wide",
-      "label": "Pantalla principal de Presupuesto",
+      "label": "Pantalla principal de Rumbo Finanzas",
       "type": "image/png",
       "sizes": "1280x720"
     },
     {
       "src": "screenshot_narrow.png",
       "form_factor": "narrow",
-      "label": "Pantalla principal de Presupuesto en el móvil",
+      "label": "Pantalla principal de Rumbo Finanzas en el móvil",
       "type": "image/png",
       "sizes": "350x600"
     }

@@ -153,7 +153,7 @@ function WelcomeScreenActual() {
           style={{ color: theme.pageTextPositive }}
         />
         <Text style={{ ...styles.veryLargeText, textAlign: 'center' }}>
-          <Trans>Welcome to {{ appName: 'Presupuesto' }}</Trans>
+          <Trans>Welcome to {{ appName: 'Rumbo Finanzas' }}</Trans>
         </Text>
         <Text
           style={{
@@ -174,7 +174,7 @@ function WelcomeScreenActual() {
           style={{ textAlign: 'center', maxWidth: 400, marginBottom: 0 }}
         >
           <Trans>
-            {{ appName: 'Presupuesto' }} is a super fast, privacy-focused app
+            {{ appName: 'Rumbo Finanzas' }} is a super fast, privacy-focused app
             for managing your finances. It is 100% free and open source:
             everything stays on your device, no data is collected, and there is
             nothing to sign up for.

@@ -438,7 +438,7 @@ export function BudgetPage() {
           <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
             <SelectorMes
               variante="titulo"
-              logPose
+              brujula
               mes={startMonth}
               minimo={monthBounds.start}
               maximo={monthUtils.subMonths(monthBounds.end, 1)}

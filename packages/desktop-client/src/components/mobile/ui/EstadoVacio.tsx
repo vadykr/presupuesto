@@ -3,15 +3,15 @@ import type { CSSProperties, ReactNode } from 'react';
 import { Text } from '@actual-app/components/text';
 import { View } from '@actual-app/components/view';
 
-import { Barquito, Sombrero } from './Barquito';
+import { Ancla, Barquito } from './Barquito';
 import { estiloTarjeta } from './Tarjeta';
 import { color, texto as tipografia } from './tokens';
 
 type EstadoVacioProps = {
   titulo: ReactNode;
   texto?: ReactNode;
-  /** «sombrero» (nada pendiente) o «barquito» (aún no hay nada). */
-  ilustracion?: 'sombrero' | 'barquito';
+  /** «ancla» (nada pendiente) o «barquito» (aún no hay nada). */
+  ilustracion?: 'ancla' | 'barquito';
   accion?: ReactNode;
   /** Ancho de la ilustración (150 por defecto; menos dentro de un widget). */
   anchoIlustracion?: number;
@@ -23,7 +23,7 @@ type EstadoVacioProps = {
 export function EstadoVacio({
   titulo,
   texto,
-  ilustracion = 'sombrero',
+  ilustracion = 'ancla',
   accion,
   anchoIlustracion = 150,
   style,
@@ -43,8 +43,8 @@ export function EstadoVacio({
       }}
     >
       <View style={{ color: color.fg2 }}>
-        {ilustracion === 'sombrero' ? (
-          <Sombrero width={anchoIlustracion} />
+        {ilustracion === 'ancla' ? (
+          <Ancla width={anchoIlustracion} />
         ) : (
           <Barquito width={anchoIlustracion} />
         )}

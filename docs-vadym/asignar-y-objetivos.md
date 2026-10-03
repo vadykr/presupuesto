@@ -93,7 +93,9 @@ a la ficha con el editor abierto (`&editar=1`).
   `resumenObjetivo` en `fichaCalculos.ts`); al tocarlo se despliega el editor en el sitio (mismo formulario
   y guardado que antes: `formularioDesde`, `objetivoDesde`, `useGuardarObjetivo` en `ObjetivoPage.tsx`).
   «zZ» de 15 px (área de 44) entre el título y la píldora = «Ignorar este mes» (`useIgnorarMes`), con la
-  burbuja de Luffy (`BurbujaLuffy.tsx`, SVG propio, 1,25 s, nada con «reducir movimiento»).
+  burbuja de sueño (`BurbujaSueno.tsx`, SVG propio): al dormir se hincha despacio; mientras duerme queda
+  pequeña junto al botón respirando (`BurbujaDormida`); al despertar revienta con partículas. Quieta o ausente
+  con «reducir movimiento».
 - Evolución: Gasto (barras de 12 meses, línea de lo asignado, banda mediana ± MAD solo con meses con gasto
   si es irregular) · Saldo (saldo real + proyección punteada a la meta) · Meses (mapa 12 × 2 años). Por
   defecto Saldo si el objetivo es de saldo (una vez / cada año / `long-goal`).
@@ -118,3 +120,20 @@ a la ficha con el editor abierto (`&editar=1`).
 - **«Devolver X a Listo para asignar»** (solo el sobrante): si cabe en lo asignado este mes, se baja lo
   asignado (`budget-amount`, nunca por debajo de 0); si no, `transfer-category` a `to-budget` (el «Mover» de
   Actual: deja lo asignado en negativo y escribe la nota de movimiento). Con deshacer.
+
+## Dormir hasta… (`dormir.ts`, pref `dormidas`)
+
+Amplía «Ignorar este mes». Al tocar «zZ» en la ficha: «Este mes» (la marca `#ignorar-mes` de siempre), «Hasta
+el cobro (<mes>)» si el objetivo tiene fecha (duerme hasta el mes de la próxima fecha, p. ej. IBI hasta jul 2027) y «Hasta <mes>» cuando el Asesor ve N meses de adelanto (también el botón «zZ Dormir N meses» del
+consejo «Vas Y por delante del calendario»).
+
+- Pref sincronizada `dormidas`, JSON aditivo `{ <categoría>: { desde, hasta, asignadoAlDormir, saldoAlDormir } }`.
+  Duerme en `desde ≤ mes < hasta`. «Ignorada» = marca de la nota de mes **o** dormida (`useIgnorarMes`,
+  `useDatosObjetivos`), así que no cuenta como infrafinanciada ni «faltan» en el Plan, Asignar, la ficha, el
+  teclado ni las fijadas del Inicio. La marca por mes sigue funcionando igual.
+- En la fila del Plan, burbuja pequeña «zZ hasta <mes>» que respira (`SuenoFila.tsx`).
+- Despierta sola la próxima vez que se ve (fila del Plan o ficha), borra la entrada y la burbuja hace «pop»:
+  (a) llega el mes `hasta`; (b) hay gasto en el mes visto; (c) se saca dinero: el saldo baja de
+  `saldoAlDormir` sin gasto, o lo asignado en `desde` baja de `asignadoAlDormir`. En sobres el saldo positivo
+  se arrastra y solo baja por gasto o por quitar dinero (bajar lo asignado, «Mover», «Cubrir»), así que el
+  saldo detecta cualquier salida, en cualquier mes, sin recorrer el historial. Tests en `dormir.test.ts`.

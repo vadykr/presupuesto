@@ -88,7 +88,9 @@ export type SyncedPrefs = Partial<
     // Presupuesto · Gasto anual: plegar en el Plan lo que está al día ('true'/'false')
     | 'anual-ocultar-en-plan'
     // Presupuesto · Asignar el mes: filtros propios (JSON [{ id, nombre, categorias }])
-    | 'asignar-filtros',
+    | 'asignar-filtros'
+    // Presupuesto · Dormir hasta…: categorías dormidas (JSON { id: { desde, hasta, asignadoAlDormir, saldoAlDormir } })
+    | 'dormidas',
     string
   >
 >;

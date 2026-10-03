@@ -65,10 +65,10 @@ function getBudgetTourSteps({ navigate, budgetType }: TourStepDeps): Step[] {
       id: 'welcome',
       target: 'body',
       placement: 'center',
-      title: <Trans>Welcome to {{ appName: 'Presupuesto' }}!</Trans>,
+      title: <Trans>Welcome to {{ appName: 'Rumbo Finanzas' }}!</Trans>,
       content: (
         <Trans>
-          {{ appName: 'Presupuesto' }} is a budgeting app that helps you
+          {{ appName: 'Rumbo Finanzas' }} is a budgeting app that helps you
           understand exactly where your money goes. This short tour walks you
           through the basics. It only takes a couple of minutes, and you can
           leave at any time and replay it later from the Help menu.
@@ -110,7 +110,7 @@ function getBudgetTourSteps({ navigate, budgetType }: TourStepDeps): Step[] {
           </Trans>
         ) : (
           <Trans>
-            Categories in {{ appName: 'Presupuesto' }} work like virtual
+            Categories in {{ appName: 'Rumbo Finanzas' }} work like virtual
             envelopes: you assign the money you already have to them, then spend
             from each envelope. This approach is called{' '}
             <Link
@@ -204,8 +204,8 @@ function getBudgetTourSteps({ navigate, budgetType }: TourStepDeps): Step[] {
       content: (
         <Trans>
           Transactions live in accounts, so adding your first account is the
-          best way to get started with {{ appName: 'Presupuesto' }}. Click here
-          to add one. You can enter transactions yourself, or{' '}
+          best way to get started with {{ appName: 'Rumbo Finanzas' }}. Click
+          here to add one. You can enter transactions yourself, or{' '}
           <Link
             variant="external"
             to="https://actualbudget.org/docs/advanced/bank-sync"

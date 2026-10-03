@@ -8,12 +8,14 @@ import { useQuery } from '#hooks/useQuery';
 import { useSpreadsheet } from '#hooks/useSpreadsheet';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
+import { categoriasDormidas } from './dormir';
 import {
   categoriasIgnoradas,
   metaDeObjetivo,
   objetivoDesdePlantillas,
 } from './objetivos';
 import type { DatosCategoriaMes } from './objetivos';
+import { useDormidas } from './useIgnorarMes';
 
 const CAMPOS = [
   'goal',
@@ -48,9 +50,15 @@ export function useDatosObjetivos(
     () => q('notes').select('*'),
     [],
   );
+  // Ignoradas = marca de la nota de mes o dormidas ese mes (`dormir.ts`).
+  const { dormidas } = useDormidas();
   const ignoradas = useMemo(
-    () => categoriasIgnoradas(notas, month),
-    [notas, month],
+    () =>
+      new Set([
+        ...categoriasIgnoradas(notas, month),
+        ...categoriasDormidas(dormidas, month),
+      ]),
+    [notas, month, dormidas],
   );
 
   // Meta total de los objetivos por fecha: lo que sobra se mide sobre ella.

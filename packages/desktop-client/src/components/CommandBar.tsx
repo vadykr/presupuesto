@@ -245,7 +245,7 @@ export function CommandBar() {
       items: [
         {
           id: 'start-tour',
-          name: t('Take a tour of {{appName}}', { appName: 'Presupuesto' }),
+          name: t('Take a tour of {{appName}}', { appName: 'Rumbo Finanzas' }),
           Icon: SvgHelp,
         },
       ],

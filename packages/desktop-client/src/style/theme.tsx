@@ -23,11 +23,11 @@ import {
 // Son los temas por defecto: «auto» elige entre ellos según el sistema.
 const themes = {
   'presupuesto-dark': {
-    name: 'Presupuesto oscuro',
+    name: 'Rumbo oscuro',
     colors: `${darkThemeCss}\n${presupuestoDarkCss}`,
   },
   'presupuesto-light': {
-    name: 'Presupuesto claro',
+    name: 'Rumbo claro',
     colors: `${lightThemeCss}\n${presupuestoLightCss}`,
   },
   light: { name: 'Light', colors: lightThemeCss },

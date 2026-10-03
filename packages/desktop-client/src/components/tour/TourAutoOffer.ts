@@ -30,10 +30,10 @@ export function TourAutoOffer() {
           id: TOUR_OFFER_NOTIFICATION_ID,
           type: 'message',
           sticky: true,
-          title: t('Welcome to {{appName}}!', { appName: 'Presupuesto' }),
+          title: t('Welcome to {{appName}}!', { appName: 'Rumbo Finanzas' }),
           message: t(
             'New to {{appName}}? Take a short tour to learn how budgeting works and find your way around.',
-            { appName: 'Presupuesto' },
+            { appName: 'Rumbo Finanzas' },
           ),
           button: {
             title: t('Take the tour'),

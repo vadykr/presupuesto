@@ -83,8 +83,8 @@ Manrope variable (200–800, OFL 1.1) autoalojada en `packages/desktop-client/pu
 | `IconoCaja`                 | Icono Lucide (`icono="wallet"`) o emoji (`children`) en una cajita de color suave de 32–44 px; `tono` o `colorPropio`.                                                                                                                       |
 | `Icono`                     | Iconos Lucide inline, trazo 2 px (`nombre`: home, plan, receipt, wallet, pie, zap, move, info, piggy, bank, car, cal, tag, user, note, more, plus, cl, cr, cd, x, bksp, sliders, store, refresh, settings…).                                 |
 | `Importe`                   | Importe en céntimos con el formato del presupuesto (es-ES vía `useFormat`), tabular y con `PrivacyFilter`. `tono="auto"` pinta en rojo los negativos.                                                                                        |
-| `SelectorMes`               | Botón con el mes (`variante` `titulo` o `compacto`, `logPose` decorativo) que abre `HojaSelectorMes`: ‹ año › y rejilla 4×3 Ene–Dic, elegido en acento, futuros atenuados, «Hoy» y `accion` opcional («Opciones del mes…»). Sin flechas ‹ ›. |
-| `EstadoVacio`               | Tarjeta con ilustración de línea de un color (`ilustracion="sombrero"` o `"barquito"`), título, frase y acción.                                                                                                                              |
+| `SelectorMes`               | Botón con el mes (`variante` `titulo` o `compacto`, `brujula` decorativa) que abre `HojaSelectorMes`: ‹ año › y rejilla 4×3 Ene–Dic, elegido en acento, futuros atenuados, «Hoy» y `accion` opcional («Opciones del mes…»). Sin flechas ‹ ›. |
+| `EstadoVacio`               | Tarjeta con ilustración de línea de un color (`ilustracion="ancla"` o `"barquito"`, dibujos propios), título, frase y acción.                                                                                                                |
 | `Cargando`                  | «Zarpando…» con el barquito meciéndose (2,4 s; quieto con «reducir movimiento»). `pantalla` para pantalla completa.                                                                                                                          |
 | `IconoZz`                   | «zZ» tipográfico para lo ignorado este mes.                                                                                                                                                                                                  |
 | `separarEmoji` (`emoji.ts`) | Separa el emoji inicial de un nombre («🏠 Hipoteca» → «🏠» + «Hipoteca»).                                                                                                                                                                    |
@@ -125,7 +125,7 @@ una `PildoraCategoria`).
    con `BarraProgreso`; importes con `Importe` o `format(x, 'financial')` + `num`.
 5. Iconos siempre dentro de `IconoCaja` (o la cajita de 32 px de los formularios). Nada de iconos sueltos
    salvo en botones redondos y chevrons.
-6. Vacío → `EstadoVacio`; cargando → `Cargando`. Un guiño One Piece como mucho, y nunca en números.
+6. Vacío → `EstadoVacio`; cargando → `Cargando`. Un guiño marinero (barquito, ancla, brújula) como mucho, y nunca en números. Nada con copyright de terceros: todos los dibujos son propios.
 7. Colores solo desde `color.*` / `colorCategoria()`: nada de hex en las pantallas. Comprueba claro y
    oscuro, y que no haya scroll horizontal a 360 px.
 8. Textos en inglés en el código (`t('…')` / `<Trans>`) y su traducción en
@@ -133,7 +133,7 @@ una `PildoraCategoria`).
 
 ## 6. Pantallas repintadas en esta rama
 
-Plan (navegador Log Pose, píldora «listos para asignar», grupos en tarjetas, columnas Asignado ·
+Plan (navegador con brújula, píldora «listos para asignar», grupos en tarjetas, columnas Asignado ·
 Disponible con el gasto en rojo bajo lo asignado, píldoras de disponible, «Faltan X» / «zZ Ignorada este
 mes»), teclado de asignar (píldoras Auto · Mover · Detalles · zZ Ignorar, teclas del sistema), Asignar el
 mes (héroe verde con ‹ ›, auto-asignar, filas con barra de 8 px y estado), Objetivo, Cuentas (Wallet,
