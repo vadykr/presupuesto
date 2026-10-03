@@ -17,7 +17,12 @@ import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 import type { Template } from '@actual-app/core/types/models/templates';
 
-import { useDeleteCategoryMutation, useSaveCategoryMutation } from '#budget';
+import {
+  useBudgetActions,
+  useDeleteCategoryMutation,
+  useSaveCategoryMutation,
+} from '#budget';
+import type { ApplyBudgetActionPayload } from '#budget';
 import {
   formularioDesde,
   objetivoDesde,
@@ -31,6 +36,7 @@ import {
   cuotaMensual,
   estadoFila,
   lineasDeObjetivo,
+  metaDeObjetivo,
   notaSinObjetivo,
   objetivoDesdePlantillas,
 } from '#components/mobile/budget/objetivos';
@@ -71,6 +77,7 @@ import { useNotes } from '#hooks/useNotes';
 import { usePinnedCategories } from '#hooks/usePinnedCategories';
 import { SheetNameProvider } from '#hooks/useSheetName';
 import { useSheetValue } from '#hooks/useSheetValue';
+import { useUndo } from '#hooks/useUndo';
 import { pushModal } from '#modals/modalsSlice';
 import { useDispatch } from '#redux';
 import { envelopeBudget } from '#spreadsheet/bindings';
@@ -85,8 +92,7 @@ import {
 } from './EvolucionFicha';
 import type { VistaEvolucion } from './EvolucionFicha';
 import {
-  bandaHabitual,
-  esIrregular,
+  bandaFicha,
   esObjetivoDeSaldo,
   filasEstacionalidad,
   mesesAnteriores,
@@ -256,6 +262,7 @@ function ContenidoFicha({
         objetivo: objetivoValido,
         saldo,
         asignado,
+        actividad,
         goal,
         month,
       })
@@ -283,7 +290,7 @@ function ContenidoFicha({
   const valoresMapa = filasMapa.map(fila =>
     fila.map(mes => gasto36[meses36.indexOf(mes)] ?? 0),
   );
-  const banda = bandaHabitual(gasto12, esIrregular(gasto12));
+  const banda = bandaFicha(gasto36);
 
   const deSaldo = esObjetivoDeSaldo(objetivoValido, longGoal);
   const [vista, setVista] = useState<VistaEvolucion>(
@@ -316,7 +323,9 @@ function ContenidoFicha({
           balance: saldo,
           spent: actividad,
           ignorada,
+          meta: metaDeObjetivo(objetivoValido),
         })}
+        resumen={resumen}
         progreso={resumen?.progreso ?? null}
         meta={objetivoValido?.importe ?? null}
         onActividad={() => void navigate(`/categories/${id}?month=${month}`)}
@@ -358,7 +367,7 @@ function ContenidoFicha({
                 objetivoValido.tipo === 'anual')
                 ? {
                     importe: objetivoValido.importe,
-                    mes: objetivoValido.fecha.slice(0, 7),
+                    mes: (resumen?.fecha ?? objetivoValido.fecha).slice(0, 7),
                   }
                 : null
             }
@@ -373,9 +382,11 @@ function ContenidoFicha({
         <AsesorFicha
           categoryId={id}
           month={month}
-          meses={meses12}
-          gasto={gasto12}
-          cuotaObjetivo={resumen?.cuota ?? null}
+          meses={meses36}
+          gasto={gasto36}
+          asignado={asignado}
+          tieneObjetivo={objetivoValido != null}
+          resumen={resumen}
           mesesHistoria={Math.max(mesesConHistoria(gasto36), 12)}
         />
       )}
@@ -420,8 +431,10 @@ function Cabecera({
   estado,
   progreso,
   meta,
+  resumen,
   onActividad,
 }: {
+  resumen: ReturnType<typeof resumenObjetivo> | null;
   nombreMes: string;
   nombreMesCorto: string;
   saldo: IntegerAmount;
@@ -445,6 +458,17 @@ function Cabecera({
         });
       case 'sobrefinanciada':
       case 'financiada':
+        // Objetivo por fecha: dice también lo que sobra o lo adelantado.
+        if (resumen && resumen.sobrante > 0) {
+          return t('Covered · {{amount}} over the goal', {
+            amount: fmt(resumen.sobrante),
+          });
+        }
+        if (resumen && resumen.adelanto > 0) {
+          return t('Covered · {{amount}} ahead', {
+            amount: fmt(resumen.adelanto),
+          });
+        }
         return t('Covered this month');
       case 'ignorada':
         return t('Ignored this month');
@@ -671,6 +695,7 @@ function Seccion({
 
 const ESTADO_OBJETIVO: Record<EstadoObjetivo, EstadoPildora> = {
   rumbo: 'ok',
+  adelantado: 'ok',
   cumplido: 'ok',
   atrasado: 'aviso',
 };
@@ -701,6 +726,8 @@ function TarjetaObjetivo({
   const { t } = useTranslation();
   const format = useFormat();
   const resumenTexto = useResumenObjetivo();
+  const applyBudgetAction = useBudgetActions();
+  const { showUndoNotification } = useUndo();
   const [abierto, setAbierto] = useState(editarAlAbrir);
   const [burbuja, setBurbuja] = useState<{
     modo: 'dormir' | 'despertar';
@@ -711,13 +738,54 @@ function TarjetaObjetivo({
 
   const textoEstado = ignorada
     ? t('Ignored this month')
-    : estado === 'rumbo'
-      ? `⛵ ${t('Steady course')}`
-      : estado === 'cumplido'
-        ? t('Reached')
-        : estado === 'atrasado'
-          ? t('Behind')
-          : null;
+    : estado === 'adelantado'
+      ? `⛵ ${t('Ahead')}`
+      : estado === 'rumbo'
+        ? `⛵ ${t('Steady course')}`
+        : estado === 'cumplido'
+          ? t('Reached')
+          : estado === 'atrasado'
+            ? t('Behind')
+            : null;
+
+  // «Devolver X a Listo para asignar» (solo el sobrante sobre la meta, que se
+  // puede mover sin riesgo). Si cabe en lo asignado este mes, se baja lo
+  // asignado (`budget-amount`, nunca por debajo de 0); si no, el traspaso de
+  // Actual de la categoría a «Listo para asignar» (`transfer-category` con
+  // `to-budget`, el mismo que usa «Mover» del menú del saldo). Con deshacer.
+  const devolver = () => {
+    if (!resumen || resumen.sobrante <= 0) {
+      return;
+    }
+    const importe = resumen.sobrante;
+    if (importe <= asignado) {
+      applyBudgetAction.mutate({
+        month,
+        type: 'budget-amount',
+        args: { category: category.id, amount: asignado - importe },
+      } as ApplyBudgetActionPayload);
+    } else {
+      applyBudgetAction.mutate({
+        month,
+        type: 'transfer-category',
+        args: {
+          amount: importe,
+          from: category.id,
+          to: 'to-budget',
+          currencyCode: format.currency.code,
+        },
+      } as ApplyBudgetActionPayload);
+    }
+    showUndoNotification({
+      message: t(
+        '{{amount}} returned to Ready to Assign from {{categoryName}}.',
+        {
+          amount: fmt(importe),
+          categoryName: category.name,
+        },
+      ),
+    });
+  };
 
   const alternarIgnorar = () => {
     const nuevo = !ignorada;
@@ -830,7 +898,7 @@ function TarjetaObjetivo({
           >
             <PrivacyFilter>
               <Text style={{ fontSize: 15, fontWeight: 800, color: color.fg }}>
-                {resumenTexto(objetivo)}
+                {resumenTexto(objetivo, month)}
               </Text>
             </PrivacyFilter>
             {objetivo !== 'otro' && objetivo.tipo === 'una-vez' && (
@@ -856,20 +924,58 @@ function TarjetaObjetivo({
                   <Text style={{ fontSize: 13, color: color.fg2 }}>
                     {resumen.falta > 0
                       ? t('Missing {{amount}}', { amount: fmt(resumen.falta) })
-                      : t('Nothing missing')}
+                      : resumen.sobrante > 0
+                        ? t('{{amount}} over the goal', {
+                            amount: fmt(resumen.sobrante),
+                          })
+                        : t('Nothing missing')}
                   </Text>
                 </PrivacyFilter>
                 <PrivacyFilter>
                   <Text style={{ fontSize: 13, color: color.fg2, ...num }}>
-                    {t('About {{amount}}/month', {
-                      amount: fmt(resumen.cuota),
-                    })}
+                    {(resumen.cuota === 0 || resumen.falta === 0) &&
+                    resumen.cuotaNormal
+                      ? t('Usually about {{amount}}/month', {
+                          amount: fmt(resumen.cuotaNormal),
+                        })
+                      : t('About {{amount}}/month', {
+                          amount: fmt(resumen.cuota),
+                        })}
                   </Text>
                 </PrivacyFilter>
               </View>
+              {resumen.adelanto > 0 && resumen.ritmo != null && !ignorada && (
+                <PrivacyFilter>
+                  <Text
+                    style={{ ...texto.secundario, color: color.fg2 }}
+                    data-testid="objetivo-adelanto"
+                  >
+                    {t(
+                      "You're ahead: you have {{balance}}; by now about {{pace}} would be enough.",
+                      {
+                        balance: fmt(saldo),
+                        pace: format(resumen.ritmo, 'financial-no-decimals'),
+                      },
+                    )}
+                  </Text>
+                </PrivacyFilter>
+              )}
             </>
           )}
         </Button>
+      )}
+
+      {!abierto && resumen && resumen.sobrante > 0 && (
+        <Boton
+          variante="fantasma"
+          onPress={devolver}
+          data-testid="objetivo-devolver"
+          style={{ alignSelf: 'flex-start', padding: '0 14px', fontSize: 14 }}
+        >
+          {t('Return {{amount}} to Ready to Assign', {
+            amount: fmt(resumen.sobrante),
+          })}
+        </Boton>
       )}
 
       {abierto && (

@@ -11,10 +11,6 @@ import { useAccionesAnalisis } from '#components/mobile/analisis/acciones';
 import { useRedactor } from '#components/mobile/analisis/AnalisisPage';
 import { redactar, textoAccion } from '#components/mobile/analisis/frases';
 import type { Accion, Gravedad } from '#components/mobile/analisis/motor';
-import {
-  caracterizarSerie,
-  redondearA5,
-} from '#components/mobile/analisis/motor';
 import { useAnalisis } from '#components/mobile/analisis/useAnalisis';
 import { Icono } from '#components/mobile/ui/Icono';
 import { IconoCaja } from '#components/mobile/ui/IconoCaja';
@@ -25,7 +21,15 @@ import { SheetNameProvider } from '#hooks/useSheetName';
 import { useSheetValue } from '#hooks/useSheetValue';
 import { envelopeBudget } from '#spreadsheet/bindings';
 
-import { consejoAsigna, consejoNoSeguidos } from './fichaCalculos';
+import {
+  consejoAdelanto,
+  consejoAsigna,
+  consejoNoSeguidos,
+  consejoSobrante,
+  mesDeAccion,
+  nivelActual,
+} from './fichaCalculos';
+import type { ResumenObjetivoFicha } from './fichaCalculos';
 
 type Item = {
   id: string;
@@ -43,36 +47,44 @@ const COLOR_PUNTO: Record<Gravedad, string> = {
 
 /**
  * «Lo que opina el Asesor» en la ficha: los consejos del motor de
- * `mobile/analisis` para esta categoría y dos reglas propias sencillas
- * (`fichaCalculos.ts`): (a) cuánto asignar frente a lo que se gasta y (b)
- * «no la gastas dos meses seguidos». Enseña uno y «Ver más».
+ * `mobile/analisis` para esta categoría y reglas propias sencillas
+ * (`fichaCalculos.ts`): (a) cuánto asignar (cuota del objetivo o nivel
+ * actual robusto; no sale si el motor ya propone una cifra: una sola
+ * recomendación por categoría y manda el motor), sobrante sobre la meta,
+ * adelanto sobre el calendario y (b) «no la gastas dos meses seguidos».
+ * Enseña uno y «Ver más».
  */
 export function AsesorFicha({
   categoryId,
   month,
   meses,
   gasto,
-  cuotaObjetivo,
+  asignado,
+  tieneObjetivo,
+  resumen,
   mesesHistoria,
 }: {
   categoryId: string;
   month: string;
-  /** Últimos 12 meses completos y su gasto. */
+  /** Meses completos (hasta 36) y su gasto. */
   meses: readonly string[];
   gasto: readonly IntegerAmount[];
-  /** Cuota mensual del objetivo (null sin objetivo). */
-  cuotaObjetivo: IntegerAmount | null;
+  /** Asignado en el mes visto (decide el mes de los botones). */
+  asignado: IntegerAmount;
+  tieneObjetivo: boolean;
+  resumen: ResumenObjetivoFicha | null;
   mesesHistoria: number;
 }) {
-  const siguiente = monthUtils.nextMonth(month);
+  const destino = mesDeAccion(month, monthUtils.currentMonth(), asignado);
   return (
-    <SheetNameProvider name={monthUtils.sheetForMonth(siguiente)}>
+    <SheetNameProvider name={monthUtils.sheetForMonth(destino)}>
       <ListaAsesor
         categoryId={categoryId}
-        siguiente={siguiente}
+        destino={destino}
         meses={meses}
         gasto={gasto}
-        cuotaObjetivo={cuotaObjetivo}
+        tieneObjetivo={tieneObjetivo}
+        resumen={resumen}
         mesesHistoria={mesesHistoria}
       />
     </SheetNameProvider>
@@ -81,17 +93,19 @@ export function AsesorFicha({
 
 function ListaAsesor({
   categoryId,
-  siguiente,
+  destino,
   meses,
   gasto,
-  cuotaObjetivo,
+  tieneObjetivo,
+  resumen,
   mesesHistoria,
 }: {
   categoryId: string;
-  siguiente: string;
+  destino: string;
   meses: readonly string[];
   gasto: readonly IntegerAmount[];
-  cuotaObjetivo: IntegerAmount | null;
+  tieneObjetivo: boolean;
+  resumen: ResumenObjetivoFicha | null;
   mesesHistoria: number;
 }) {
   const { t } = useTranslation();
@@ -102,7 +116,7 @@ function ListaAsesor({
   const { ejecutar } = useAccionesAnalisis();
   const [verMas, setVerMas] = useState(false);
   const [hechas, setHechas] = useState<Set<string>>(new Set());
-  const asignadoSiguiente =
+  const asignadoDestino =
     useSheetValue<'envelope-budget', 'budget'>(
       envelopeBudget.catBudgeted(categoryId),
     ) ?? 0;
@@ -111,73 +125,167 @@ function ListaAsesor({
     const fmt = (v: number) => format(v, 'financial');
     const nombreMes = (mes: string) => monthUtils.format(mes, 'MMMM', locale);
     const lista: Item[] = [];
+    const gasto12 = gasto.slice(-12);
+    const meses12 = meses.slice(-12);
+    const delMotor = visibles.filter(c => c.categoria === categoryId);
+    const motorPropone = delMotor.some(c => c.accion != null);
 
-    // (a) Asigna X; gastas mínimo Y y máximo Z (media W).
-    const importe =
-      cuotaObjetivo ?? redondearA5(caracterizarSerie(gasto).vigente, 'ceil');
-    const a = consejoAsigna(
-      gasto,
-      importe,
-      cuotaObjetivo != null ? 'objetivo' : 'habitual',
-    );
-    if (a) {
-      const origen =
-        a.origen === 'objetivo'
-          ? t('It is what the target asks for.')
-          : t('It is your usual spending.');
-      const rango =
-        a.minimo != null && a.maximo != null
-          ? t(
-              'When you spend here, you spend at least {{min}} and at most {{max}}; on average, {{avg}}/month.',
-              { min: fmt(a.minimo), max: fmt(a.maximo), avg: fmt(a.media) },
-            )
-          : t('No spending in the last {{count}} months.', {
-              count: gasto.length,
-            });
+    const botonPresupuestar = (importe: IntegerAmount) =>
+      asignadoDestino !== importe
+        ? {
+            etiqueta: t('Budget {{amount}} for {{month}}', {
+              amount: fmt(importe),
+              month: nombreMes(destino),
+            }),
+            accion: {
+              tipo: 'ajustar-presupuesto' as const,
+              categoria: categoryId,
+              importe,
+              mes: destino,
+            },
+          }
+        : undefined;
+
+    // Objetivo por fecha: lo que sobra sobre la meta y el adelanto.
+    const sobrante = consejoSobrante(resumen?.sobrante ?? 0);
+    if (sobrante) {
       lista.push({
-        id: 'ficha-asigna',
+        id: 'ficha-sobrante',
         gravedad: 'accion',
-        titulo: t('Assign {{amount}} a month', { amount: fmt(a.importe) }),
-        texto: `${origen} ${rango}`,
-        accion:
-          asignadoSiguiente !== a.importe
-            ? {
-                etiqueta: t('Budget {{amount}} for {{month}}', {
-                  amount: fmt(a.importe),
-                  month: nombreMes(siguiente),
-                }),
-                accion: {
-                  tipo: 'ajustar-presupuesto',
-                  categoria: categoryId,
-                  importe: a.importe,
-                  mes: siguiente,
-                },
-              }
-            : undefined,
+        titulo: t('{{amount}} over the goal', {
+          amount: fmt(sobrante.importe),
+        }),
+        texto: t(
+          'You can return it to Ready to Assign or use it: the goal is already covered.',
+        ),
+      });
+    }
+    const adelanto = consejoAdelanto(
+      resumen?.adelanto ?? 0,
+      resumen?.cuotaNormal ?? null,
+    );
+    if (adelanto) {
+      lista.push({
+        id: 'ficha-adelanto',
+        gravedad: 'info',
+        titulo: t('{{amount}} ahead of schedule', {
+          amount: fmt(adelanto.importe),
+        }),
+        texto:
+          adelanto.meses > 0
+            ? t(
+                'You could assign nothing for {{count}} months and still be on pace. It is usable, but it would have to be put back before the date.',
+                { count: adelanto.meses },
+              )
+            : t(
+                'Slightly ahead of the pace for this point of the cycle. It is usable, but it would have to be put back before the date.',
+              ),
       });
     }
 
-    // Consejos del motor para esta categoría (estacionalidad, tendencia…).
-    for (const consejo of visibles) {
-      if (consejo.categoria !== categoryId) {
-        continue;
+    // (a) Una sola cifra por categoría: si el motor ya propone una (cambio
+    // de nivel, estacionalidad, infrapresupuestada…), manda el motor.
+    if (!motorPropone && !sobrante && !adelanto) {
+      if (tieneObjetivo) {
+        const a = consejoAsigna(gasto12, resumen?.cuota ?? null, 'objetivo');
+        if (a) {
+          const rango =
+            a.minimo != null && a.maximo != null
+              ? t(
+                  'When you spend here, you spend at least {{min}} and at most {{max}}; on average, {{avg}}/month.',
+                  { min: fmt(a.minimo), max: fmt(a.maximo), avg: fmt(a.media) },
+                )
+              : t('No spending in the last {{count}} months.', {
+                  count: gasto12.length,
+                });
+          lista.push({
+            id: 'ficha-asigna',
+            gravedad: 'accion',
+            titulo: t('Assign {{amount}} a month', { amount: fmt(a.importe) }),
+            texto: `${t('It is what the target asks for.')} ${rango}`,
+            accion: botonPresupuestar(a.importe),
+          });
+        }
+      } else {
+        const n = nivelActual(gasto);
+        if (n) {
+          const partes: string[] = [];
+          if (n.puntual != null) {
+            partes.push(
+              t(
+                'In {{month}} you spent {{amount}} (one-off spending, e.g. a large purchase): it does not count towards your usual level.',
+                {
+                  month: nombreMes(meses[meses.length - 1]),
+                  amount: fmt(n.puntual),
+                },
+              ),
+            );
+          }
+          partes.push(
+            n.desde != null
+              ? t(
+                  'Your spending changed level since {{month}}: between {{min}} and {{max}}.',
+                  {
+                    month: nombreMes(meses[n.desde]),
+                    min: fmt(n.minimo),
+                    max: fmt(n.maximo),
+                  },
+                )
+              : t(
+                  'It is your usual level: between {{min}} and {{max}} in normal months.',
+                  { min: fmt(n.minimo), max: fmt(n.maximo) },
+                ),
+          );
+          if (n.dosMeses) {
+            partes.push(
+              n.dosMeses === 'sube'
+                ? t(
+                    'Watch it: two months above. If a third follows, it is a new level.',
+                  )
+                : t(
+                    'Watch it: two months below. If a third follows, it is a new level.',
+                  ),
+            );
+          }
+          if (n.puntual != null) {
+            partes.push(
+              t(
+                'If these purchases happen every year, consider a savings goal.',
+              ),
+            );
+          }
+          lista.push({
+            id: 'ficha-asigna',
+            gravedad: 'accion',
+            titulo: t('Assign {{amount}} a month', { amount: fmt(n.importe) }),
+            texto: partes.join(' '),
+            accion: botonPresupuestar(n.importe),
+          });
+        }
       }
-      const { titulo, texto: cuerpo } = redactar(consejo, redactor);
-      const etiqueta = textoAccion(consejo, redactor);
+    }
+
+    // Consejos del motor para esta categoría (estacionalidad, tendencia…),
+    // con el mismo mes en los botones que la ficha.
+    for (const consejo of delMotor) {
+      const accion =
+        consejo.accion && consejo.datos.tipo !== 'estacionalidad'
+          ? { ...consejo.accion, mes: destino }
+          : consejo.accion;
+      const conMes = accion ? { ...consejo, accion } : consejo;
+      const { titulo, texto: cuerpo } = redactar(conMes, redactor);
+      const etiqueta = textoAccion(conMes, redactor);
       lista.push({
         id: consejo.id,
         gravedad: consejo.gravedad,
         titulo,
         texto: cuerpo,
-        accion:
-          consejo.accion && etiqueta
-            ? { etiqueta, accion: consejo.accion }
-            : undefined,
+        accion: accion && etiqueta ? { etiqueta, accion } : undefined,
       });
     }
 
     // (b) No la gastas dos meses seguidos.
-    const b = consejoNoSeguidos(gasto);
+    const b = consejoNoSeguidos(gasto12);
     if (b) {
       const base = t('Only in {{count}} of {{total}} months', {
         count: b.conGasto,
@@ -185,8 +293,8 @@ function ListaAsesor({
       });
       const salvo = b.excepcion
         ? t('and, except {{from}}–{{to}}, never two in a row', {
-            from: nombreMes(meses[b.excepcion.desde]),
-            to: nombreMes(meses[b.excepcion.hasta]),
+            from: nombreMes(meses12[b.excepcion.desde]),
+            to: nombreMes(meses12[b.excepcion.hasta]),
           })
         : t('and never two in a row');
       lista.push({
@@ -198,16 +306,17 @@ function ListaAsesor({
     }
     return lista;
   }, [
-    asignadoSiguiente,
+    asignadoDestino,
     categoryId,
-    cuotaObjetivo,
+    destino,
     format,
     gasto,
     locale,
     meses,
     redactor,
-    siguiente,
+    resumen,
     t,
+    tieneObjetivo,
     visibles,
   ]);
 

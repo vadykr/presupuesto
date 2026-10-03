@@ -102,3 +102,19 @@ a la ficha con el editor abierto (`&editar=1`).
   `fichaCalculos.test.ts`.
 - Notas sin líneas `#template`/`#goal`/`#objetivo` y pie Renombrar · Ocultar · Eliminar; «⋯» con fijar en
   inicio y ver movimientos.
+
+### Objetivos por fecha que se repiten: próxima vuelta, ritmo, sobrante y adelanto
+
+- **Próxima fecha**: en cuanto pasa el mes de la plantilla, la fecha salta a la siguiente vuelta
+  (`proximoVencimiento` en `objetivos.ts`, el mismo salto que `runBy` de Actual). Lo usan el texto del
+  objetivo (`useResumenObjetivo`), la ficha y «Gasto anual».
+- **Cuota** (ficha): la fórmula de `runBy`: (meta − lo que traía del mes pasado) / (meses hasta la fecha + 1).
+  IBI (300 € cada 1 jul, oct-2026, trae 93,29) → 20,67/mes, no 206,71.
+- **Ritmo** = meta × meses transcurridos del ciclo / meses del ciclo. Estados: Cumplido (saldo ≥ meta) ·
+  ⛵ Adelantado (saldo > ritmo) · ⛵ Rumbo fijo (lo asignado cubre la cuota) · Atrasado.
+- **(a) Sobrante sobre la meta** = saldo − meta: se puede mover sin riesgo. Es lo único que cuenta como
+  «sobrefinanciada» en Asignar (`DatosCategoriaMes.meta`, `sobrefinanciado`), con el mismo número que la ficha.
+  **(b) Adelanto** = saldo − ritmo: se puede usar, pero habría que reponerlo antes de la fecha.
+- **«Devolver X a Listo para asignar»** (solo el sobrante): si cabe en lo asignado este mes, se baja lo
+  asignado (`budget-amount`, nunca por debajo de 0); si no, `transfer-category` a `to-budget` (el «Mover» de
+  Actual: deja lo asignado en negativo y escribe la nota de movimiento). Con deshacer.

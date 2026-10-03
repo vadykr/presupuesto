@@ -33,6 +33,11 @@ export type DatosCategoriaMes = {
    * mes; la plantilla y el objetivo no se tocan.
    */
   ignorada?: boolean;
+  /**
+   * Meta total si el objetivo es por fecha (una vez / cada año). Entonces lo
+   * que sobra se mide sobre ella (saldo − meta), no sobre lo pedido este mes.
+   */
+  meta?: IntegerAmount | null;
 };
 
 /**
@@ -65,6 +70,10 @@ export function totalInfrafinanciado(
  * no dejar la categoría en negativo. 0 sin objetivo.
  */
 export function sobrefinanciado(datos: DatosCategoriaMes): IntegerAmount {
+  if (datos.meta != null) {
+    // Objetivo por fecha: solo sobra lo que pasa de la meta entera.
+    return Math.max(0, datos.balance - datos.meta);
+  }
   if (datos.goal == null) {
     return 0;
   }
@@ -574,6 +583,56 @@ export function objetivoDesdePlantillas(
     default:
       return 'otro';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Fechas y meta de los objetivos por fecha
+// ---------------------------------------------------------------------------
+
+function ultimoDiaDelMes(mes: string): number {
+  const [anio, m] = mes.split('-').map(Number);
+  return new Date(Date.UTC(anio, m, 0)).getUTCDate();
+}
+
+/** Misma fecha desplazada `n` meses (el día se recorta al fin de mes). */
+export function sumarMeses(fecha: string, n: number): string {
+  const mes = monthUtils.addMonths(fecha.slice(0, 7), n);
+  const dia = Math.min(Number(fecha.slice(8, 10)), ultimoDiaDelMes(mes));
+  return `${mes}-${String(dia).padStart(2, '0')}`;
+}
+
+/**
+ * Próximo vencimiento de un objetivo anual: la fecha guardada avanzada de
+ * `cadaMeses` en `cadaMeses` hasta que su mes no sea anterior al actual
+ * (igual que hace la plantilla `by … repeat every …` de Actual). Los de una
+ * sola vez conservan su fecha.
+ */
+export function proximoVencimiento(
+  objetivo: Extract<Objetivo, { tipo: 'anual' | 'una-vez' }>,
+  hoy: string,
+): string {
+  if (objetivo.tipo === 'una-vez') {
+    return objetivo.fecha;
+  }
+  const mesActual = hoy.slice(0, 7);
+  let fecha = objetivo.fecha;
+  while (fecha.slice(0, 7) < mesActual) {
+    fecha = sumarMeses(fecha, objetivo.cadaMeses);
+  }
+  return fecha;
+}
+
+/**
+ * Meta total de un objetivo por fecha (una vez / cada año): lo que debe
+ * haber en la categoría para la fecha. `null` en los mensuales y semanales.
+ */
+export function metaDeObjetivo(
+  objetivo: Objetivo | null | 'otro' | undefined,
+): IntegerAmount | null {
+  if (objetivo && objetivo !== 'otro' && 'fecha' in objetivo) {
+    return objetivo.importe;
+  }
+  return null;
 }
 
 /**

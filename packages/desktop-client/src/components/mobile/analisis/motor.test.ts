@@ -211,7 +211,8 @@ describe('infrapresupuestada', () => {
       tipo: 'ajustar-presupuesto',
       categoria: 'bebot',
       importe: 14_000,
-      mes: MES_ACTUAL,
+      // Este mes ya tiene algo asignado: el botón va al mes siguiente.
+      mes: monthUtils.nextMonth(MES_ACTUAL),
     });
     expect(c.cifras.filas).toHaveLength(4);
     expect(c.cifras.filas.filter(f => f.cumple)).toHaveLength(3);
@@ -575,8 +576,7 @@ describe('estacionalidad', () => {
 describe('tendencia', () => {
   const llum = cat('llum', 'Llum');
 
-  it('subida en 2 de los últimos 3 meses → sube y propone el nuevo nivel', () => {
-    // Con 3 de 4 meses por encima mandaría «infrapresupuestada»; aquí son 2.
+  it('dos picos sueltos (2 de los últimos 3 meses) no cambian el nivel', () => {
     const e = entrada({
       cats: [llum],
       movimientos: movimientosDe({
@@ -584,25 +584,26 @@ describe('tendencia', () => {
       }),
       presupuestado: presupuestoDe({ llum: 60 }),
     });
-    const [c] = consejosDe(e, 'tendencia');
-    expect(c).toBeDefined();
-    if (c.datos.tipo !== 'tendencia') throw new Error();
-    expect(c.datos.sentido).toBe('sube');
-    expect(c.datos.habitual).toBe(6000);
-    expect(c.datos.desviacion).toBe(3500);
-    // Mediana de los últimos 3 meses (95, 60, 95).
-    expect(c.datos.nivel).toBe(9500);
-    expect(c.datos.propuesto).toBe(9500);
-    expect(c.gravedad).toBe('accion');
-    expect(c.accion).toEqual({
-      tipo: 'ajustar-presupuesto',
-      categoria: 'llum',
-      importe: 9500,
-      mes: MES_ACTUAL,
+    expect(consejosDe(e, 'tendencia')).toHaveLength(0);
+    const fila = analizar(e).propuesta.filas.find(f => f.categoria === 'llum');
+    expect(fila?.propuesto).toBe(6000);
+  });
+
+  it('subida persistente (3 meses seguidos) → sube y propone el nuevo nivel', () => {
+    // Con 3 de 4 meses por encima mandaría «infrapresupuestada»; aquí son 3.
+    const e = entrada({
+      cats: [llum],
+      movimientos: movimientosDe({
+        llum: constante(60, Object.fromEntries(ult(3).map(m => [m, 95]))),
+      }),
+      presupuestado: presupuestoDe({ llum: 60 }),
     });
+    const c = analizar(e).consejos.find(x => x.categoria === 'llum');
+    expect(c).toBeDefined();
+    expect(c?.accion).toMatchObject({ importe: 9500 });
     // La propuesta del mes siguiente también usa el nivel reciente.
     const fila = analizar(e).propuesta.filas.find(f => f.categoria === 'llum');
-    expect(fila).toMatchObject({ motivo: 'tendencia', propuesto: 9500 });
+    expect(fila).toMatchObject({ propuesto: 9500 });
   });
 
   it('si sube pero lo asignado ya cubre el nuevo nivel, no hay consejo', () => {
@@ -660,7 +661,23 @@ describe('tendencia', () => {
     expect(consejosDe(e, 'tendencia')).toHaveLength(0);
   });
 
-  it('bajada confirmada → baja, y propone bajar el presupuesto', () => {
+  it('bajada persistente (3 meses) → propone bajar al nivel nuevo', () => {
+    const e = entrada({
+      cats: [llum],
+      movimientos: movimientosDe({
+        llum: constante(60, Object.fromEntries(ult(3).map(m => [m, 20]))),
+      }),
+      presupuestado: presupuestoDe({ llum: 60 }),
+    });
+    // Un solo consejo de cifra para la categoría, al nivel nuevo (20).
+    const consejos = analizar(e).consejos.filter(c => c.categoria === 'llum');
+    expect(consejos).toHaveLength(1);
+    expect(consejos[0].accion?.importe).toBe(2000);
+    const fila = analizar(e).propuesta.filas.find(f => f.categoria === 'llum');
+    expect(fila?.propuesto).toBe(2000);
+  });
+
+  it('dos meses abajo no bastan: el nivel sigue siendo el de siempre', () => {
     const e = entrada({
       cats: [llum],
       movimientos: movimientosDe({
@@ -668,26 +685,9 @@ describe('tendencia', () => {
       }),
       presupuestado: presupuestoDe({ llum: 60 }),
     });
-    const [c] = consejosDe(e, 'tendencia');
-    if (c.datos.tipo !== 'tendencia') throw new Error();
-    expect(c.datos.sentido).toBe('baja');
-    // Nivel reciente: mediana de (60, 20, 20) = 20.
-    expect(c.datos.propuesto).toBe(2000);
-    expect(c.gravedad).toBe('accion');
-  });
-
-  it('sin presupuesto, la bajada es solo informativa', () => {
-    const e = entrada({
-      cats: [llum],
-      movimientos: movimientosDe({
-        llum: constante(60, Object.fromEntries(ult(2).map(m => [m, 20]))),
-      }),
-    });
-    const [c] = consejosDe(e, 'tendencia');
-    if (c.datos.tipo !== 'tendencia') throw new Error();
-    expect(c.datos.propuesto).toBeNull();
-    expect(c.gravedad).toBe('info');
-    expect(c.accion).toBeUndefined();
+    expect(consejosDe(e, 'tendencia')).toHaveLength(0);
+    const fila = analizar(e).propuesta.filas.find(f => f.categoria === 'llum');
+    expect(fila?.propuesto).toBe(6000);
   });
 });
 

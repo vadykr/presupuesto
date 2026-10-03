@@ -17,7 +17,7 @@ import { useNotes } from '#hooks/useNotes';
 import { addNotification } from '#notifications/notificationsSlice';
 import { useDispatch } from '#redux';
 
-import { notaConObjetivo } from './objetivos';
+import { notaConObjetivo, proximoVencimiento } from './objetivos';
 import type { CadenciaMeses, Objetivo, TipoObjetivo } from './objetivos';
 
 const ALTO_BOTON = 44;
@@ -106,7 +106,10 @@ export function useResumenObjetivo() {
   const format = useFormat();
   const locale = useLocale();
   return useCallback(
-    (objetivo: Objetivo | null | 'otro'): string => {
+    (
+      objetivo: Objetivo | null | 'otro',
+      month: string = monthUtils.currentMonth(),
+    ): string => {
       if (objetivo === null) {
         return t('No target');
       }
@@ -129,7 +132,12 @@ export function useResumenObjetivo() {
             ? t('Refill up to {{amount}} each week', { amount: importe })
             : t('{{amount}} each week', { amount: importe });
         case 'anual': {
-          const fecha = monthUtils.format(objetivo.fecha, 'd MMM yyyy', locale);
+          // La próxima vuelta, no la fecha de la plantilla si ya pasó.
+          const fecha = monthUtils.format(
+            proximoVencimiento(objetivo, `${month}-01`),
+            'd MMM yyyy',
+            locale,
+          );
           const cada =
             objetivo.cadaMeses === 12
               ? t('every year')

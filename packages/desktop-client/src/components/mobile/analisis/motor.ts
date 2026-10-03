@@ -12,6 +12,7 @@ import type {
   Movimiento,
 } from '#components/mobile/informes/calculos';
 import {
+  cambioDeNivel,
   clasificarMes,
   mediana,
   recortarInicioSinDatos,
@@ -348,13 +349,20 @@ export type Caracter = {
   /** Índice del primer mes con datos (−1 si ninguno). */
   primerMes: number;
   /**
-   * Tendencia confirmada en el último mes (`clasificarMes`): el nivel vigente
-   * es la mediana de los últimos 3 meses, no la referencia de 12.
+   * Cambio de nivel persistente (`cambioDeNivel`: ≥ 3 meses seguidos
+   * coherentes): el nivel vigente es la mediana de esos meses, no la
+   * referencia de 12.
    */
   tendencia: {
     sentido: 'sube' | 'baja';
     referencia: ReferenciaHabitual;
+    /** Meses seguidos en el nivel nuevo (≥ 3). */
+    meses: number;
   } | null;
+  /** Solo los dos últimos meses en otro nivel: aviso, el nivel no cambia. */
+  dosMeses: 'sube' | 'baja' | null;
+  /** El último mes fue un gasto puntual (atípico): no cuenta para el nivel. */
+  ultimoAtipico: boolean;
   /** Lo que conviene presupuestar: nivel reciente si hay tendencia; si no, lo habitual. */
   vigente: IntegerAmount;
   /** Gasto irregular (facturas anuales, bimestrales…): ≤ la mitad de los meses con gasto. */
@@ -395,22 +403,33 @@ export function caracterizarSerie(gasto: readonly number[]): Caracter {
     conGasto <= ultimos.length * FRACCION_MESES_IRREGULAR;
   const maximo = ultimos.length > 0 ? Math.max(...ultimos) : 0;
 
+  // Cambio de nivel solo si es persistente: ≥ 3 meses seguidos coherentes
+  // (`cambioDeNivel`). Un gasto puntual nunca mueve lo que se propone.
   let tendencia: Caracter['tendencia'] = null;
+  let dosMeses: Caracter['dosMeses'] = null;
+  let vigente = habitual.referencia;
   if (!irregular && conDatos.length >= MESES_HABITUAL / 2) {
-    const previos = conDatos.slice(0, -1);
-    const actual = conDatos[conDatos.length - 1];
-    const { tipo, referencia } = clasificarMes(actual, previos);
-    if (tipo === 'sube' || tipo === 'baja') {
-      tendencia = { sentido: tipo, referencia };
+    const { cambio, dosMeses: dos } = cambioDeNivel(conDatos);
+    if (cambio) {
+      tendencia = {
+        sentido: cambio.sentido,
+        referencia: cambio.referencia,
+        meses: cambio.meses,
+      };
+      vigente = cambio.nivel;
     }
+    dosMeses = dos;
   }
-  const vigente = tendencia
-    ? mediana(conDatos.slice(-MESES_NIVEL_RECIENTE))
-    : habitual.referencia;
+  const ultimoAtipico =
+    ultimos.length > 0 && !tendencia
+      ? (habitual.atipicos[ultimos.length - 1] ?? false)
+      : false;
   return {
     habitual,
     primerMes,
     tendencia,
+    dosMeses,
+    ultimoAtipico,
     vigente,
     irregular,
     mediaMensual,
@@ -680,6 +699,21 @@ function esMesAtipico(serie: SerieCategoria, i: number): boolean {
   return k >= 0 ? (serie.habitual.atipicos[k] ?? false) : false;
 }
 
+/**
+ * Mes al que van los botones «Poner / Presupuestar X en <mes>» (el motor y
+ * la ficha usan la misma regla): el mes visto si aún le quedan días (es el
+ * actual o uno futuro) y no tiene nada asignado; si no, el siguiente.
+ */
+export function mesDeAccion(
+  mesVisto: string,
+  mesActual: string,
+  asignado: IntegerAmount,
+): string {
+  return mesVisto >= mesActual && asignado === 0
+    ? mesVisto
+    : monthUtils.nextMonth(mesVisto);
+}
+
 function accionPara(
   objetivo: ObjetivoCategoria | null,
   categoria: string,
@@ -752,7 +786,12 @@ function reglaInfrapresupuestada({
       columnas: COL_PRESUPUESTO_GASTO,
       filas: filas.map((f, k) => ({ ...f, cumple: cumple[k] })),
     },
-    accion: accionPara(objetivo, serie.info.id, propuesto, mesActual),
+    accion: accionPara(
+      objetivo,
+      serie.info.id,
+      propuesto,
+      mesDeAccion(mesActual, mesActual, presupActual),
+    ),
   };
 }
 
@@ -805,7 +844,12 @@ function reglaSobrepresupuestada({
       columnas: COL_PRESUPUESTO_GASTO,
       filas: filas.map((f, k) => ({ ...f, cumple: cumple[k] })),
     },
-    accion: accionPara(objetivo, serie.info.id, propuesto, mesActual),
+    accion: accionPara(
+      objetivo,
+      serie.info.id,
+      propuesto,
+      mesDeAccion(mesActual, mesActual, presupActual),
+    ),
   };
 }
 
@@ -1010,7 +1054,14 @@ function reglaTendencia(
       filas,
     },
     ...(propuesto !== null
-      ? { accion: accionPara(objetivo, serie.info.id, propuesto, mesActual) }
+      ? {
+          accion: accionPara(
+            objetivo,
+            serie.info.id,
+            propuesto,
+            mesDeAccion(mesActual, mesActual, presupActual),
+          ),
+        }
       : {}),
   };
 }

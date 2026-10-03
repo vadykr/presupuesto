@@ -1,8 +1,14 @@
 import * as monthUtils from '@actual-app/core/shared/months';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 
-import { cuotaMensual } from '#components/mobile/budget/objetivos';
+import {
+  cuotaMensual,
+  proximoVencimiento,
+  sumarMeses,
+} from '#components/mobile/budget/objetivos';
 import type { Objetivo } from '#components/mobile/budget/objetivos';
+
+export { proximoVencimiento, sumarMeses };
 
 /**
  * «Gasto anual»: cálculo puro (sin React) de las categorías que se pagan una
@@ -71,39 +77,6 @@ export function esObjetivoAnual(
   objetivo: Objetivo | null | undefined,
 ): objetivo is Extract<Objetivo, { tipo: 'anual' | 'una-vez' }> {
   return objetivo?.tipo === 'anual' || objetivo?.tipo === 'una-vez';
-}
-
-function ultimoDiaDelMes(mes: string): number {
-  const [anio, m] = mes.split('-').map(Number);
-  return new Date(Date.UTC(anio, m, 0)).getUTCDate();
-}
-
-/** Misma fecha desplazada `n` meses (el día se recorta al fin de mes). */
-export function sumarMeses(fecha: string, n: number): string {
-  const mes = monthUtils.addMonths(fecha.slice(0, 7), n);
-  const dia = Math.min(Number(fecha.slice(8, 10)), ultimoDiaDelMes(mes));
-  return `${mes}-${String(dia).padStart(2, '0')}`;
-}
-
-/**
- * Próximo vencimiento de un objetivo anual: la fecha guardada avanzada de
- * `cadaMeses` en `cadaMeses` hasta que su mes no sea anterior al actual
- * (igual que hace la plantilla `by … repeat every …` de Actual). Los de una
- * sola vez conservan su fecha.
- */
-export function proximoVencimiento(
-  objetivo: Extract<Objetivo, { tipo: 'anual' | 'una-vez' }>,
-  hoy: string,
-): string {
-  if (objetivo.tipo === 'una-vez') {
-    return objetivo.fecha;
-  }
-  const mesActual = hoy.slice(0, 7);
-  let fecha = objetivo.fecha;
-  while (fecha.slice(0, 7) < mesActual) {
-    fecha = sumarMeses(fecha, objetivo.cadaMeses);
-  }
-  return fecha;
 }
 
 function fraccion(parte: number, total: number): number {

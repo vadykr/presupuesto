@@ -8,7 +8,11 @@ import { useQuery } from '#hooks/useQuery';
 import { useSpreadsheet } from '#hooks/useSpreadsheet';
 import { useSyncedPref } from '#hooks/useSyncedPref';
 
-import { categoriasIgnoradas } from './objetivos';
+import {
+  categoriasIgnoradas,
+  metaDeObjetivo,
+  objetivoDesdePlantillas,
+} from './objetivos';
 import type { DatosCategoriaMes } from './objetivos';
 
 const CAMPOS = [
@@ -49,6 +53,31 @@ export function useDatosObjetivos(
     [notas, month],
   );
 
+  // Meta total de los objetivos por fecha: lo que sobra se mide sobre ella.
+  const metas = useMemo(() => {
+    const notaDe = new Map((notas ?? []).map(n => [n.id, n.note]));
+    const mapa = new Map<string, number | null>();
+    for (const c of categories) {
+      if (!c.goal_def) {
+        continue;
+      }
+      try {
+        const plantillas = JSON.parse(c.goal_def);
+        if (Array.isArray(plantillas)) {
+          mapa.set(
+            c.id,
+            metaDeObjetivo(
+              objetivoDesdePlantillas(plantillas, notaDe.get(c.id)),
+            ),
+          );
+        }
+      } catch {
+        // goal_def ilegible: sin meta.
+      }
+    }
+    return mapa;
+  }, [categories, notas]);
+
   useEffect(() => {
     setCeldas({});
     const unbinds: (() => void)[] = [];
@@ -81,8 +110,9 @@ export function useDatosObjetivos(
         balance: celdas[`leftover-${id}`] ?? 0,
         spent: celdas[`sum-amount-${id}`] ?? 0,
         ignorada: ignoradas.has(id),
+        meta: metas.get(id) ?? null,
       });
     }
     return datos;
-  }, [celdas, ids, ignoradas]);
+  }, [celdas, ids, ignoradas, metas]);
 }

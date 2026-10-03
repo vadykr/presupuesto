@@ -1,11 +1,16 @@
 import {
+  bandaFicha,
   bandaHabitual,
+  consejoAdelanto,
   consejoAsigna,
   consejoNoSeguidos,
+  consejoSobrante,
   esIrregular,
   filasEstacionalidad,
+  mesDeAccion,
   mesesAnteriores,
   mesesFuertes,
+  nivelActual,
   pasoEje,
   rachasConGasto,
   resumenObjetivo,
@@ -199,5 +204,167 @@ describe('asesor de la ficha', () => {
     expect(consejoNoSeguidos([10, 10, 10, 10, 10, 10])).toBeNull();
     expect(consejoNoSeguidos([10, 10, 0, 10, 10, 0, 0])).toBeNull();
     expect(consejoNoSeguidos([10, 0, 0, 0, 0, 0])).toBeNull();
+  });
+});
+
+// Casos reales de Vadym (oct-2026).
+const ANUAL = (importe: number, fecha: string) => ({
+  tipo: 'anual' as const,
+  importe,
+  fecha,
+  cadaMeses: 12 as const,
+});
+
+describe('objetivos por fecha que se repiten', () => {
+  test('Basures: fecha pasada → próxima vuelta, adelantado y cumplido', () => {
+    const r = resumenObjetivo({
+      objetivo: ANUAL(23300, '2026-02-01'),
+      saldo: 25246,
+      asignado: 1942,
+      actividad: 0,
+      goal: null,
+      month: '2026-10',
+    });
+    expect(r.fecha).toBe('2027-02-01');
+    // feb 2026 → feb 2027: han pasado 8 de 12 meses.
+    expect(r.ritmo).toBe(Math.round((23300 * 8) / 12));
+    expect(r.sobrante).toBe(1946);
+    expect(r.adelanto).toBe(25246 - 15533);
+    expect(r.estado).toBe('cumplido');
+    expect(r.falta).toBe(0);
+    expect(r.cuota).toBe(0);
+    expect(r.cuotaNormal).toBe(1942);
+  });
+
+  test('Basures sin llegar a la meta: adelantado sobre el ritmo', () => {
+    const r = resumenObjetivo({
+      objetivo: ANUAL(23300, '2026-02-01'),
+      saldo: 20000,
+      asignado: 0,
+      goal: null,
+      month: '2026-10',
+    });
+    expect(r.estado).toBe('adelantado');
+    expect(r.sobrante).toBe(0);
+    expect(r.adelanto).toBe(20000 - 15533);
+  });
+
+  test('IBI: julio ya pasó; la cuota es la de runBy hasta jul 2027', () => {
+    const r = resumenObjetivo({
+      objetivo: ANUAL(30000, '2026-07-01'),
+      saldo: 11829,
+      asignado: 2500,
+      actividad: 0,
+      goal: null,
+      month: '2026-10',
+    });
+    expect(r.fecha).toBe('2027-07-01');
+    // runBy: (300 − 93,29 del mes pasado) / (9 meses + 1).
+    expect(r.cuota).toBe(Math.round((30000 - 9329) / 10));
+    expect(r.cuota).toBe(2067);
+    expect(r.meses).toBe(10);
+    expect(r.falta).toBe(30000 - 11829);
+    // 3 de 12 meses del ciclo jul 2026 → jul 2027: bastarían 75.
+    expect(r.ritmo).toBe(7500);
+    expect(r.estado).toBe('adelantado');
+    expect(r.estado).not.toBe('atrasado');
+  });
+
+  test('IBI por debajo del ritmo pero con la cuota asignada: en rumbo', () => {
+    const r = resumenObjetivo({
+      objetivo: ANUAL(30000, '2026-07-01'),
+      saldo: 4500,
+      asignado: 3000,
+      goal: null,
+      month: '2026-10',
+    });
+    expect(r.estado).toBe('rumbo');
+  });
+
+  test('reglas de sobrante y adelanto', () => {
+    expect(consejoSobrante(1946)).toEqual({ tipo: 'sobrante', importe: 1946 });
+    expect(consejoSobrante(0)).toBeNull();
+    // Basures: 97,13 de adelanto / 19,42 al mes → 5 meses sin asignar.
+    expect(consejoAdelanto(9713, 1942)).toEqual({
+      tipo: 'adelanto',
+      importe: 9713,
+      meses: 5,
+    });
+    expect(consejoAdelanto(0, 1942)).toBeNull();
+    expect(consejoAdelanto(500, null)).toBeNull();
+  });
+});
+
+// Suscripcions (sin objetivo): oct-2025 … sep-2026; ~99 desde julio.
+const SUSCRIPCIONS = [
+  4500, 4000, 2000, 0, 260, 6800, 10779, 8800, 1700, 8000, 9932, 9900,
+];
+
+describe('nivel actual (sin objetivo)', () => {
+  test('Suscripcions: una sola cifra, el nivel nuevo (~99-100), nunca 60', () => {
+    const n = nivelActual(SUSCRIPCIONS);
+    expect(n).not.toBeNull();
+    expect(n!.importe).toBeGreaterThanOrEqual(9500);
+    expect(n!.importe).toBeLessThanOrEqual(10000);
+    expect(n!.importe).not.toBe(6000);
+    // Mínimo y máximo solo de los meses del nivel (desde julio).
+    expect(n!.desde).toBe(9);
+    expect(n!.minimo).toBe(8000);
+    expect(n!.maximo).toBe(9932);
+  });
+
+  test('sin cambio de nivel: mediana robusta y sus meses', () => {
+    const n = nivelActual([5000, 5200, 4800, 5100, 4900, 5000, 30000]);
+    expect(n?.desde).toBeNull();
+    expect(n?.nivel).toBe(5000);
+    expect(n?.maximo).toBe(5200);
+    expect(n?.importe).toBe(5000);
+  });
+
+  test('banda = la referencia del motor, no 2–111', () => {
+    const b = bandaFicha(SUSCRIPCIONS);
+    expect(b.max).toBeLessThan(9000);
+  });
+
+  test('mes de los botones: el visto si es actual y sin asignar; si no, el siguiente', () => {
+    expect(mesDeAccion('2026-10', '2026-10', 0)).toBe('2026-10');
+    expect(mesDeAccion('2026-10', '2026-10', 2500)).toBe('2026-11');
+    expect(mesDeAccion('2026-09', '2026-10', 0)).toBe('2026-10');
+    expect(mesDeAccion('2026-11', '2026-10', 0)).toBe('2026-11');
+  });
+});
+
+describe('recomendación robusta ante gastos puntuales', () => {
+  const base = [
+    4500, 5200, 4100, 5800, 4900, 5000, 4400, 5600, 4700, 5300, 4800, 5100,
+  ];
+
+  test('(a) Capritxos: 12 meses de ~40-60 y el último a 400 → ~50, nunca 400', () => {
+    const n = nivelActual([...base, 40000])!;
+    expect(n.importe).toBeGreaterThanOrEqual(4500);
+    expect(n.importe).toBeLessThanOrEqual(5500);
+    expect(n.desde).toBeNull();
+    expect(n.puntual).toBe(40000);
+    expect(n.maximo).toBeLessThan(40000);
+  });
+
+  test('(b) Suscripcions: sube y se mantiene 3 meses → ~99', () => {
+    const n = nivelActual(SUSCRIPCIONS)!;
+    expect(n.importe).toBe(10000);
+    expect(n.desde).not.toBeNull();
+  });
+
+  test('(c) dos picos sueltos no seguidos no cambian el nivel', () => {
+    const n = nivelActual([...base, 30000, 5000, 32000])!;
+    expect(n.desde).toBeNull();
+    expect(n.importe).toBeLessThanOrEqual(5500);
+    expect(n.dosMeses).toBeNull();
+  });
+
+  test('(d) solo 2 meses en el nivel nuevo: mantiene el viejo y avisa', () => {
+    const n = nivelActual([...base, 9800, 10100])!;
+    expect(n.desde).toBeNull();
+    expect(n.importe).toBeLessThanOrEqual(5500);
+    expect(n.dosMeses).toBe('sube');
   });
 });

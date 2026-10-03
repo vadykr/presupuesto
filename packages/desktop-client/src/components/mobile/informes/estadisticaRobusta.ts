@@ -160,3 +160,82 @@ export function clasificarMes(
   }
   return { tipo: 'normal', referencia };
 }
+
+/** Meses seguidos que hacen falta para dar por bueno un cambio de nivel. */
+export const MESES_CAMBIO_NIVEL = 3;
+
+export type CambioNivel = {
+  sentido: 'sube' | 'baja';
+  /** Meses seguidos (al final de la serie) en el nivel nuevo (≥ 3). */
+  meses: number;
+  /** Nivel nuevo: mediana de esos meses. */
+  nivel: number;
+  /** Referencia de los meses anteriores (frente a la que se mide). */
+  referencia: ReferenciaHabitual;
+};
+
+/**
+ * Cambio de nivel PERSISTENTE al final de una serie mensual: al menos 3
+ * meses SEGUIDOS en el mismo lado de lo habitual (más allá de
+ * max(25 %, mínimo) de la referencia de los meses anteriores y con su
+ * mediana a más de 1 MAD), coherentes entre sí (dentro del umbral robusto de
+ * su propia mediana). Un gasto puntual o dos picos sueltos nunca lo son.
+ *
+ * `dosMeses`: solo los dos últimos meses están en otro nivel (aviso «ojo: dos
+ * meses por encima»), sin cambiar todavía el nivel.
+ */
+export function cambioDeNivel(
+  valores: readonly number[],
+  minimo: number = MINIMO_UMBRAL,
+): { cambio: CambioNivel | null; dosMeses: 'sube' | 'baja' | null } {
+  const serie = recortarInicioSinDatos(valores);
+  const analizar = (k: number) => {
+    const nuevos = serie.slice(-k);
+    const base = serie.slice(Math.max(0, serie.length - k - 12), -k);
+    if (base.length < MINIMO_MESES_DISPERSION) {
+      return null;
+    }
+    const referencia = referenciaHabitual(base, minimo);
+    const margen = Math.max(
+      Math.round(0.25 * Math.abs(referencia.referencia)),
+      minimo,
+    );
+    const nivel = mediana(nuevos);
+    const coherentes = nuevos.every(
+      v =>
+        !esAtipico(v, nivel, umbralAtipico(nivel, mad(nuevos, nivel), minimo)),
+    );
+    if (!coherentes) {
+      return null;
+    }
+    if (
+      nuevos.every(v => v > referencia.referencia + margen) &&
+      nivel > referencia.mediana + referencia.mad
+    ) {
+      return { sentido: 'sube' as const, nivel, referencia };
+    }
+    if (
+      nuevos.every(v => v < referencia.referencia - margen) &&
+      nivel < referencia.mediana - referencia.mad
+    ) {
+      return { sentido: 'baja' as const, nivel, referencia };
+    }
+    return null;
+  };
+
+  const tres = analizar(MESES_CAMBIO_NIVEL);
+  if (tres) {
+    // Alarga la racha mientras los meses anteriores sigan en el nivel nuevo.
+    let mejor = { ...tres, meses: MESES_CAMBIO_NIVEL };
+    for (let k = MESES_CAMBIO_NIVEL + 1; k <= serie.length - 3; k++) {
+      const r = analizar(k);
+      if (!r || r.sentido !== tres.sentido) {
+        break;
+      }
+      mejor = { ...r, meses: k };
+    }
+    return { cambio: mejor, dosMeses: null };
+  }
+  const dos = analizar(2);
+  return { cambio: null, dosMeses: dos ? dos.sentido : null };
+}

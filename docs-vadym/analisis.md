@@ -82,3 +82,14 @@ los nombres repetidos en dos grupos y las categorías borradas. «To Budget» es
 
 Capturas en `capturas/analisis.png`, `analisis-cifras.png`, `analisis-propuesta.png` (presupuesto demo,
 390×844, claro; `*-oscuro.png` en oscuro).
+
+## Cambio de nivel persistente (oct-2026)
+
+- `cambioDeNivel` (`estadisticaRobusta.ts`): solo hay nivel nuevo con **≥ 3 meses seguidos** al mismo lado de
+  lo habitual (más allá de max(25 %, 10 €) de la referencia de los meses anteriores y con su mediana a más de
+  1 MAD), coherentes entre sí. Nivel = mediana de esa racha. Un gasto puntual (un móvil de 400 €) o dos picos
+  sueltos nunca mueven la cifra; con solo dos meses, aviso «ojo: dos meses por encima». Lo usan el motor
+  (`caracterizarSerie`) y la ficha (`nivelActual`). Antes bastaban 2 de los últimos 3 meses.
+- Ficha: una sola cifra por categoría; si el motor ya propone una, la regla «Asigna X» de la ficha no sale.
+- Mes de los botones (`mesDeAccion`, motor y ficha): el mes visto si es el actual o futuro y no tiene nada
+  asignado; si no, el siguiente.
