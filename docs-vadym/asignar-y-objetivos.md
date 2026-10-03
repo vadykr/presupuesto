@@ -14,14 +14,22 @@ de Actual (`#template …` en la nota de la categoría; sintaxis en
   `#goal`). Cálculo en `objetivos.ts` (`faltante`, `estadoFila`), con tests.
 - Al abrir la pantalla (y al cambiar de mes) se llama a `budget/refresh-goals` para que el objetivo del
   mes (`goal-<cat>` / `long-goal-<cat>`) esté calculado sin tener que «aplicar plantillas».
-- «Auto-asignar por…»: Infrafinanciadas (reparte lo disponible de arriba abajo, en cliente, y lo manda en
-  una sola acción `budget/budget-amounts` → un solo «Deshacer»), Asignado el mes pasado (`copy-last`),
-  Promedio de 3 meses (`set-3-avg`), Gastado el mes pasado (lee `envelope-budget-month` del mes anterior
-  y manda `budget-amounts`).
-- Filas: nombre, asignado, barra y estado («Financiada», «Totalmente gastada», «Financiada. Gastados X de
-  Y», «Faltan X antes del día N» / «Faltan X este mes», «Sin objetivo», «Sobregastada en X»). Tocar una
-  fila abre el teclado inline existente (`AssignKeypad`) con la fila de acciones sustituida por
-  «Asignar X — Importe infrafinanciado» y «⋯ Más» (Mover dinero, Objetivo, Detalles).
+- «Auto-asignar por…» (cada opción con su importe total, como YNAB): Infrafinanciadas (reparte lo
+  disponible de arriba abajo, en cliente), Reducir sobrefinanciación (deja cada categoría en su
+  objetivo), Asignado el mes pasado, Gastado el mes pasado, Promedio asignado y Promedio gastado (3 meses
+  anteriores). Todo se manda en una sola acción `budget/budget-amounts` → un solo «Deshacer».
+- Filas: un único estado corto por fila, por prioridad: «−X gastado de más» (rojo, disponible < 0) >
+  «zZ Ignorada este mes» > «faltan X» (ámbar) > «sobran X» (azul, `sobrefinanciado`) > «Financiada»
+  (verde) > «Sin objetivo» (gris); la barra va en el mismo color (`estadoFila`). «Infrafinanciado» =
+  suma de lo que les falta a los objetivos este mes; el gasto de más no se suma (no cuenta dos veces).
+  Tocar una fila abre el teclado (`AssignKeypad`) con «Asignar X — Importe infrafinanciado» y «⋯ Más».
+- Filtros (chips sobre la lista): Todas · Infrafinanciadas · Sobrefinanciadas · Gastado de más (con
+  cuántas hay) y filtros propios: «+ Nuevo filtro» → nombre → casillas de categorías → Guardar; con uno
+  activo, «Editar» (y Borrar). Se guardan en la pref sincronizada `asignar-filtros`
+  (`filtrosCategorias.ts`, con tests). En el Plan no: su lista es arrastrable y no comparte componente.
+- Teclado: forma parte de la pantalla; la lista tiene debajo un relleno igual a su alto (`flexShrink: 0`
+  en el contenedor, si no el relleno quedaba dentro y la última fila no podía subir) y la fila tocada se
+  desplaza justo encima del panel. Igual en el Plan.
 - En la pestaña Presupuesto, bajo el disponible de cada categoría, aparece «Faltan X» cuando procede
   (`EstadoObjetivoCorto.tsx`).
 

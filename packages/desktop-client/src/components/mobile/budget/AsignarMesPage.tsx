@@ -12,12 +12,10 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { send } from '@actual-app/core/platform/client/connection';
 import * as monthUtils from '@actual-app/core/shared/months';
-import { q } from '@actual-app/core/shared/query';
 import type { IntegerAmount } from '@actual-app/core/shared/util';
 import type {
   CategoryEntity,
   CategoryGroupEntity,
-  NoteEntity,
 } from '@actual-app/core/types/models';
 
 import { useBudgetActions } from '#budget';
@@ -35,6 +33,7 @@ import { IconoZz } from '#components/mobile/ui/IconoZz';
 import { SelectorMes } from '#components/mobile/ui/SelectorMes';
 import {
   color,
+  colorCategoria,
   densidad,
   espacio,
   movimiento,
@@ -50,7 +49,6 @@ import { useFormat } from '#hooks/useFormat';
 import { useLocale } from '#hooks/useLocale';
 import { useLocalPref } from '#hooks/useLocalPref';
 import { useNavigate } from '#hooks/useNavigate';
-import { useQuery } from '#hooks/useQuery';
 import { SheetNameProvider } from '#hooks/useSheetName';
 import { useSheetValue } from '#hooks/useSheetValue';
 import { useSpreadsheet } from '#hooks/useSpreadsheet';
@@ -69,15 +67,33 @@ import {
   useMoveMoneyModal,
 } from './AssignKeypad';
 import { AssignKeypadProvider, useAssignKeypad } from './AssignKeypadContext';
+import { ChipsFiltros, EditorFiltro } from './FiltrosAsignar';
+import type { FiltroActivo } from './FiltrosAsignar';
+import {
+  borrarFiltro,
+  escribirFiltros,
+  filtrarGrupos,
+  guardarFiltro,
+  leerFiltros,
+} from './filtrosCategorias';
+import type { FiltroPropio } from './filtrosCategorias';
 import {
   asignarGastadoMesPasado,
   asignarInfrafinanciadas,
+  cumpleFiltro,
   estadoFila,
   faltante,
-  marcaDeNota,
+  mediaPorCategoria,
+  reducirSobrefinanciacion,
+  sobrefinanciado,
   totalInfrafinanciado,
 } from './objetivos';
-import type { DatosCategoriaMes, EstadoFila } from './objetivos';
+import type {
+  DatosCategoriaMes,
+  EstadoFila,
+  FiltroEstado,
+  ImporteCategoria,
+} from './objetivos';
 import { RowName } from './RowName';
 import { useDatosObjetivos } from './useDatosObjetivos';
 import { useFichaCategoria } from './useFichaCategoria';
@@ -288,21 +304,66 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
     ) ?? 0;
   const infrafinanciado = totalInfrafinanciado(datos.values());
 
-  // Notas de las categorías: solo para la marca «#objetivo día N».
-  const { data: notas } = useQuery<NoteEntity>(
-    () => q('notes').select('*'),
-    [],
+  // Filtros: chips de estado y filtros propios (pref sincronizada).
+  const [filtrosRaw, setFiltrosRaw] = useSyncedPref('asignar-filtros');
+  const propios = useMemo(() => leerFiltros(filtrosRaw), [filtrosRaw]);
+  const [filtro, setFiltroState] = useState<FiltroActivo>('todas');
+  const [editando, setEditando] = useState<FiltroPropio | 'nuevo' | null>(null);
+  const setFiltro = useCallback(
+    (nuevo: FiltroActivo) => {
+      keypad?.cancel();
+      setFiltroState(nuevo);
+    },
+    [keypad],
   );
-  const diaPorCategoria = useMemo(() => {
-    const mapa = new Map<string, number>();
-    for (const nota of notas ?? []) {
-      const { dia } = marcaDeNota(nota.note);
-      if (dia) {
-        mapa.set(nota.id, dia);
+  const conteos = useMemo(() => {
+    const c: Record<FiltroEstado, number> = {
+      infrafinanciadas: 0,
+      sobrefinanciadas: 0,
+      'gastado-de-mas': 0,
+    };
+    for (const d of datos.values()) {
+      for (const k of Object.keys(c) as FiltroEstado[]) {
+        if (cumpleFiltro(k, d)) {
+          c[k] += 1;
+        }
       }
     }
-    return mapa;
-  }, [notas]);
+    return c;
+  }, [datos]);
+  // Un filtro propio borrado (en otro dispositivo) vuelve a «Todas».
+  const filtroValido =
+    filtro.startsWith('propio:') &&
+    !propios.some(f => `propio:${f.id}` === filtro)
+      ? 'todas'
+      : filtro;
+  const gruposFiltrados = useMemo(() => {
+    if (filtroValido === 'todas') {
+      return grupos;
+    }
+    if (filtroValido.startsWith('propio:')) {
+      const ids = new Set(
+        propios.find(f => `propio:${f.id}` === filtroValido)?.categorias ?? [],
+      );
+      return filtrarGrupos(grupos, c => ids.has(c.id));
+    }
+    const estado = filtroValido as FiltroEstado;
+    return filtrarGrupos(grupos, c => {
+      const d = datos.get(c.id);
+      return d ? cumpleFiltro(estado, d) : false;
+    });
+  }, [datos, filtroValido, grupos, propios]);
+
+  const onGuardarFiltro = (f: FiltroPropio) => {
+    setFiltrosRaw(escribirFiltros(guardarFiltro(propios, f)));
+    setEditando(null);
+    setFiltro(`propio:${f.id}`);
+  };
+  const onBorrarFiltro = (id: string) => {
+    setFiltrosRaw(escribirFiltros(borrarFiltro(propios, id)));
+    setEditando(null);
+    setFiltro('todas');
+  };
 
   const [collapsedGroupIds = [], setCollapsedGroupIdsPref] =
     useLocalPref('budget.collapsed');
@@ -324,6 +385,10 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
   return (
     <View
       style={{
+        // flexShrink 0: si la lista se encoge al alto del contenedor con
+        // scroll, el relleno inferior queda dentro y no deja subir la última
+        // fila por encima del teclado.
+        flexShrink: 0,
         paddingBottom: Math.max(MOBILE_NAV_HEIGHT, panelHeight + 10),
         gap: 0,
       }}
@@ -343,7 +408,15 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
         toBudget={toBudget}
         onBudgetAction={onBudgetAction}
       />
-      {grupos.map(grupo => {
+      <ChipsFiltros
+        activo={filtroValido}
+        onChange={setFiltro}
+        conteos={conteos}
+        propios={propios}
+        onNuevo={() => setEditando('nuevo')}
+        onEditar={f => setEditando(f)}
+      />
+      {gruposFiltrados.map(grupo => {
         const plegado = collapsedGroupIds.includes(grupo.id);
         const asignadoGrupo = grupo.categories.reduce(
           (suma, c) => suma + (datos.get(c.id)?.budgeted ?? 0),
@@ -371,7 +444,6 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
                   key={category.id}
                   category={category}
                   datos={datos.get(category.id)}
-                  dia={diaPorCategoria.get(category.id) ?? null}
                 />
               ))}
           </View>
@@ -381,6 +453,21 @@ function Contenido({ month, onBudgetAction }: ContenidoProps) {
         <EstadoVacio
           style={{ margin: espacio.margen }}
           titulo={<Trans>No categories to assign.</Trans>}
+        />
+      )}
+      {grupos.length > 0 && gruposFiltrados.length === 0 && (
+        <EstadoVacio
+          style={{ margin: espacio.margen }}
+          titulo={<Trans>No categories in this filter.</Trans>}
+        />
+      )}
+      {editando && (
+        <EditorFiltro
+          filtro={editando === 'nuevo' ? null : editando}
+          grupos={grupos}
+          onGuardar={onGuardarFiltro}
+          onBorrar={onBorrarFiltro}
+          onCerrar={() => setEditando(null)}
         />
       )}
       <AssignKeypad
@@ -494,6 +581,85 @@ type AutoAsignarProps = {
   onBudgetAction: OnBudgetAction;
 };
 
+/** Valores `<campo>-<id>` de la hoja de un mes (`envelope-budget-month`). */
+async function leerMes(
+  month: string,
+  campo: 'budget' | 'sum-amount',
+): Promise<Map<string, number | null>> {
+  const valores = await send('envelope-budget-month', { month });
+  const mapa = new Map<string, number | null>();
+  const marca = `!${campo}-`;
+  for (const { name, value } of valores) {
+    const i = name.indexOf(marca);
+    if (i >= 0) {
+      mapa.set(
+        name.slice(i + marca.length),
+        typeof value === 'number' ? value : null,
+      );
+    }
+  }
+  return mapa;
+}
+
+/** Historia de los 3 meses anteriores: asignado y gastado (positivo). */
+type Historia = {
+  asignado: Map<string, number | null>[];
+  gastado: Map<string, number | null>[];
+};
+
+const MESES_PROMEDIO = 3;
+
+function useHistoria(month: string, activo: boolean): Historia | null {
+  const [historia, setHistoria] = useState<{
+    month: string;
+    datos: Historia;
+  } | null>(null);
+  useEffect(() => {
+    if (!activo) {
+      return;
+    }
+    let cancelado = false;
+    void (async () => {
+      const meses = Array.from({ length: MESES_PROMEDIO }, (_, i) =>
+        monthUtils.subMonths(month, i + 1),
+      );
+      try {
+        const asignado = await Promise.all(
+          meses.map(m => leerMes(m, 'budget')),
+        );
+        const gastado = (
+          await Promise.all(meses.map(m => leerMes(m, 'sum-amount')))
+        ).map(
+          m =>
+            new Map(
+              [...m].map(([id, v]) => [id, v == null ? null : Math.max(0, -v)]),
+            ),
+        );
+        if (!cancelado) {
+          setHistoria({ month, datos: { asignado, gastado } });
+        }
+      } catch {
+        // Meses fuera del presupuesto: sin importes.
+        if (!cancelado) {
+          setHistoria({ month, datos: { asignado: [], gastado: [] } });
+        }
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [activo, month]);
+  return historia?.month === month ? historia.datos : null;
+}
+
+type OpcionAuto =
+  | 'underfunded'
+  | 'reduce-overfunding'
+  | 'last-month'
+  | 'spent-last'
+  | 'avg-assigned'
+  | 'avg-spent';
+
 function AutoAsignar({
   month,
   grupos,
@@ -508,6 +674,74 @@ function AutoAsignar({
   const keypad = useAssignKeypad();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
+  const historia = useHistoria(month, open);
+
+  const ids = useMemo(
+    () => grupos.flatMap(g => g.categories.map(c => c.id)),
+    [grupos],
+  );
+  const filas = useMemo(
+    () =>
+      ids.map(id => ({
+        id,
+        datos: datos.get(id) ?? {
+          goal: null,
+          longGoal: false,
+          budgeted: 0,
+          balance: 0,
+          spent: 0,
+        },
+      })),
+    [datos, ids],
+  );
+
+  // Importe de cada opción (lo que se asignaría en total), como YNAB.
+  const propuestas = useMemo(() => {
+    const porCategoria = (
+      valores: Map<string, number | null> | Map<string, number> | undefined,
+    ): ImporteCategoria[] | null =>
+      valores
+        ? ids.map(id => ({ category: id, amount: valores.get(id) ?? 0 }))
+        : null;
+    return {
+      'last-month': porCategoria(historia?.asignado[0]),
+      'spent-last': historia?.gastado[0]
+        ? asignarGastadoMesPasado(
+            ids.map(id => ({
+              id,
+              gastadoMesPasado: -(historia.gastado[0].get(id) ?? 0),
+            })),
+          )
+        : null,
+      'avg-assigned': historia
+        ? porCategoria(mediaPorCategoria(ids, historia.asignado))
+        : null,
+      'avg-spent': historia
+        ? porCategoria(mediaPorCategoria(ids, historia.gastado))
+        : null,
+    };
+  }, [historia, ids]);
+
+  const suma = (lista: ImporteCategoria[] | null) =>
+    lista ? lista.reduce((s, a) => s + a.amount, 0) : null;
+  const importes: Record<OpcionAuto, IntegerAmount | null> = {
+    underfunded: totalInfrafinanciado(datos.values()),
+    'reduce-overfunding': filas.reduce(
+      (s, f) => s + sobrefinanciado(f.datos),
+      0,
+    ),
+    'last-month': suma(propuestas['last-month']),
+    'spent-last': suma(propuestas['spent-last']),
+    'avg-assigned': suma(propuestas['avg-assigned']),
+    'avg-spent': suma(propuestas['avg-spent']),
+  };
+  const conEuro = (valor: IntegerAmount | null) => {
+    if (valor == null) {
+      return '…';
+    }
+    const texto = format(valor, 'financial');
+    return /€/.test(texto) ? texto : `${texto} €`;
+  };
 
   const avisar = useCallback(
     (message: string) => {
@@ -520,118 +754,92 @@ function AutoAsignar({
     [dispatch],
   );
 
-  const onSelect = useCallback(
-    async (name: string) => {
-      setOpen(false);
-      // Lo tecleado en el panel deja de valer: la hoja pone los importes.
-      keypad?.cancel();
-      switch (name) {
-        case 'underfunded': {
-          const filas = grupos.flatMap(g =>
-            g.categories.map(c => ({
-              id: c.id,
-              datos: datos.get(c.id) ?? {
-                goal: null,
-                longGoal: false,
-                budgeted: 0,
-                balance: 0,
-                spent: 0,
-              },
-            })),
+  const aplicar = (amounts: ImporteCategoria[], message: string) => {
+    onBudgetAction(month, 'budget-amounts', { amounts });
+    showUndoNotification({ message });
+  };
+
+  const onSelect = (name: OpcionAuto) => {
+    setOpen(false);
+    // Lo tecleado en el panel deja de valer: la hoja pone los importes.
+    keypad?.cancel();
+    switch (name) {
+      case 'underfunded': {
+        const amounts = asignarInfrafinanciadas(filas, toBudget);
+        if (amounts.length === 0) {
+          avisar(
+            toBudget <= 0
+              ? t('Nothing ready to assign.')
+              : t('No underfunded categories.'),
           );
-          const amounts = asignarInfrafinanciadas(filas, toBudget);
-          if (amounts.length === 0) {
-            avisar(
-              toBudget <= 0
-                ? t('Nothing ready to assign.')
-                : t('No underfunded categories.'),
-            );
-            return;
-          }
-          const asignadoAntes = new Map(
-            filas.map(f => [f.id, f.datos.budgeted]),
-          );
-          const total = amounts.reduce(
-            (suma, a) => suma + a.amount - (asignadoAntes.get(a.category) ?? 0),
-            0,
-          );
-          onBudgetAction(month, 'budget-amounts', { amounts });
-          showUndoNotification({
-            message: t(
-              'Assigned {{amount}} to {{count}} underfunded categories.',
-              { amount: format(total, 'financial'), count: amounts.length },
-            ),
-          });
           return;
         }
-        case 'last-month':
-          onBudgetAction(month, 'copy-last');
-          showUndoNotification({
-            message: t("Budget set to last month's assigned amounts."),
-          });
-          return;
-        case '3-avg':
-          onBudgetAction(month, 'set-3-avg');
-          showUndoNotification({
-            message: t('Budget set to the 3 month average.'),
-          });
-          return;
-        case 'spent-last': {
-          const anterior = monthUtils.prevMonth(month);
-          const valores = await send('envelope-budget-month', {
-            month: anterior,
-          });
-          const gastado = new Map<string, number | null>();
-          for (const { name, value } of valores) {
-            const i = name.indexOf('!sum-amount-');
-            if (i >= 0) {
-              gastado.set(
-                name.slice(i + '!sum-amount-'.length),
-                typeof value === 'number' ? value : null,
-              );
-            }
-          }
-          const amounts = asignarGastadoMesPasado(
-            grupos.flatMap(g =>
-              g.categories.map(c => ({
-                id: c.id,
-                gastadoMesPasado: gastado.get(c.id) ?? null,
-              })),
-            ),
-          );
-          if (amounts.length === 0) {
-            avisar(t('Nothing was spent last month.'));
-            return;
-          }
-          onBudgetAction(month, 'budget-amounts', { amounts });
-          showUndoNotification({
-            message: t("Budget set to last month's spending."),
-          });
-          return;
-        }
-        default:
-          return;
+        const asignadoAntes = new Map(filas.map(f => [f.id, f.datos.budgeted]));
+        const total = amounts.reduce(
+          (s, a) => s + a.amount - (asignadoAntes.get(a.category) ?? 0),
+          0,
+        );
+        aplicar(
+          amounts,
+          t('Assigned {{amount}} to {{count}} underfunded categories.', {
+            amount: format(total, 'financial'),
+            count: amounts.length,
+          }),
+        );
+        return;
       }
-    },
-    [
-      avisar,
-      datos,
-      format,
-      grupos,
-      keypad,
-      month,
-      onBudgetAction,
-      showUndoNotification,
-      t,
-      toBudget,
-    ],
-  );
+      case 'reduce-overfunding': {
+        const amounts = reducirSobrefinanciacion(filas);
+        if (amounts.length === 0) {
+          avisar(t('No overfunded categories.'));
+          return;
+        }
+        aplicar(
+          amounts,
+          t('Returned {{amount}} from {{count}} overfunded categories.', {
+            amount: format(importes['reduce-overfunding'] ?? 0, 'financial'),
+            count: amounts.length,
+          }),
+        );
+        return;
+      }
+      case 'last-month':
+      case 'spent-last':
+      case 'avg-assigned':
+      case 'avg-spent': {
+        const amounts = propuestas[name];
+        if (!amounts || amounts.length === 0) {
+          avisar(t('Nothing to assign from previous months.'));
+          return;
+        }
+        const mensajes: Record<typeof name, string> = {
+          'last-month': t("Budget set to last month's assigned amounts."),
+          'spent-last': t("Budget set to last month's spending."),
+          'avg-assigned': t('Budget set to the average assigned.'),
+          'avg-spent': t('Budget set to the average spent.'),
+        };
+        aplicar(amounts, mensajes[name]);
+        return;
+      }
+      default:
+        return;
+    }
+  };
+
+  const opciones: { name: OpcionAuto; text: string }[] = [
+    { name: 'underfunded', text: t('Underfunded') },
+    { name: 'reduce-overfunding', text: t('Reduce overfunding') },
+    { name: 'last-month', text: t('Assigned last month') },
+    { name: 'spent-last', text: t('Spent last month') },
+    { name: 'avg-assigned', text: t('Average assigned') },
+    { name: 'avg-spent', text: t('Average spent') },
+  ];
 
   return (
     <View
       style={{
         flexShrink: 0,
-        margin: `0 ${espacio.margen}px ${espacio.tarjetas}px`,
+        margin: `0 ${espacio.margen}px 8px`,
       }}
     >
       <Boton
@@ -650,20 +858,27 @@ function AutoAsignar({
         isOpen={open}
         placement="bottom"
         onOpenChange={() => setOpen(false)}
-        style={{ minWidth: 260 }}
+        style={{ minWidth: 280 }}
       >
+        <Text
+          style={{
+            ...texto.etiqueta,
+            color: color.fg3,
+            padding: '10px 14px 2px',
+          }}
+        >
+          <Trans>Auto-assign to all categories</Trans>
+        </Text>
         <Menu
           getItemStyle={() => ({
             ...styles.mobileMenuItem,
             color: theme.menuItemText,
           })}
-          onMenuSelect={name => void onSelect(name)}
-          items={[
-            { name: 'underfunded', text: t('Underfunded') },
-            { name: 'last-month', text: t('Assigned last month') },
-            { name: '3-avg', text: t('3 month average') },
-            { name: 'spent-last', text: t('Spent last month') },
-          ]}
+          onMenuSelect={name => onSelect(name as OpcionAuto)}
+          items={opciones.map(o => ({
+            name: o.name,
+            text: `${o.text}: ${conEuro(importes[o.name])}`,
+          }))}
         />
       </Popover>
     </View>
@@ -733,55 +948,42 @@ function CabeceraGrupo({
   );
 }
 
-function colorDeEstado(estado: EstadoFila): string {
+export function colorDeEstado(estado: EstadoFila): string {
   switch (estado.tipo) {
-    case 'sobregastada':
+    case 'gastado-de-mas':
       return color.bad;
-    case 'faltan':
+    case 'falta':
       return color.warn;
     case 'financiada':
       return color.ok;
-    case 'gastado-parcial':
-      return estado.financiada ? color.ok : color.fg3;
+    case 'sobrefinanciada':
+      return colorCategoria(0);
     default:
       return color.fg3;
   }
 }
 
-/** Texto de estado de una fila, en castellano vía i18n. */
+/** Texto corto de estado de una fila, en castellano vía i18n. */
 export function useTextoEstado() {
   const { t } = useTranslation();
   const format = useFormat();
   return useCallback(
-    (estado: EstadoFila, dia: number | null): string => {
+    (estado: EstadoFila): string => {
       switch (estado.tipo) {
-        case 'sobregastada':
-          return t('Overspent by {{amount}}', {
+        case 'gastado-de-mas':
+          return t('−{{amount}} overspent', {
             amount: format(estado.importe, 'financial'),
           });
-        case 'faltan':
-          return dia
-            ? t('{{amount}} more needed by day {{day}}', {
-                amount: format(estado.importe, 'financial'),
-                day: dia,
-              })
-            : t('{{amount}} more needed this month', {
-                amount: format(estado.importe, 'financial'),
-              });
+        case 'falta':
+          return t('{{amount}} needed', {
+            amount: format(estado.importe, 'financial'),
+          });
+        case 'sobrefinanciada':
+          return t('{{amount}} extra', {
+            amount: format(estado.importe, 'financial'),
+          });
         case 'financiada':
           return t('Funded');
-        case 'gastada':
-          return t('Fully spent');
-        case 'gastado-parcial':
-          return estado.financiada
-            ? t('Funded. Spent {{spent}} of {{assigned}}', {
-                spent: format(estado.gastado, 'financial'),
-                assigned: format(estado.asignado, 'financial'),
-              })
-            : t('Spent {{spent}} of {{assigned}}', {
-                spent: format(estado.gastado, 'financial'),
-                assigned: format(estado.asignado, 'financial'),
-              });
         case 'ignorada':
           return t('Ignored this month');
         default:
@@ -795,14 +997,12 @@ export function useTextoEstado() {
 type FilaCategoriaProps = {
   category: CategoryEntity;
   datos: DatosCategoriaMes | undefined;
-  dia: number | null;
   primera?: boolean;
 };
 
 function FilaCategoria({
   category,
   datos,
-  dia,
   primera = false,
 }: FilaCategoriaProps) {
   const { t } = useTranslation();
@@ -903,7 +1103,7 @@ function FilaCategoria({
               style={{
                 ...densidad.cifra,
                 color:
-                  estado.tipo === 'sobregastada' && !display
+                  estado.tipo === 'gastado-de-mas' && !display
                     ? color.bad
                     : color.fg,
               }}
@@ -959,9 +1159,10 @@ function FilaCategoria({
               minWidth: 0,
             }}
             data-testid="asignar-estado"
+            data-estado={estado.tipo}
             data-ignorada={estado.tipo === 'ignorada' || undefined}
           >
-            {textoEstado(estado, dia)}
+            {textoEstado(estado)}
           </Text>
         </View>
         <BarraProgreso
@@ -1089,7 +1290,9 @@ function AccionesInfrafinanciado({
             ? t('Assign {{amount}}', { amount: format(falta, 'financial') })
             : ignorada
               ? t('Ignored this month')
-              : t('Funded')}
+              : datos?.goal == null
+                ? t('No target')
+                : t('Funded')}
         </Boton>
         <Text style={etiqueta}>
           <Trans>Underfunded amount</Trans>

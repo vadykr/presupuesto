@@ -398,6 +398,7 @@ function BudgetTableBody({ children }: { children: ReactNode }) {
       style={{
         backgroundColor: color.bg,
         minHeight: '100vh',
+        flexShrink: 0,
         paddingBottom: Math.max(MOBILE_NAV_HEIGHT + 10, panelHeight + 10),
       }}
     >

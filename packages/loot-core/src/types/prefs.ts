@@ -86,7 +86,9 @@ export type SyncedPrefs = Partial<
     // Presupuesto · Gasto anual: ids de grupos marcados (JSON array)
     | 'anual-grupos'
     // Presupuesto · Gasto anual: plegar en el Plan lo que está al día ('true'/'false')
-    | 'anual-ocultar-en-plan',
+    | 'anual-ocultar-en-plan'
+    // Presupuesto · Asignar el mes: filtros propios (JSON [{ id, nombre, categorias }])
+    | 'asignar-filtros',
     string
   >
 >;

@@ -4,17 +4,21 @@ import {
   asignarGastadoMesPasado,
   asignarInfrafinanciadas,
   categoriasIgnoradas,
+  cumpleFiltro,
   cuotaMensual,
   estadoFila,
   faltante,
   importeDePlantilla,
   lineasDeObjetivo,
   marcaDeNota,
+  mediaPorCategoria,
   notaConIgnorarMes,
   notaConObjetivo,
   notaIgnoraMes,
   notaSinObjetivo,
   objetivoDesdePlantillas,
+  reducirSobrefinanciacion,
+  sobrefinanciado,
   totalInfrafinanciado,
 } from './objetivos';
 import type { DatosCategoriaMes } from './objetivos';
@@ -134,7 +138,7 @@ describe('ignorar este mes', () => {
           ignorada: true,
         }),
       ),
-    ).toEqual({ tipo: 'sobregastada', importe: 5_00, progreso: 1 });
+    ).toEqual({ tipo: 'gastado-de-mas', importe: 5_00, progreso: 1 });
   });
 
   it('la marca va y viene en la nota de mes sin tocar el resto', () => {
@@ -169,50 +173,74 @@ describe('ignorar este mes', () => {
   });
 });
 
-describe('estadoFila', () => {
-  it('«Financiada» con objetivo cumplido y sin gasto', () => {
+describe('estadoFila: un único estado por fila', () => {
+  it('«Financiada» con el objetivo cumplido, se haya gastado o no', () => {
     expect(
       estadoFila(datos({ goal: 246_72, budgeted: 246_72, balance: 246_72 })),
     ).toEqual({ tipo: 'financiada', progreso: 1 });
-  });
-
-  it('«Totalmente gastada» cuando el saldo llega a cero', () => {
     expect(
       estadoFila(
         datos({ goal: 32_93, budgeted: 32_93, spent: -32_93, balance: 0 }),
       ),
-    ).toEqual({ tipo: 'gastada', progreso: 1 });
+    ).toEqual({ tipo: 'financiada', progreso: 1 });
+    expect(
+      estadoFila(
+        datos({ goal: 292_82, budgeted: 292_82, spent: -292_81, balance: 1 }),
+      ),
+    ).toEqual({ tipo: 'financiada', progreso: 1 });
   });
 
-  it('«Financiada. Gastados X de Y» con gasto parcial', () => {
-    const estado = estadoFila(
-      datos({ goal: 292_82, budgeted: 292_82, spent: -292_81, balance: 1 }),
-    );
-    expect(estado).toMatchObject({
-      tipo: 'gastado-parcial',
-      gastado: 292_81,
-      asignado: 292_82,
-      financiada: true,
-    });
-  });
-
-  it('«Faltan X» con la barra a la fracción asignada', () => {
+  it('«faltan X» con la barra a la fracción asignada', () => {
     const estado = estadoFila(
       datos({ goal: 134_17, budgeted: 67_08, balance: 67_08 }),
     );
-    expect(estado).toMatchObject({ tipo: 'faltan', importe: 67_09 });
+    expect(estado).toMatchObject({ tipo: 'falta', importe: 67_09 });
     expect(estado.progreso).toBeCloseTo(0.5, 2);
+  });
+
+  it('gastado de más manda sobre lo que falta (Gas: −47,85)', () => {
+    expect(
+      estadoFila(
+        datos({
+          goal: 134_17,
+          budgeted: 47_85,
+          spent: -95_70,
+          balance: -47_85,
+        }),
+      ),
+    ).toEqual({ tipo: 'gastado-de-mas', importe: 47_85, progreso: 1 });
   });
 
   it('en rojo si el saldo es negativo, tenga o no objetivo', () => {
     expect(
-      estadoFila(
-        datos({ goal: 50_00, budgeted: 50_00, spent: -70_00, balance: -20_00 }),
-      ),
-    ).toEqual({ tipo: 'sobregastada', importe: 20_00, progreso: 1 });
+      estadoFila(datos({ budgeted: 0, spent: -20_00, balance: -20_00 })),
+    ).toEqual({ tipo: 'gastado-de-mas', importe: 20_00, progreso: 1 });
   });
 
-  it('«Sin objetivo» cuando no hay plantilla ni gasto', () => {
+  it('«sobran X» si lo asignado pasa del objetivo y queda saldo', () => {
+    expect(
+      estadoFila(datos({ goal: 50_00, budgeted: 80_00, balance: 80_00 })),
+    ).toEqual({ tipo: 'sobrefinanciada', importe: 30_00, progreso: 1 });
+    // Lo que ya se gastó no se puede devolver: sobra solo hasta el saldo.
+    expect(
+      estadoFila(
+        datos({ goal: 50_00, budgeted: 80_00, spent: -70_00, balance: 10_00 }),
+      ),
+    ).toEqual({ tipo: 'sobrefinanciada', importe: 10_00, progreso: 1 });
+    // `#goal`: se mide sobre el saldo.
+    expect(
+      sobrefinanciado(
+        datos({
+          goal: 500_00,
+          longGoal: true,
+          budgeted: 50_00,
+          balance: 520_00,
+        }),
+      ),
+    ).toBe(20_00);
+  });
+
+  it('«Sin objetivo» cuando no hay plantilla', () => {
     expect(estadoFila(datos({ budgeted: 20_00, balance: 20_00 }))).toEqual({
       tipo: 'sin-objetivo',
       progreso: 1,
@@ -220,7 +248,70 @@ describe('estadoFila', () => {
   });
 });
 
+describe('infrafinanciado (definición YNAB)', () => {
+  it('suma lo que falta para los objetivos, sin sumar el gasto de más', () => {
+    const filas = [
+      // Gas: le faltan 86,32 y además está en negativo: cuenta 86,32.
+      datos({ goal: 134_17, budgeted: 47_85, balance: -47_85 }),
+      // En negativo sin objetivo: no es «infrafinanciada».
+      datos({ budgeted: 0, balance: -10_00 }),
+      // Cubierta: nada.
+      datos({ goal: 98_37, budgeted: 98_37, balance: 98_37 }),
+    ];
+    expect(totalInfrafinanciado(filas)).toBe(86_32);
+  });
+});
+
+describe('filtros de estado', () => {
+  const gas = datos({ goal: 134_17, budgeted: 47_85, balance: -47_85 });
+  const sobra = datos({ goal: 50_00, budgeted: 80_00, balance: 80_00 });
+  const ok = datos({ goal: 50_00, budgeted: 50_00, balance: 50_00 });
+  it('cada filtro usa la misma definición que la cabecera', () => {
+    expect(cumpleFiltro('infrafinanciadas', gas)).toBe(true);
+    expect(cumpleFiltro('gastado-de-mas', gas)).toBe(true);
+    expect(cumpleFiltro('sobrefinanciadas', gas)).toBe(false);
+    expect(cumpleFiltro('sobrefinanciadas', sobra)).toBe(true);
+    expect(cumpleFiltro('infrafinanciadas', sobra)).toBe(false);
+    for (const f of [
+      'infrafinanciadas',
+      'sobrefinanciadas',
+      'gastado-de-mas',
+    ] as const) {
+      expect(cumpleFiltro(f, ok)).toBe(false);
+    }
+  });
+});
+
 describe('auto-asignar', () => {
+  it('«Reducir sobrefinanciación» deja cada categoría en su objetivo', () => {
+    expect(
+      reducirSobrefinanciacion([
+        {
+          id: 'a',
+          datos: datos({ goal: 50_00, budgeted: 80_00, balance: 80_00 }),
+        },
+        {
+          id: 'b',
+          datos: datos({ goal: 50_00, budgeted: 50_00, balance: 50_00 }),
+        },
+      ]),
+    ).toEqual([{ category: 'a', amount: 50_00 }]);
+  });
+
+  it('promedio por categoría de varios meses, redondeado', () => {
+    const media = mediaPorCategoria(
+      ['a', 'b'],
+      [
+        new Map([['a', 10_00]]),
+        new Map([['a', 20_01]]),
+        new Map([['a', null]]),
+      ],
+    );
+    expect(media.get('a')).toBe(10_00);
+    expect(media.get('b')).toBe(0);
+    expect(mediaPorCategoria(['a'], []).get('a')).toBe(0);
+  });
+
   it('reparte lo disponible de arriba abajo hasta agotarlo', () => {
     const filas = [
       { id: 'llum', datos: datos({ goal: 98_37, budgeted: 98_37 }) },

@@ -134,39 +134,50 @@ export function AssignKeypad({
     };
   }, [dispatch, panelHeight]);
 
-  // Desplaza la lista para que la fila seleccionada quede visible encima del
-  // panel (o debajo de la cabecera).
+  // El teclado forma parte de la pantalla: la lista tiene debajo un relleno
+  // igual a su alto y la fila tocada se desplaza justo encima del panel (o
+  // debajo de la cabecera si queda por arriba). Se espera a un fotograma para
+  // medir con el relleno ya aplicado.
   useEffect(() => {
     if (!selectedId || panelHeight === 0) {
       return;
     }
-    const row = document.querySelector<HTMLElement>(
-      `[data-category-id="${selectedId}"]`,
-    );
-    const panel = panelRef.current;
-    if (!row || !panel) {
-      return;
-    }
-    const scroller = getScrollParent(row);
-    if (!scroller) {
-      return;
-    }
-    const rowRect = row.getBoundingClientRect();
-    // Sin `getBoundingClientRect`: el panel puede estar aún entrando (animado).
-    const panelTop = window.innerHeight - panelHeight;
-    const scrollerTop = scroller.getBoundingClientRect().top;
-    const margin = 8;
-    if (rowRect.bottom > panelTop - margin) {
-      scroller.scrollBy({
-        top: rowRect.bottom - (panelTop - margin),
-        behavior: 'smooth',
-      });
-    } else if (rowRect.top < scrollerTop + margin) {
-      scroller.scrollBy({
-        top: rowRect.top - (scrollerTop + margin),
-        behavior: 'smooth',
-      });
-    }
+    const frame = requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(
+        `[data-category-id="${selectedId}"]`,
+      );
+      const panel = panelRef.current;
+      if (!row || !panel) {
+        return;
+      }
+      const scroller = getScrollParent(row);
+      if (!scroller) {
+        return;
+      }
+      const rowRect = row.getBoundingClientRect();
+      // `offsetTop` no cuenta el `transform` de la animación de entrada.
+      const panelTop =
+        panel.offsetTop > 0
+          ? panel.offsetTop
+          : window.innerHeight - panelHeight;
+      const scrollerTop =
+        scroller === document.scrollingElement
+          ? 0
+          : scroller.getBoundingClientRect().top;
+      const margin = 8;
+      if (rowRect.bottom > panelTop - margin) {
+        scroller.scrollBy({
+          top: rowRect.bottom - (panelTop - margin),
+          behavior: 'smooth',
+        });
+      } else if (rowRect.top < scrollerTop + margin) {
+        scroller.scrollBy({
+          top: rowRect.top - (scrollerTop + margin),
+          behavior: 'smooth',
+        });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [selectedId, panelHeight]);
 
   if (!keypad || !keypad.selectedCategory) {

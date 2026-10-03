@@ -58,22 +58,35 @@ export function totalInfrafinanciado(
   return total;
 }
 
+/**
+ * Lo que sobra por encima del objetivo y se puede devolver a «Listo para
+ * asignar» («Reducir sobrefinanciación» de YNAB): lo asignado (o el saldo si
+ * la plantilla es `#goal`) por encima del objetivo, sin pasar del saldo para
+ * no dejar la categoría en negativo. 0 sin objetivo.
+ */
+export function sobrefinanciado(datos: DatosCategoriaMes): IntegerAmount {
+  if (datos.goal == null) {
+    return 0;
+  }
+  const base = datos.longGoal ? datos.balance : datos.budgeted;
+  return Math.max(0, Math.min(base - datos.goal, datos.balance));
+}
+
+/**
+ * Estado único de una fila (YNAB): uno solo, por prioridad
+ * gastado de más > ignorada > le falta > sobrefinanciada > financiada > sin
+ * objetivo. El gasto de más no suma a lo que falta (no se cuenta dos veces).
+ */
 export type EstadoFila =
-  | { tipo: 'sobregastada'; importe: IntegerAmount; progreso: number }
-  | { tipo: 'faltan'; importe: IntegerAmount; progreso: number }
+  | { tipo: 'gastado-de-mas'; importe: IntegerAmount; progreso: number }
+  | { tipo: 'falta'; importe: IntegerAmount; progreso: number }
+  | { tipo: 'sobrefinanciada'; importe: IntegerAmount; progreso: number }
   | { tipo: 'financiada'; progreso: number }
-  | { tipo: 'gastada'; progreso: number }
-  | {
-      tipo: 'gastado-parcial';
-      gastado: IntegerAmount;
-      asignado: IntegerAmount;
-      progreso: number;
-      /** `true` si además cumple el objetivo («Financiada. Gastados…»). */
-      financiada: boolean;
-    }
   | { tipo: 'sin-objetivo'; progreso: number }
   /** Ignorada este mes: no se pide nada, aunque el objetivo no se cumpla. */
   | { tipo: 'ignorada'; progreso: number };
+
+export type TipoEstado = EstadoFila['tipo'];
 
 function fraccion(parte: number, total: number): number {
   if (total <= 0) {
@@ -82,52 +95,66 @@ function fraccion(parte: number, total: number): number {
   return Math.max(0, Math.min(1, parte / total));
 }
 
-/**
- * Estado de una fila de «Asignar el mes»: texto y barra de progreso.
- * Sigue las etiquetas de YNAB: «Financiada», «Totalmente gastada»,
- * «Financiada. Gastados X de Y», «Faltan X…», «Sin objetivo».
- */
+/** Estado de una fila de «Asignar el mes»: tipo, importe y barra. */
 export function estadoFila(datos: DatosCategoriaMes): EstadoFila {
-  const gastado = Math.max(0, -datos.spent);
   if (datos.balance < 0) {
-    return { tipo: 'sobregastada', importe: -datos.balance, progreso: 1 };
+    return { tipo: 'gastado-de-mas', importe: -datos.balance, progreso: 1 };
   }
+  const base = datos.longGoal ? datos.balance : datos.budgeted;
   if (datos.ignorada) {
-    const base = datos.longGoal ? datos.balance : datos.budgeted;
     return {
       tipo: 'ignorada',
       progreso: datos.goal != null ? fraccion(base, datos.goal) : 0,
     };
   }
+  if (datos.goal == null) {
+    return {
+      tipo: 'sin-objetivo',
+      progreso:
+        datos.budgeted > 0 ? fraccion(datos.balance, datos.budgeted) : 0,
+    };
+  }
   const falta = faltante(datos);
   if (falta > 0) {
-    const base = datos.longGoal ? datos.balance : datos.budgeted;
     return {
-      tipo: 'faltan',
+      tipo: 'falta',
       importe: falta,
-      progreso: fraccion(base, datos.goal ?? 0),
+      progreso: fraccion(base, datos.goal),
     };
   }
-  const tieneObjetivo = datos.goal != null;
-  if (gastado > 0 && datos.budgeted > 0) {
-    if (datos.balance === 0) {
-      return { tipo: 'gastada', progreso: 1 };
-    }
-    return {
-      tipo: 'gastado-parcial',
-      gastado,
-      asignado: datos.budgeted,
-      progreso: fraccion(datos.balance, datos.budgeted),
-      financiada: tieneObjetivo,
-    };
+  const sobra = sobrefinanciado(datos);
+  if (sobra > 0) {
+    return { tipo: 'sobrefinanciada', importe: sobra, progreso: 1 };
   }
-  if (tieneObjetivo) {
-    return { tipo: 'financiada', progreso: 1 };
+  return { tipo: 'financiada', progreso: 1 };
+}
+
+/** Filtros fijos de «Asignar el mes». */
+export type FiltroEstado =
+  | 'infrafinanciadas'
+  | 'sobrefinanciadas'
+  | 'gastado-de-mas';
+
+/**
+ * ¿Entra la categoría en el filtro? Usa las mismas definiciones que la
+ * cabecera y el auto-asignar: infrafinanciada = le falta algo para el
+ * objetivo (aunque además esté en negativo), sobrefinanciada = le sobra algo
+ * que se puede devolver, gastado de más = disponible negativo.
+ */
+export function cumpleFiltro(
+  filtro: FiltroEstado,
+  datos: DatosCategoriaMes,
+): boolean {
+  switch (filtro) {
+    case 'infrafinanciadas':
+      return faltante(datos) > 0;
+    case 'sobrefinanciadas':
+      return sobrefinanciado(datos) > 0;
+    case 'gastado-de-mas':
+      return datos.balance < 0;
+    default:
+      return true;
   }
-  return {
-    tipo: 'sin-objetivo',
-    progreso: datos.budgeted > 0 ? fraccion(datos.balance, datos.budgeted) : 0,
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -160,6 +187,39 @@ export function asignarInfrafinanciadas(
     resultado.push({ category: id, amount: datos.budgeted + dado });
   }
   return resultado;
+}
+
+/**
+ * «Reducir sobrefinanciación»: quita a cada categoría lo que le sobra sobre
+ * el objetivo (vuelve a «Listo para asignar»).
+ */
+export function reducirSobrefinanciacion(
+  filas: { id: string; datos: DatosCategoriaMes }[],
+): ImporteCategoria[] {
+  return filas
+    .map(({ id, datos }) => ({ id, datos, sobra: sobrefinanciado(datos) }))
+    .filter(f => f.sobra > 0)
+    .map(f => ({ category: f.id, amount: f.datos.budgeted - f.sobra }));
+}
+
+/**
+ * Media por categoría de varios meses (céntimos, redondeada). `meses` es una
+ * lista de mapas id → valor; los que no tienen valor cuentan como 0.
+ */
+export function mediaPorCategoria(
+  ids: readonly string[],
+  meses: readonly Map<string, number | null>[],
+): Map<string, IntegerAmount> {
+  const media = new Map<string, IntegerAmount>();
+  for (const id of ids) {
+    if (meses.length === 0) {
+      media.set(id, 0);
+      continue;
+    }
+    const suma = meses.reduce((s, m) => s + (m.get(id) ?? 0), 0);
+    media.set(id, Math.round(suma / meses.length));
+  }
+  return media;
 }
 
 /**
