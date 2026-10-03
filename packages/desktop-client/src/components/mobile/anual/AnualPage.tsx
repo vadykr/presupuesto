@@ -10,6 +10,7 @@ import { View } from '@actual-app/components/view';
 import * as monthUtils from '@actual-app/core/shared/months';
 
 import { Checkbox } from '#components/forms';
+import { rutaFicha } from '#components/mobile/budget/useFichaCategoria';
 import { ModalLocal } from '#components/mobile/informes/ModalLocal';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { BarraProgreso } from '#components/mobile/ui/BarraProgreso';
@@ -369,9 +370,7 @@ function FilaCategoria({
     <Button
       variant="bare"
       onPress={() =>
-        void navigate(
-          `/categories/${fila.id}/objetivo?month=${monthUtils.currentMonth()}`,
-        )
+        void navigate(rutaFicha(fila.id, monthUtils.currentMonth(), true))
       }
       aria-label={t('Target of {{categoryName}}', {
         categoryName: fila.nombre,

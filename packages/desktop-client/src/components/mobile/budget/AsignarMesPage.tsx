@@ -89,7 +89,7 @@ import type {
 } from './objetivos';
 import { RowName } from './RowName';
 import { useDatosObjetivos } from './useDatosObjetivos';
-import { useFichaCategoria } from './useFichaCategoria';
+import { rutaFicha, useFichaCategoria } from './useFichaCategoria';
 import { useIgnorarMes } from './useIgnorarMes';
 
 type OnBudgetAction = (month: string, type: string, args?: unknown) => void;
@@ -1181,7 +1181,7 @@ function AccionesInfrafinanciado({
         onMoveMoney();
         break;
       case 'target':
-        void navigate(`/categories/${category.id}/objetivo?month=${month}`);
+        void navigate(rutaFicha(category.id, month, true));
         break;
       case 'details':
         onEditCategory(category.id);

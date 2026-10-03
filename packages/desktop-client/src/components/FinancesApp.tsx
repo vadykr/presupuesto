@@ -32,6 +32,7 @@ import { GlobalKeys } from './GlobalKeys';
 import { AnualPage } from './mobile/anual/AnualPage';
 import { MobileBankSyncAccountEditPage } from './mobile/banksync/MobileBankSyncAccountEditPage';
 import { AsignarMesPage } from './mobile/budget/AsignarMesPage';
+import { FichaCategoriaPage } from './mobile/budget/ficha/FichaCategoriaPage';
 import { ObjetivoPage } from './mobile/budget/ObjetivoPage';
 import { GastosPage } from './mobile/gastos/GastosPage';
 import { InicioPage } from './mobile/inicio/InicioPage';
@@ -306,6 +307,20 @@ export function FinancesApp() {
                         >
                           <WideNotSupported>
                             <AnualPage />
+                          </WideNotSupported>
+                        </ErrorBoundary>
+                      }
+                    />
+
+                    <Route
+                      path="/categories/:id/ficha"
+                      element={
+                        <ErrorBoundary
+                          FallbackComponent={FeatureErrorFallback}
+                          resetKeys={[location.pathname]}
+                        >
+                          <WideNotSupported>
+                            <FichaCategoriaPage />
                           </WideNotSupported>
                         </ErrorBoundary>
                       }

@@ -1,108 +1,29 @@
 import { useCallback } from 'react';
 
-import { send } from '@actual-app/core/platform/client/connection';
 import type { CategoryEntity } from '@actual-app/core/types/models';
 
-import { useDeleteCategoryMutation, useSaveCategoryMutation } from '#budget';
-import { useCategories } from '#hooks/useCategories';
-import { useFeatureFlag } from '#hooks/useFeatureFlag';
-import { useSyncedPref } from '#hooks/useSyncedPref';
-import { collapseModals, pushModal } from '#modals/modalsSlice';
-import { useDispatch } from '#redux';
+import { useNavigate } from '#hooks/useNavigate';
+
+/** Ruta de la ficha de una categoría (`?editar=1` abre el editor del objetivo). */
+export function rutaFicha(
+  id: CategoryEntity['id'],
+  month: string,
+  editar = false,
+): string {
+  return `/categories/${id}/ficha?month=${month}${editar ? '&editar=1' : ''}`;
+}
 
 /**
- * Abre la ficha de una categoría (modal `category-menu`: notas, fijar en
- * inicio, objetivo, ocultar, borrar) desde fuera de la pestaña Presupuesto,
- * con las mismas acciones que allí.
+ * Abre la ficha única de una categoría (`FichaCategoriaPage`: disponible,
+ * objetivo editable en el sitio, evolución, Asesor, notas y acciones). La
+ * usan el Plan (mantener pulsado, «Detalles» del teclado) y «Asignar el mes».
  */
 export function useFichaCategoria(month: string) {
-  const dispatch = useDispatch();
-  const { data: { list: categories } = { list: [] as CategoryEntity[] } } =
-    useCategories();
-  const saveCategory = useSaveCategoryMutation();
-  const deleteCategory = useDeleteCategoryMutation();
-  const [budgetType = 'envelope'] = useSyncedPref('budgetType');
-  const goalTemplatesEnabled = useFeatureFlag('goalTemplatesEnabled');
-  const goalTemplatesUIEnabled = useFeatureFlag('goalTemplatesUIEnabled');
-
+  const navigate = useNavigate();
   return useCallback(
-    (id: CategoryEntity['id']) => {
-      const category = categories.find(c => c.id === id);
-      if (!category) {
-        return;
-      }
-      const canEditAutomations =
-        goalTemplatesEnabled &&
-        goalTemplatesUIEnabled &&
-        !(category.is_income && budgetType !== 'tracking');
-
-      dispatch(
-        pushModal({
-          modal: {
-            name: 'category-menu',
-            options: {
-              categoryId: category.id,
-              month,
-              onSave: cat => saveCategory.mutate({ category: cat }),
-              onEditNotes: noteId => {
-                dispatch(
-                  pushModal({
-                    modal: {
-                      name: 'notes',
-                      options: {
-                        id: noteId,
-                        name: category.name,
-                        onSave: async (noteIdToSave, notes) => {
-                          await send('notes-save', {
-                            id: noteIdToSave,
-                            note: notes,
-                          });
-                        },
-                      },
-                    },
-                  }),
-                );
-              },
-              onDelete: categoryId => {
-                dispatch(collapseModals({ rootModalName: 'category-menu' }));
-                deleteCategory.mutate({ id: categoryId });
-              },
-              onToggleVisibility: categoryId => {
-                const cat = categories.find(c => c.id === categoryId);
-                if (cat) {
-                  saveCategory.mutate({
-                    category: { ...cat, hidden: !cat.hidden },
-                  });
-                }
-                dispatch(collapseModals({ rootModalName: 'category-menu' }));
-              },
-              ...(canEditAutomations && {
-                onEditAutomations: (categoryId: string) => {
-                  dispatch(collapseModals({ rootModalName: 'category-menu' }));
-                  dispatch(
-                    pushModal({
-                      modal: {
-                        name: 'category-automations-edit',
-                        options: { categoryId, month },
-                      },
-                    }),
-                  );
-                },
-              }),
-            },
-          },
-        }),
-      );
+    (id: CategoryEntity['id'], opciones?: { editar?: boolean }) => {
+      void navigate(rutaFicha(id, month, opciones?.editar));
     },
-    [
-      budgetType,
-      categories,
-      deleteCategory,
-      dispatch,
-      goalTemplatesEnabled,
-      goalTemplatesUIEnabled,
-      month,
-      saveCategory,
-    ],
+    [month, navigate],
   );
 }

@@ -79,3 +79,26 @@ Capturas en `capturas/ignorar-mes.png` (Asignar el mes), `ignorar-mes-mas.png` (
 
 Capturas en `capturas/asignar-mes*.png`, `objetivo-editar*.png`, `objetivo-ficha.png`,
 `presupuesto-faltan.png` (presupuesto demo, 390×844).
+
+## Ficha única de categoría (`/categories/:id/ficha?month=…`, `budget/ficha/`)
+
+«Diseño 1 · Ficha única» (maqueta `referencias-ynab/maqueta-ficha/diseno-1.png`). Sustituye al doble paso
+«Detalles» → «Objetivo»: la abren mantener pulsado el nombre en el Plan, «Detalles» del teclado, «Asignar el
+mes» y «Gasto anual» (`useFichaCategoria` / `rutaFicha`). La ruta antigua `/categories/:id/objetivo` redirige
+a la ficha con el editor abierto (`&editar=1`).
+
+- Cabecera: «Disponible en <mes>», píldora de estado (`estadoFila`), anillo de % del objetivo y desglose
+  del mes pasado · asignado · actividad (tocar actividad abre los movimientos).
+- Objetivo: plegado (resumen, barra, «Faltan X», «Unos Y/mes», píldora ⛵ Rumbo fijo / Atrasado / Cumplido,
+  `resumenObjetivo` en `fichaCalculos.ts`); al tocarlo se despliega el editor en el sitio (mismo formulario
+  y guardado que antes: `formularioDesde`, `objetivoDesde`, `useGuardarObjetivo` en `ObjetivoPage.tsx`).
+  «zZ» de 15 px (área de 44) entre el título y la píldora = «Ignorar este mes» (`useIgnorarMes`), con la
+  burbuja de Luffy (`BurbujaLuffy.tsx`, SVG propio, 1,25 s, nada con «reducir movimiento»).
+- Evolución: Gasto (barras de 12 meses, línea de lo asignado, banda mediana ± MAD solo con meses con gasto
+  si es irregular) · Saldo (saldo real + proyección punteada a la meta) · Meses (mapa 12 × 2 años). Por
+  defecto Saldo si el objetivo es de saldo (una vez / cada año / `long-goal`).
+- Asesor: regla (a) «Asigna X…» con «Presupuestar X en <mes siguiente>» (`budget-amount`), consejos del
+  motor de esta categoría y regla (b) «No la gastas dos meses seguidos» (≥ 6 meses de historia). Tests en
+  `fichaCalculos.test.ts`.
+- Notas sin líneas `#template`/`#goal`/`#objetivo` y pie Renombrar · Ocultar · Eliminar; «⋯» con fijar en
+  inicio y ver movimientos.

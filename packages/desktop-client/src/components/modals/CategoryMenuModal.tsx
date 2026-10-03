@@ -36,6 +36,7 @@ import {
   notaSinObjetivo,
   objetivoDesdePlantillas,
 } from '#components/mobile/budget/objetivos';
+import { rutaFicha } from '#components/mobile/budget/useFichaCategoria';
 import { Notes } from '#components/Notes';
 import { useCategory } from '#hooks/useCategory';
 import { useCategoryGroup } from '#hooks/useCategoryGroup';
@@ -223,7 +224,11 @@ export function CategoryMenuModal({
                   onPress={() => {
                     state.close();
                     void navigate(
-                      `/categories/${category.id}/objetivo?month=${month ?? monthUtils.currentMonth()}`,
+                      rutaFicha(
+                        category.id,
+                        month ?? monthUtils.currentMonth(),
+                        true,
+                      ),
                     );
                   }}
                   data-testid="category-objetivo"

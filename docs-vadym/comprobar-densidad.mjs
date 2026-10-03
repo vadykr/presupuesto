@@ -473,9 +473,14 @@ try {
     await esperar(page, 700);
     await page.locator('[data-testid="keypad-details"]').click();
     await esperar(page, 900);
-    const ficha = page.locator('[role=dialog]').first();
-    const textoFicha = (await ficha.count()) ? await ficha.innerText() : '';
-    cierto('«Detalles» abre la ficha', textoFicha.includes('Hipoteca'));
+    // La ficha es una página (`/categories/:id/ficha`), no un diálogo.
+    await esperar(page, 1500);
+    const enFicha = page.url().includes('/ficha');
+    const textoFicha = enFicha ? await page.locator('body').innerText() : '';
+    cierto(
+      '«Detalles» abre la ficha',
+      enFicha && textoFicha.includes('Hipoteca'),
+    );
     cierto(
       'la ficha no enseña «#template»',
       textoFicha !== '' && !textoFicha.includes('#template'),
@@ -486,8 +491,8 @@ try {
         path: path.join(capturas, 'plan-denso-ficha.png'),
       });
     }
-    await page.keyboard.press('Escape');
-    await esperar(page, 600);
+    await page.goBack();
+    await esperar(page, 1200);
   } catch (e) {
     cierto('interacción del teclado', false, String(e.message).split('\n')[0]);
     await page.keyboard.press('Escape').catch(() => undefined);
