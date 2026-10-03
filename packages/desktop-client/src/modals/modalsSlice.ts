@@ -318,6 +318,12 @@ export type Modal =
       options: {
         onSelect: (payeeId: string) => void;
         onClose?: () => void;
+        /** Móvil: muestra «Pagos y traspasos → Traspaso entre cuentas». */
+        mostrarTraspasos?: boolean;
+        /** Cuenta del movimiento: no se ofrece como destino del traspaso. */
+        cuentaMovimiento?: string | null;
+        /** Abre directamente la lista de cuentas del traspaso. */
+        empezarEnTraspaso?: boolean;
       };
     }
   | {

@@ -12,6 +12,11 @@ import { FocusableAmountInput } from './FocusableAmountInput';
 export type AmountInputProps = Omit<CalculatorAmountInputProps, 'onFocus'> & {
   disableNativeAutoFocusOnIOS?: boolean;
   onFocus?: (event?: FocusEvent<HTMLInputElement>) => void;
+  /**
+   * Variante `large` más contenida (px). Sin él, la cifra grande de siempre
+   * (46 px) de los modales de presupuesto.
+   */
+  tamanoGrande?: number;
 };
 
 export const AmountInput = memo(function AmountInput({
@@ -26,6 +31,7 @@ export const AmountInput = memo(function AmountInput({
   onFocus,
   value,
   variant = 'normal',
+  tamanoGrande,
   ...props
 }: AmountInputProps) {
   const mobileCalculatorEnabled = useFeatureFlag('mobileCalculator');
@@ -54,6 +60,11 @@ export const AmountInput = memo(function AmountInput({
         onFocus={onFocus}
         value={value}
         variant={variant}
+        style={
+          tamanoGrande
+            ? { fontSize: tamanoGrande, ...props.style }
+            : props.style
+        }
       />
     );
   }
@@ -76,23 +87,29 @@ export const AmountInput = memo(function AmountInput({
       onUpdateAmount={onChange}
       sign={value === 0 ? undefined : value < 0 ? '-' : '+'}
       focusedStyle={
-        variant === 'large'
+        variant === 'large' && tamanoGrande
           ? {
               width: 'auto',
-              padding: '5px',
-              paddingLeft: '20px',
-              paddingRight: '20px',
-              minWidth: '100%',
+              minWidth: 120,
+              padding: '2px 8px',
             }
-          : undefined
+          : variant === 'large'
+            ? {
+                width: 'auto',
+                padding: '5px',
+                paddingLeft: '20px',
+                paddingRight: '20px',
+                minWidth: '100%',
+              }
+            : undefined
       }
       style={props.style}
       textStyle={
         variant === 'large'
           ? {
-              fontSize: 46,
+              fontSize: tamanoGrande ?? 46,
               fontWeight: 800,
-              letterSpacing: '-0.035em',
+              letterSpacing: tamanoGrande ? '-0.02em' : '-0.035em',
               lineHeight: 1.15,
               textAlign: 'center',
               fontVariantNumeric: 'tabular-nums',

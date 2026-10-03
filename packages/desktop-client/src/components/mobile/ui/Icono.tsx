@@ -12,6 +12,12 @@ const TRAZOS = {
       <path d="M12 16h.01" />
     </>
   ),
+  arrowdown: (
+    <>
+      <path d="M12 5v14" />
+      <path d="m19 12-7 7-7-7" />
+    </>
+  ),
   arrowupdown: (
     <>
       <path d="m21 16-4 4-4-4" />

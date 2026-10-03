@@ -16,7 +16,7 @@ import { Toggle } from '@actual-app/components/toggle';
 import { View } from '@actual-app/components/view';
 import { css, cx } from '@emotion/css';
 
-import { color } from './ui/tokens';
+import { color, densidad } from './ui/tokens';
 
 type FieldLabelProps = {
   title: string;
@@ -121,11 +121,10 @@ export function InputField({
             minWidth: 0,
             border: 'none',
             backgroundColor: 'transparent',
-            height: 52,
+            height: 46,
             padding: 0,
             textAlign: 'right',
-            fontSize: 14.5,
-            fontWeight: 700,
+            ...densidad.nombre,
             color: disabled ? color.fg3 : color.fg,
             ...style,
             borderRadius: 0,
@@ -229,11 +228,14 @@ type TapFieldProps = ComponentPropsWithRef<typeof Button> & {
 };
 
 /**
- * Fila de formulario del sistema A (sin borde, 54 px). Los separadores los
- * pone la tarjeta que las agrupa (`tarjetaFormularioStyle`).
+ * Fila de formulario del sistema A, densa como YNAB (48 px, valor 15/500).
+ * Los separadores los pone la tarjeta que las agrupa
+ * (`tarjetaFormularioStyle`).
  */
+export const ALTO_FILA_FORMULARIO = 48;
+
 export const filaFormularioClassName = css({
-  minHeight: 54,
+  minHeight: ALTO_FILA_FORMULARIO,
   margin: 0,
   padding: '0 14px',
   gap: 12,
@@ -250,21 +252,21 @@ export const filaFormularioClassName = css({
 /** Tarjeta que agrupa filas de formulario con una línea entre ellas. */
 export const tarjetaFormularioStyle: EstiloAnidado = {
   backgroundColor: color.surface,
-  borderRadius: 20,
+  borderRadius: 16,
   boxShadow: 'var(--p-shadow, none)',
   overflow: 'hidden',
   margin: '0 16px',
   '& > * + *': { borderTop: `1px solid ${color.line}` },
 };
 
-function CajaIconoFila({ children }: { children: ReactNode }) {
+export function CajaIconoFila({ children }: { children: ReactNode }) {
   return (
     <View
       aria-hidden
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: 10,
+        width: 28,
+        height: 28,
+        borderRadius: 8,
         backgroundColor: color.surface2,
         color: color.fg2,
         alignItems: 'center',
@@ -277,14 +279,14 @@ function CajaIconoFila({ children }: { children: ReactNode }) {
   );
 }
 
-function EtiquetaFila({ children }: { children: ReactNode }) {
+export function EtiquetaFila({ children }: { children: ReactNode }) {
   return (
     <Text
       style={{
         fontSize: 13,
-        fontWeight: 700,
+        fontWeight: 600,
         color: color.fg3,
-        width: 86,
+        width: 82,
         flexShrink: 0,
         textAlign: 'left',
         userSelect: 'none',
@@ -365,8 +367,7 @@ export function TapField({
                 whiteSpace: 'nowrap',
                 userSelect: 'none',
                 textAlign: 'right',
-                fontSize: 14.5,
-                fontWeight: 700,
+                ...densidad.nombre,
                 color: showPlaceholder ? color.fg3 : color.fg,
                 ...textStyle,
               }}

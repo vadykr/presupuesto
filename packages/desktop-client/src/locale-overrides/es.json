@@ -614,5 +614,17 @@
   "Balance": "Saldo",
   "Balance covers expected spending": "El saldo cubre el gasto previsto",
   "Looks like you already did it on {{date}} ({{amount}})": "Parece que ya lo hiciste el {{date}} ({{amount}})",
-  "So far {{spent}} of {{expected}}": "Llevas {{spent}} de {{expected}}"
+  "So far {{spent}} of {{expected}}": "Llevas {{spent}} de {{expected}}",
+  "Transfer (type)": "Traspaso",
+  "Transfer between accounts": "Traspaso entre cuentas",
+  "Choose the other account": "Elige la otra cuenta",
+  "No other open accounts.": "No hay otras cuentas abiertas.",
+  "Payments and transfers": "Pagos y traspasos",
+  "Ready to Assign": "Listo para asignar",
+  "From (transfer)": "Desde",
+  "To (transfer)": "Hacia",
+  "Swap direction": "Invertir sentido",
+  "Don't count as income": "No contar como ingreso",
+  "Transfers between your accounts never count.": "Los traspasos entre tus cuentas nunca cuentan.",
+  "Still adds to Ready to Assign.": "Sigue sumando a Listo para asignar."
 }
