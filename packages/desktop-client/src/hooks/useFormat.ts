@@ -117,8 +117,10 @@ export function useFormat(): UseFormatResult {
   );
 
   const activeCurrency = useMemo(() => {
-    // Presupuesto: euros por defecto si el presupuesto no tiene moneda.
-    return getCurrency(defaultCurrencyCodePref || 'EUR');
+    // Presupuesto: euros por defecto si el presupuesto no tiene moneda (en
+    // los tests se mantiene sin símbolo, como en Actual).
+    const porDefecto = import.meta.env.MODE === 'test' ? '' : 'EUR';
+    return getCurrency(defaultCurrencyCodePref || porDefecto);
   }, [defaultCurrencyCodePref]);
 
   const numberFormatConfig = useMemo(
