@@ -467,23 +467,21 @@ export function BudgetPage() {
           }}
         >
           {({ onRefresh }) => (
-            <>
-              <BudgetTable
-                banners={
-                  <Banners month={startMonth} onBudgetAction={onBudgetAction} />
-                }
-                // This key forces the whole table rerender when the number
-                // format changes
-                key={`${numberFormat}${hideFraction}`}
-                categoryGroups={categoryGroups}
-                month={startMonth}
-                onShowBudgetSummary={onShowBudgetSummary}
-                onBudgetAction={onBudgetAction}
-                onRefresh={onRefresh}
-                onEditCategoryGroup={onOpenCategoryGroupMenuModal}
-                onEditCategory={onOpenCategoryMenuModal}
-              />
-            </>
+            <BudgetTable
+              banners={
+                <Banners month={startMonth} onBudgetAction={onBudgetAction} />
+              }
+              // This key forces the whole table rerender when the number
+              // format changes
+              key={`${numberFormat}${hideFraction}`}
+              categoryGroups={categoryGroups}
+              month={startMonth}
+              onShowBudgetSummary={onShowBudgetSummary}
+              onBudgetAction={onBudgetAction}
+              onRefresh={onRefresh}
+              onEditCategoryGroup={onOpenCategoryGroupMenuModal}
+              onEditCategory={onOpenCategoryMenuModal}
+            />
           )}
         </SyncRefresh>
       </SheetNameProvider>

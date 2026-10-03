@@ -673,7 +673,7 @@
   "Goal {{amount}}": "Meta {{amount}}",
   "It is what the target asks for.": "Es lo que pide el objetivo.",
   "It is your usual spending.": "Es lo que sueles gastar.",
-  "Missing {{amount}}": "Faltan {{amount}}",
+  "Missing {{amount}}": "Quedan {{amount}} para la meta",
   "Money available": "Con dinero",
   "Months": "Meses",
   "No spending in the last {{count}} months.": "Sin gasto en los últimos {{count}} meses.",

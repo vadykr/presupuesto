@@ -163,7 +163,6 @@ type IncomeGroupNameProps = {
 
 function IncomeGroupName({
   group,
-  onEdit,
   isCollapsed,
   onToggleCollapse,
 }: IncomeGroupNameProps) {

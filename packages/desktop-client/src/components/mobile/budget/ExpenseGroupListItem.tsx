@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import type { ComponentPropsWithoutRef } from 'react';
 import { GridListItem } from 'react-aria-components';
-import { useTranslation } from 'react-i18next';
 
 import { Button } from '@actual-app/components/button';
 import type { CSSProperties } from '@actual-app/components/styles';
@@ -170,12 +169,10 @@ type ExpenseGroupNameProps = {
 
 function ExpenseGroupName({
   group,
-  onEditCategoryGroup,
   isCollapsed,
   onToggleCollapse,
   show3Columns,
 }: ExpenseGroupNameProps) {
-  const { t } = useTranslation();
   const sidebarColumnWidth = getColumnWidth({
     show3Columns,
     isSidebar: true,
