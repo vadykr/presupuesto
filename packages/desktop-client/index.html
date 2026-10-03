@@ -6,6 +6,34 @@
       name="viewport"
       content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
+    <script>
+      // Presupuesto: escala de la interfaz en el móvil (Ajustes → Tamaño).
+      // Se dibuja la página con más ancho lógico y el navegador la reduce:
+      // todo (letra, márgenes, alturas) baja en la misma proporción.
+      (function () {
+        try {
+          var e = parseFloat(
+            localStorage.getItem('presupuesto:escala') || '0.7',
+          );
+          var w = Math.min(screen.width, screen.height);
+          if (!(e > 0.4 && e < 1) || w > 700) return;
+          window.__presupuestoEscala = e;
+          var m = document.querySelector('meta[name=viewport]');
+          m.setAttribute(
+            'content',
+            'width=' +
+              Math.round(w / e) +
+              ', initial-scale=' +
+              e +
+              ', minimum-scale=' +
+              e +
+              ', maximum-scale=' +
+              e +
+              ', user-scalable=no, viewport-fit=cover',
+          );
+        } catch (_) {}
+      })();
+    </script>
     <title>Presupuesto</title>
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />

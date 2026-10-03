@@ -22,7 +22,7 @@
   "Overbudgeted by {{amount}}": "Sobreasignado en {{amount}}",
   "Fix": "Corregir",
   "Pinned": "Fijadas",
-  "{{percent}}%": "{{percent}}\u00a0%",
+  "{{percent}}%": "{{percent}} %",
   "completed": "completado",
   "So far": "Hasta ahora",
   "To go": "Faltan",
@@ -610,5 +610,7 @@
   "{{count}} categories, mostly {{category}} ({{pct}})_other": "{{count}} categorías, sobre todo {{category}} ({{pct}})",
   "{{month}}: {{amount}}, mostly {{category}} ({{pct}})": "{{month}}: {{amount}}, sobre todo {{category}} ({{pct}})",
   "Assign {{amount}} for the target": "Asignar {{amount}} para el objetivo",
-  "No notes": "Sin notas"
+  "No notes": "Sin notas",
+  "Interface size": "Tamaño de la interfaz",
+  "<0>Interface size</0> on the phone: everything (text, spacing, rows) scales together. Saved on this device.": "<0>Tamaño de la interfaz</0> en el móvil: letra, márgenes y filas se reducen juntos. Se guarda en este dispositivo."
 }

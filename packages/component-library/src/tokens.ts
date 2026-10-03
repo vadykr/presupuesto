@@ -8,10 +8,19 @@ type NumericBreakpoints = {
   [key in BreakpointNames]: number;
 };
 
+// Presupuesto: con la interfaz escalada en el móvil (index.html, Ajustes →
+// Tamaño) la página tiene más ancho lógico; los puntos de corte se escalan
+// igual para que siga viéndose la versión móvil.
+const escala =
+  (typeof window !== 'undefined' &&
+    (window as unknown as { __presupuestoEscala?: number })
+      .__presupuestoEscala) ||
+  1;
+
 export const breakpoints: NumericBreakpoints = {
-  small: 512,
-  medium: 730,
-  wide: 1100,
+  small: Math.round(512 / escala),
+  medium: Math.round(730 / escala),
+  wide: Math.round(1100 / escala),
 };
 
 type BreakpointsPx = {

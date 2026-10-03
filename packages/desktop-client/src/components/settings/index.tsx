@@ -33,6 +33,7 @@ import { Backups } from './Backups';
 import { BudgetTypeSettings } from './BudgetTypeSettings';
 import { CurrencySettings } from './Currency';
 import { EncryptionSettings } from './Encryption';
+import { EscalaSettings } from './EscalaSettings';
 import { ExperimentalFeatures } from './Experimental';
 import { ExportBudget } from './Export';
 import { FormatSettings } from './Format';
@@ -274,6 +275,7 @@ export function Settings() {
         )}
         <About />
         <ThemeSettings />
+        <EscalaSettings />
         <FormatSettings />
         {isCurrencyExperimentalEnabled && <CurrencySettings />}
         <LanguageSettings />
