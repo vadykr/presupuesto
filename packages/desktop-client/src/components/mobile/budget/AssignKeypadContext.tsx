@@ -190,6 +190,36 @@ export function AssignKeypadProvider({
     setExpression(EMPTY_EXPRESSION);
   }, []);
 
+  // «Atrás» del móvil cierra el teclado (guardando lo escrito) en vez de salir
+  // de la pantalla: al abrirlo se añade al historial una entrada con la misma
+  // URL; si se cierra con «Hecho» o «✕», se quita esa entrada.
+  const abierto = selectedCategory != null;
+  const doneRef = useRef(done);
+  useEffect(() => {
+    doneRef.current = done;
+  }, [done]);
+  useEffect(() => {
+    if (!abierto) {
+      return;
+    }
+    window.history.pushState(
+      { ...window.history.state, presupuestoTeclado: true },
+      '',
+    );
+    let porAtras = false;
+    const onPop = () => {
+      porAtras = true;
+      doneRef.current();
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      if (!porAtras && window.history.state?.presupuestoTeclado) {
+        window.history.back();
+      }
+    };
+  }, [abierto]);
+
   // Al cambiar de mes se cierra el panel: la expresión era de otro mes.
   useEffect(() => {
     setSelectedCategory(null);

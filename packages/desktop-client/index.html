@@ -164,6 +164,14 @@
       body {
         overflow: hidden;
       }
+      /* Presupuesto: la app ocupa siempre lo visible. Con alto 100% el
+         móvil (Samsung Internet) deja un hueco abajo al esconder sus barras;
+         anclada a la ventana crece y encoge con ellas. */
+      #root {
+        position: fixed;
+        inset: 0;
+        height: auto;
+      }
 
       .cm-theme-dark {
         height: 100%;
