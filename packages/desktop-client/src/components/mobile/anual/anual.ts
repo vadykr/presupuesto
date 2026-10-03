@@ -312,3 +312,140 @@ export function parseGrupos(raw: string | undefined): string[] {
     return [];
   }
 }
+
+/**
+ * Pref `anual-seleccion`: qué entra en «Gasto anual». Una categoría entra si
+ * su grupo está en `grupos` y ella no está en `excluidas`, o si está en
+ * `categorias`.
+ */
+export type SeleccionAnual = {
+  grupos: string[];
+  categorias: string[];
+  excluidas: string[];
+};
+
+function listaIds(valor: unknown): string[] {
+  return Array.isArray(valor)
+    ? valor.filter((id): id is string => typeof id === 'string')
+    : [];
+}
+
+/** `null` si la pref no existe o no es válida (se usa el modo antiguo). */
+export function parseSeleccion(raw: string | undefined): SeleccionAnual | null {
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return null;
+    }
+    const o = parsed as Record<string, unknown>;
+    return {
+      grupos: listaIds(o.grupos),
+      categorias: listaIds(o.categorias),
+      excluidas: listaIds(o.excluidas),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** ¿Entra la categoría en la selección? */
+export function incluida(
+  seleccion: SeleccionAnual,
+  categoriaId: string,
+  grupoId: string,
+): boolean {
+  if (seleccion.categorias.includes(categoriaId)) {
+    return true;
+  }
+  return (
+    seleccion.grupos.includes(grupoId) &&
+    !seleccion.excluidas.includes(categoriaId)
+  );
+}
+
+/**
+ * Selección que reproduce lo que salía antes: los grupos de `anual-grupos`
+ * más las categorías automáticas (objetivo anual) de los demás grupos.
+ */
+export function seleccionInicial(
+  grupos: readonly string[],
+  automaticas: readonly { id: string; grupoId: string }[],
+): SeleccionAnual {
+  return {
+    grupos: [...grupos],
+    categorias: automaticas
+      .filter(c => !grupos.includes(c.grupoId))
+      .map(c => c.id),
+    excluidas: [],
+  };
+}
+
+export type GrupoSeleccionable = { id: string; categorias: { id: string }[] };
+
+/** `todas`, `algunas` (estado intermedio) o `ninguna` para un grupo. */
+export function estadoGrupo(
+  seleccion: SeleccionAnual,
+  grupo: GrupoSeleccionable,
+): 'todas' | 'algunas' | 'ninguna' {
+  if (grupo.categorias.length === 0) {
+    return seleccion.grupos.includes(grupo.id) ? 'todas' : 'ninguna';
+  }
+  const n = grupo.categorias.filter(c =>
+    incluida(seleccion, c.id, grupo.id),
+  ).length;
+  if (n === 0) {
+    return 'ninguna';
+  }
+  return n === grupo.categorias.length ? 'todas' : 'algunas';
+}
+
+/** Marca todas las categorías del grupo, o las desmarca si ya están todas. */
+export function conmutarGrupo(
+  seleccion: SeleccionAnual,
+  grupo: GrupoSeleccionable,
+): SeleccionAnual {
+  const ids = new Set(grupo.categorias.map(c => c.id));
+  const resto = (l: string[]) => l.filter(id => !ids.has(id));
+  const sinGrupo = seleccion.grupos.filter(g => g !== grupo.id);
+  if (estadoGrupo(seleccion, grupo) === 'todas') {
+    return {
+      grupos: sinGrupo,
+      categorias: resto(seleccion.categorias),
+      excluidas: resto(seleccion.excluidas),
+    };
+  }
+  return {
+    grupos: [...sinGrupo, grupo.id],
+    categorias: resto(seleccion.categorias),
+    excluidas: resto(seleccion.excluidas),
+  };
+}
+
+/** Marca o desmarca una categoría suelta. */
+export function conmutarCategoria(
+  seleccion: SeleccionAnual,
+  categoriaId: string,
+  grupoId: string,
+): SeleccionAnual {
+  const sin = (l: string[]) => l.filter(id => id !== categoriaId);
+  const grupoMarcado = seleccion.grupos.includes(grupoId);
+  if (incluida(seleccion, categoriaId, grupoId)) {
+    return {
+      ...seleccion,
+      categorias: sin(seleccion.categorias),
+      excluidas: grupoMarcado
+        ? [...sin(seleccion.excluidas), categoriaId]
+        : seleccion.excluidas,
+    };
+  }
+  return grupoMarcado
+    ? { ...seleccion, excluidas: sin(seleccion.excluidas) }
+    : { ...seleccion, categorias: [...seleccion.categorias, categoriaId] };
+}

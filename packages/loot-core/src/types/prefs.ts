@@ -85,6 +85,8 @@ export type SyncedPrefs = Partial<
     | 'analisis-descartados'
     // Presupuesto · Gasto anual: ids de grupos marcados (JSON array)
     | 'anual-grupos'
+    // Presupuesto · Gasto anual: selección exacta (JSON { grupos, categorias, excluidas })
+    | 'anual-seleccion'
     // Presupuesto · Gasto anual: plegar en el Plan lo que está al día ('true'/'false')
     | 'anual-ocultar-en-plan'
     // Presupuesto · Asignar el mes: filtros propios (JSON [{ id, nombre, categorias }])
